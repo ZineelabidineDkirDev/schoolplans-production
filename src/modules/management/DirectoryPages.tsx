@@ -19,6 +19,12 @@ import {
   getCentreStudents,
   saveAttendance,
 } from '../../data/repositories/managementRepository';
+import {
+  createCentreStudent,
+  deleteCentreStudent,
+  updateCentreStudent,
+  type StudentRecordInput,
+} from '../../data/repositories/studentManagementRepository';
 import { getSupabaseClient } from '../../data/supabase/client';
 import type { PlanningData, PlanningOccurrence } from '../../types/planning';
 import type { AttendanceSheet, AttendanceStatus, ManagedStudent } from '../../types/management';
@@ -1077,6 +1083,16 @@ export function StudentsPage() {
   const [search, setSearch] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
   const [state, setState] = useState<StudentState>({ status: 'loading' });
+  const [editingId, setEditingId] = useState<string | number | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [form, setForm] = useState<StudentRecordInput>({
+    firstName: '', lastName: '', email: '', telephone: '', city: '', address: '', educationLevel: '',
+  });
+  const canManage = profile?.role === 'admin' || profile?.role === 'director';
+
   useEffect(() => {
     let active = true;
     async function load() {
@@ -1084,122 +1100,179 @@ export function StudentsPage() {
       try {
         const students = await getCentreStudents(getSupabaseClient(), profile?.centreId ?? '');
         if (active) setState({ status: 'loaded', students });
-      } catch (error) {
-        if (active) setState({ status: 'error', message: errorMessage(error) });
+      } catch (cause) {
+        if (active) setState({ status: 'error', message: errorMessage(cause) });
       }
     }
     void load();
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [profile?.centreId, reloadKey]);
+
   const visibleStudents = useMemo(() => {
     if (state.status !== 'loaded') return [];
     const normalized = search.trim().toLocaleLowerCase('fr');
     return state.students.filter((student) =>
-      [
-        student.firstName,
-        student.lastName,
-        student.email,
-        student.telephone,
-        student.city,
-        student.groupName,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLocaleLowerCase('fr')
-        .includes(normalized),
+      [student.firstName, student.lastName, student.email, student.telephone, student.city, student.groupName]
+        .filter(Boolean).join(' ').toLocaleLowerCase('fr').includes(normalized),
     );
   }, [search, state]);
 
+  function startCreate() {
+    setEditingId(null);
+    setForm({ firstName: '', lastName: '', email: '', telephone: '', city: '', address: '', educationLevel: '' });
+    setError(null);
+    setMessage(null);
+    setFormOpen(true);
+  }
+
+  function startEdit(student: ManagedStudent) {
+    setEditingId(student.id);
+    setForm({
+      firstName: student.firstName,
+      lastName: student.lastName,
+      email: student.email ?? '',
+      telephone: student.telephone ?? '',
+      city: student.city ?? '',
+      address: student.address ?? '',
+      educationLevel: student.educationLevel ?? '',
+    });
+    setError(null);
+    setMessage(null);
+    setFormOpen(true);
+  }
+
+  async function submitStudent(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!profile?.centreId || !canManage) return;
+    setSaving(true);
+    setError(null);
+    setMessage(null);
+    try {
+      if (editingId === null) {
+        await createCentreStudent(getSupabaseClient(), profile.centreId, form);
+        setMessage('Étudiant créé avec succès.');
+      } else {
+        await updateCentreStudent(getSupabaseClient(), profile.centreId, editingId, form);
+        setMessage('Dossier étudiant modifié.');
+      }
+      setFormOpen(false);
+      setReloadKey((key) => key + 1);
+    } catch (cause) {
+      setError(errorMessage(cause));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removeStudent(student: ManagedStudent) {
+    if (!profile?.centreId || !canManage) return;
+    if (!window.confirm(`Supprimer le dossier de ${student.firstName} ${student.lastName} ?`)) return;
+    setError(null);
+    setMessage(null);
+    try {
+      await deleteCentreStudent(getSupabaseClient(), profile.centreId, student.id);
+      setMessage('Dossier étudiant supprimé.');
+      setReloadKey((key) => key + 1);
+    } catch (cause) {
+      setError(errorMessage(cause));
+    }
+  }
+
+  const fields: Array<{ key: keyof StudentRecordInput; label: string; required?: boolean; type?: string }> = [
+    { key: 'firstName', label: 'Prénom', required: true },
+    { key: 'lastName', label: 'Nom', required: true },
+    { key: 'email', label: 'E-mail', type: 'email' },
+    { key: 'telephone', label: 'Téléphone', type: 'tel' },
+    { key: 'city', label: 'Ville' },
+    { key: 'address', label: 'Adresse' },
+    { key: 'educationLevel', label: 'Niveau d’études' },
+  ];
+
   return (
     <PageFrame
+      actions={canManage ? <Button onClick={startCreate} type="button">+ Ajouter un étudiant</Button> : undefined}
       description="Dossiers étudiants du centre, groupe d’affectation et inscriptions aux cours."
       title="Étudiants"
     >
+      {error && <Alert tone="error"><p>{error}</p></Alert>}
+      {message && <Alert tone="success"><p>{message}</p></Alert>}
+      {formOpen && canManage && (
+        <Panel className="management-editor">
+          <header className="management-editor-heading">
+            <div>
+              <p className="planning-progress-eyebrow">Dossier étudiant</p>
+              <h2>{editingId === null ? 'Nouvel étudiant' : 'Modifier l’étudiant'}</h2>
+            </div>
+            <button aria-label="Fermer le formulaire" className="planning-dialog-close" onClick={() => setFormOpen(false)} type="button">×</button>
+          </header>
+          <form className="sp-form-grid" onSubmit={(event) => void submitStudent(event)}>
+            {fields.map((field) => (
+              <label className="sp-form-field" key={field.key}>
+                {field.label}
+                <input
+                  className="sp-field"
+                  autoComplete="off"
+                  required={field.required}
+                  type={field.type ?? 'text'}
+                  value={form[field.key]}
+                  onChange={(event) => setForm((current) => ({ ...current, [field.key]: event.target.value }))}
+                />
+              </label>
+            ))}
+            <div className="management-toolbar">
+              <Button disabled={saving} type="submit">{saving ? 'Enregistrement…' : 'Enregistrer'}</Button>
+              <Button onClick={() => setFormOpen(false)} type="button" variant="secondary">Annuler</Button>
+            </div>
+          </form>
+        </Panel>
+      )}
       <div className="management-toolbar">
         <label className="sp-form-field">
           Rechercher un étudiant
-          <input
-            className="sp-field"
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Nom, e-mail, ville ou groupe"
-            type="search"
-            value={search}
-          />
+          <input className="sp-field" onChange={(event) => setSearch(event.target.value)} placeholder="Nom, e-mail, ville ou groupe" type="search" value={search} />
         </label>
-        {state.status === 'loaded' && (
-          <span className="management-result-count">
-            {visibleStudents.length} / {state.students.length} étudiants
-          </span>
-        )}
+        {state.status === 'loaded' && <span className="management-result-count">{visibleStudents.length} / {state.students.length} étudiants</span>}
       </div>
-      {state.status === 'loading' && (
-        <Panel>
-          <LoadingState label="Chargement des étudiants…" />
-        </Panel>
-      )}
+      {state.status === 'loading' && <Panel><LoadingState label="Chargement des étudiants…" /></Panel>}
       {state.status === 'error' && (
         <Alert tone="error">
           <p>La liste des étudiants n’a pas pu être chargée.</p>
           <p>{state.message}</p>
-          <Button onClick={() => setReloadKey((key) => key + 1)} type="button" variant="secondary">
-            Réessayer
-          </Button>
+          <Button onClick={() => setReloadKey((key) => key + 1)} type="button" variant="secondary">Réessayer</Button>
         </Alert>
       )}
-      {state.status === 'loaded' &&
-        (visibleStudents.length === 0 ? (
-          <EmptyState
-            title={
-              search
-                ? 'Aucun résultat pour cette recherche.'
-                : 'Aucun étudiant enregistré dans ce centre.'
-            }
-          />
-        ) : (
-          <div className="management-card-grid management-four-column-grid management-student-grid">
-            {visibleStudents.map((student) => (
-              <Panel className="management-student-card" key={student.id}>
-                <header className="management-student-heading">
-                  <span aria-hidden="true" className="management-avatar management-student-avatar">
-                    {initials(`${student.firstName} ${student.lastName}`)}
-                  </span>
-                  <div>
-                    <h2>
-                      {student.firstName} {student.lastName}
-                    </h2>
-                    <p>{student.educationLevel || 'Niveau non renseigné'}</p>
-                  </div>
-                </header>
-                <div className="management-student-details">
-                  {student.email && (
-                    <a href={`mailto:${student.email}`}>
-                      <span aria-hidden="true">✉</span>
-                      {student.email}
-                    </a>
-                  )}
-                  {student.telephone && (
-                    <a href={`tel:${student.telephone}`}>
-                      <span aria-hidden="true">☎</span>
-                      {student.telephone}
-                    </a>
-                  )}
-                  {student.city && (
-                    <span>
-                      <span aria-hidden="true">⌖</span>
-                      {student.city}
-                    </span>
-                  )}
+      {state.status === 'loaded' && (visibleStudents.length === 0 ? (
+        <EmptyState title={search ? 'Aucun résultat pour cette recherche.' : 'Aucun étudiant enregistré dans ce centre.'} />
+      ) : (
+        <div className="management-card-grid management-four-column-grid management-student-grid">
+          {visibleStudents.map((student) => (
+            <Panel className="management-student-card" key={student.id}>
+              <header className="management-student-heading">
+                <span aria-hidden="true" className="management-avatar management-student-avatar">{initials(`${student.firstName} ${student.lastName}`)}</span>
+                <div>
+                  <h2>{student.firstName} {student.lastName}</h2>
+                  <p>{student.educationLevel || 'Niveau non renseigné'}</p>
                 </div>
-                <footer className="management-student-footer">
-                  <span>{student.groupName || 'Non affecté'}</span>
-                  <span>{student.courseCount} cours</span>
-                </footer>
-              </Panel>
-            ))}
-          </div>
-        ))}
+              </header>
+              <div className="management-student-details">
+                {student.email && <a href={`mailto:${student.email}`}><span aria-hidden="true">✉</span>{student.email}</a>}
+                {student.telephone && <a href={`tel:${student.telephone}`}><span aria-hidden="true">☎</span>{student.telephone}</a>}
+                {student.city && <span><span aria-hidden="true">⌖</span>{student.city}</span>}
+              </div>
+              <footer className="management-student-footer">
+                <span>{student.groupName || 'Non affecté'}</span>
+                <span>{student.courseCount} cours</span>
+              </footer>
+              {canManage && (
+                <div className="management-toolbar">
+                  <Button onClick={() => startEdit(student)} type="button" variant="secondary">Modifier</Button>
+                  <Button onClick={() => void removeStudent(student)} type="button" variant="danger">Supprimer</Button>
+                </div>
+              )}
+            </Panel>
+          ))}
+        </div>
+      ))}
     </PageFrame>
   );
 }
