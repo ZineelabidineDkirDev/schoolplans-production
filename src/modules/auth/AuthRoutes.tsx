@@ -209,9 +209,11 @@ function ApplicationShell() {
                 {activeCentre?.type_abonnement && <span>Pack : <b>{activeCentre.type_abonnement}</b></span>}
                 {activeCentre?.statut_abonnement && <span>Abonnement : <b>{activeCentre.statut_abonnement}</b></span>}
                 {activeCentre?.date_expiration && (() => {
-                  const days = Math.round((new Date(`${activeCentre.date_expiration}T12:00:00`).getTime() - new Date(`${new Date().toISOString().slice(0, 10)}T12:00:00`).getTime()) / 86400000);
+                  const today = new Date();
+                  const localToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                  const days = Math.round((new Date(`${activeCentre.date_expiration}T12:00:00`).getTime() - new Date(`${localToday}T12:00:00`).getTime()) / 86400000);
                   return (
-                    <span className={days <= 30 ? 'font-bold text-amber-200' : 'text-white/90'}>
+                    <span className={days < 0 ? 'font-bold text-rose-200' : days <= 30 ? 'font-bold text-amber-200' : 'text-white/90'}>
                       Expiration : {activeCentre.date_expiration.split('-').reverse().join('/')} ({days < 0 ? `expiré depuis ${-days} j` : days === 0 ? 'expire aujourd’hui' : `${days} j restants`})
                     </span>
                   );
