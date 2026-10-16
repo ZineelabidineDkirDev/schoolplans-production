@@ -25,6 +25,7 @@ import {
   updateCentreStudent,
   type StudentRecordInput,
 } from '../../data/repositories/studentManagementRepository';
+import { assignStudentToGroup, setStudentCourseEnrollment } from '../../data/repositories/studentAssignmentRepository';
 import { getSupabaseClient } from '../../data/supabase/client';
 import type { PlanningData, PlanningOccurrence } from '../../types/planning';
 import type { AttendanceSheet, AttendanceStatus, ManagedStudent } from '../../types/management';
@@ -1080,6 +1081,7 @@ export function FormationGroupsPage() {
 
 export function StudentsPage() {
   const { profile } = useAuth();
+  const planning = usePlanningData();
   const [search, setSearch] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
   const [state, setState] = useState<StudentState>({ status: 'loading' });
@@ -1163,6 +1165,19 @@ export function StudentsPage() {
       setSaving(false);
     }
   }
+
+  async function changeStudentGroup(student: ManagedStudent, value: string) {
+    if (!profile?.centreId || !canManage) return;
+    try {
+      await assignStudentToGroup(getSupabaseClient(), profile.centreId, student.id, value ? value : null);
+      setMessage('Affectation au groupe enregistrée.');
+      setError(null);
+      setReloadKey((key) => key + 1);
+    } catch (cause) {
+      setError(errorMessage(cause));
+    }
+  }
+
 
   async function removeStudent(student: ManagedStudent) {
     if (!profile?.centreId || !canManage) return;
@@ -1263,6 +1278,20 @@ export function StudentsPage() {
                 <span>{student.groupName || 'Non affecté'}</span>
                 <span>{student.courseCount} cours</span>
               </footer>
+              {canManage && planning.state.status === 'loaded' && (
+                <div className="sp-form-grid">
+                  <label className="sp-form-field">
+                    Groupe
+                    <select className="sp-field" value={student.groupId === null ? '' : String(student.groupId)} onChange={(event) => void changeStudentGroup(student, event.target.value)}>
+                      <option value="">Non affecté</option>
+                      {planning.state.data.filters.groups.filter((group) => group.active).map((group) => (
+                        <option key={group.id} value={String(group.id)}>{group.name} · {group.formationName ?? 'Formation'}</option>
+                      ))}
+                    </select>
+                  </label>
+
+                </div>
+              )}
               {canManage && (
                 <div className="management-toolbar">
                   <Button onClick={() => startEdit(student)} type="button" variant="secondary">Modifier</Button>
