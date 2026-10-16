@@ -157,7 +157,7 @@ export function CentreManagementPage() {
   const [form, setForm] = useState<CentreForm>(emptyForm);
   const [formOpen, setFormOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useState<{ tone: 'success' | 'error' | 'warning'; text: string } | null>(null);
   const [selectedCentre, setSelectedCentre] = useState<Centre | null>(null);
   const [configCentre, setConfigCentre] = useState<Centre | null>(null);
   const [configForm, setConfigForm] = useState<CentreConfigForm>({
@@ -255,7 +255,7 @@ export function CentreManagementPage() {
         } : {}),
         ...(!rightsProbe.error ? { droits: form.rights } : {}),
       };
-      const result = await invokeCentreDirectorAccess(client, {
+      await invokeCentreDirectorAccess(client, {
         action: 'create_centre',
         centre: centrePayload,
         director: {
