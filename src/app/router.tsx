@@ -46,5 +46,5 @@ export const router = createBrowserRouter(
       ),
     },
   ],
-  { basename: '/react-app.html' },
+  { basename: '/' },
 );
