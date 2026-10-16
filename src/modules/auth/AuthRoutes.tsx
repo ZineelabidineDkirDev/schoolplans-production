@@ -65,7 +65,17 @@ function AuthenticatedContent() {
 }
 
 function ApplicationShell() {
-  const { profile, session, permissions, permissionErrors, error: authError, signOut } = useAuth();
+  const {
+    profile,
+    session,
+    permissions,
+    permissionErrors,
+    activeCentres,
+    activeCentreId,
+    setActiveCentreId,
+    error: authError,
+    signOut,
+  } = useAuth();
   if (!profile) return null;
 
   const visibleSections = getVisibleSections(profile.role, permissions);
@@ -77,6 +87,22 @@ function ApplicationShell() {
           <b className="sp-app-brand-mark">I</b>
           <span>SchoolPlans</span>
         </Link>
+        {profile.role === 'super_admin' && (
+          <label className="flex min-w-48 flex-col gap-1 text-sm" htmlFor="sp-active-centre">
+            <span className="font-semibold">Centre actif</span>
+            <select
+              className="rounded-lg border border-line bg-white px-3 py-2 text-slate-900"
+              id="sp-active-centre"
+              onChange={(event) => setActiveCentreId(event.target.value)}
+              value={activeCentreId}
+            >
+              {activeCentres.length === 0 && <option value="">Aucun centre actif</option>}
+              {activeCentres.map((centre) => (
+                <option key={centre.id} value={centre.id}>{centre.name}</option>
+              ))}
+            </select>
+          </label>
+        )}
         <div aria-label="Utilisateur connecté" className="sp-user">
           <strong>{profile.fullName || session?.user.email}</strong>
           <small>{getRoleLabel(profile.role)}</small>
@@ -121,6 +147,11 @@ function ApplicationShell() {
         </nav>
 
         <main className="sp-app-content">
+          {profile.role === 'super_admin' && !activeCentreId && (
+            <Alert tone="warning">
+              Aucun centre actif n’est disponible. Créez ou réactivez un centre dans « Gestion des centres ».
+            </Alert>
+          )}
           {authError && <Alert tone="error">{authError}</Alert>}
           {permissionErrors.length > 0 && (
             <Alert tone="warning">
