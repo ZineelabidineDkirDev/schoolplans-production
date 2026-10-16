@@ -1,8 +1,9 @@
+
 [build]
   command = "npm run build"
   publish = "dist"
 
 [[redirects]]
-  from = "/react-app.html/*"
-  to = "/react-app.html"
+  from = "/*"
+  to = "/index.html"
   status = 200
