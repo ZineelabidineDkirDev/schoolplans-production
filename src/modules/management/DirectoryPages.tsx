@@ -25,7 +25,7 @@ import {
   updateCentreStudent,
   type StudentRecordInput,
 } from '../../data/repositories/studentManagementRepository';
-import { assignStudentToGroup } from '../../data/repositories/studentAssignmentRepository';
+import { assignStudentToGroup, getStudentCourseEnrollmentIds, setStudentCourseEnrollment } from '../../data/repositories/studentAssignmentRepository';
 import { setStudentCourseEnrollment } from '../../data/repositories/studentAssignmentRepository';
 import { createCentreRoom, updateCentreRoom, deleteCentreRoom, createCentreTeacher, updateCentreTeacher, deleteCentreTeacher, type RoomInput, type TeacherInput } from '../../data/repositories/directoryCrudRepository';
 import { getSupabaseClient } from '../../data/supabase/client';
@@ -1051,6 +1051,7 @@ export function StudentsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [enrollmentIds, setEnrollmentIds] = useState<Record<string, Array<string | number>>>({});
   const [form, setForm] = useState<StudentRecordInput>({
     firstName: '', lastName: '', email: '', telephone: '', city: '', address: '', educationLevel: '',
   });
@@ -1070,6 +1071,32 @@ export function StudentsPage() {
     void load();
     return () => { active = false; };
   }, [profile?.centreId, reloadKey]);
+
+  useEffect(() => {
+    let active = true;
+    if (!profile?.centreId) { setEnrollmentIds({}); return; }
+    void getStudentCourseEnrollmentIds(getSupabaseClient(), profile.centreId)
+      .then((ids) => { if (active) setEnrollmentIds(ids); })
+      .catch((cause: unknown) => { if (active) setError(errorMessage(cause)); });
+    return () => { active = false; };
+  }, [profile?.centreId, reloadKey]);
+
+  async function changeCourseEnrollment(student: ManagedStudent, courseId: string | number, enrolled: boolean) {
+    if (!profile?.centreId || !canManage) return;
+    setError(null); setMessage(null);
+    try {
+      await setStudentCourseEnrollment(getSupabaseClient(), profile.centreId, student.id, courseId, enrolled);
+      setEnrollmentIds((current) => {
+        const key = String(student.id);
+        const currentIds = current[key] ?? [];
+        return { ...current, [key]: enrolled
+          ? (currentIds.some((id) => String(id) === String(courseId)) ? currentIds : [...currentIds, courseId])
+          : currentIds.filter((id) => String(id) !== String(courseId)) };
+      });
+      setMessage(enrolled ? 'Étudiant inscrit au cours.' : 'Inscription au cours supprimée.');
+      setReloadKey((key) => key + 1);
+    } catch (cause) { setError(errorMessage(cause)); }
+  }
 
   const visibleStudents = useMemo(() => {
     if (state.status !== 'loaded') return [];
@@ -1250,7 +1277,27 @@ export function StudentsPage() {
                       ))}
                     </select>
                   </label>
-
+                  <details>
+                    <summary>Gérer les inscriptions aux cours</summary>
+                    <div className="sp-form-grid">
+                      {planning.state.data.courses.map((course) => {
+                        const enrolled = (enrollmentIds[String(student.id)] ?? []).some((id) => String(id) === String(course.id));
+                        const groupMismatch = Boolean(course.groupId && String(student.groupId) !== String(course.groupId));
+                        return (
+                          <label className="cb" key={course.id}>
+                            <input
+                              type="checkbox"
+                              checked={enrolled}
+                              disabled={!enrolled && groupMismatch}
+                              onChange={(event) => void changeCourseEnrollment(student, course.id, event.target.checked)}
+                            />
+                            {course.subjectName} — {course.groupName ?? 'Sans groupe'}
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <p className="management-muted">Les cours d’un autre groupe sont désactivés. Affectez d’abord l’étudiant au groupe correspondant.</p>
+                  </details>
                 </div>
               )}
               {canManage && (
