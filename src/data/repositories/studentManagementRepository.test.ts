@@ -20,7 +20,7 @@ const input: StudentRecordInput = {
 function createClient(results: Record<string, unknown> = {}) {
   const calls: Array<{ table: string; method: string; args: unknown[] }> = [];
   const from = vi.fn((table: string) => {
-    const query: Record<string, (...args: any[]) => any> = {};
+    const query: Record<string, (...args: unknown[]) => unknown> = {};
     for (const method of ['insert', 'update', 'delete', 'select', 'eq']) {
       query[method] = (...args: unknown[]) => {
         calls.push({ table, method, args });
