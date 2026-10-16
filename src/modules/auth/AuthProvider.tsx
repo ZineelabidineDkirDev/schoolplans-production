@@ -193,12 +193,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   const setActiveCentreId = useCallback((centreId: string) => {
-    setActiveCentreIdState((current) => {
-      const valid = activeCentres.some((centre) => centre.id === centreId);
-      if (!valid) return current;
-      window.localStorage.setItem('schoolplans_current_centre', centreId);
-      return centreId;
-    });
+    if (!activeCentres.some((centre) => centre.id === centreId)) return;
+    window.localStorage.setItem('schoolplans_current_centre', centreId);
+    setActiveCentreIdState(centreId);
   }, [activeCentres]);
 
   const signIn = useCallback(
