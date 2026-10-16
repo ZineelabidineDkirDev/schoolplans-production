@@ -38,6 +38,11 @@ type CentreForm = {
   directorEmail: string;
   password: string;
   confirmPassword: string;
+  pack: string;
+  subscriptionStatus: string;
+  startDate: string;
+  expirationDate: string;
+  rights: Record<string, boolean>;
 };
 
 type DirectorForm = {
@@ -84,6 +89,11 @@ const emptyForm: CentreForm = {
   directorEmail: '',
   password: '',
   confirmPassword: '',
+  pack: '',
+  subscriptionStatus: '',
+  startDate: '',
+  expirationDate: '',
+  rights: DEFAULT_CENTRE_RIGHTS,
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -221,19 +231,45 @@ export function CentreManagementPage() {
       setMessage({ tone: 'error', text: 'Les deux mots de passe ne correspondent pas.' });
       return;
     }
+    if (form.startDate && form.expirationDate && form.expirationDate < form.startDate) {
+      setMessage({ tone: 'error', text: "La date d'expiration doit suivre la date de début." });
+      return;
+    }
 
     setSaving(true);
     try {
-      await invokeCentreDirectorAccess(getSupabaseClient(), {
+      const client = getSupabaseClient();
+      const [subscriptionProbe, rightsProbe] = await Promise.all([
+        client.from('centres').select('type_abonnement, statut_abonnement, date_debut, date_expiration').limit(1),
+        client.from('centres').select('droits').limit(1),
+      ]);
+      const centrePayload = {
+        nom: form.name.trim(),
+        slug,
+        actif: true,
+        ...(!subscriptionProbe.error ? {
+          type_abonnement: form.pack || null,
+          statut_abonnement: form.subscriptionStatus || null,
+          date_debut: form.startDate || null,
+          date_expiration: form.expirationDate || null,
+        } : {}),
+        ...(!rightsProbe.error ? { droits: form.rights } : {}),
+      };
+      const result = await invokeCentreDirectorAccess(client, {
         action: 'create_centre',
-        centre: { nom: form.name.trim(), slug, actif: true },
+        centre: centrePayload,
         director: {
           full_name: form.directorName.trim(),
           email,
           password: form.password,
         },
       });
-      setMessage({ tone: 'success', text: 'Centre et directeur créés avec succès.' });
+      setMessage({
+        tone: subscriptionProbe.error || rightsProbe.error ? 'warning' : 'success',
+        text: subscriptionProbe.error || rightsProbe.error
+          ? `Centre et directeur créés. Attention : ${subscriptionProbe.error ? "les champs d'abonnement" : ''}${subscriptionProbe.error && rightsProbe.error ? ' et ' : ''}${rightsProbe.error ? 'les droits' : ''} n'ont pas pu être enregistrés, car les colonnes correspondantes sont absentes ou inaccessibles.`
+          : 'Centre, directeur, abonnement et droits créés avec succès.',
+      });
       setForm(emptyForm);
       setFormOpen(false);
       await refresh();
@@ -498,6 +534,55 @@ export function CentreManagementPage() {
               required
               value={form.slug}
             />
+            <div className="grid gap-4 rounded-xl border border-line p-4 md:col-span-2 md:grid-cols-2">
+              <label className="sp-form-field">
+                Pack choisi
+                <select className="sp-field" onChange={(event) => setForm((current) => ({ ...current, pack: event.target.value }))} value={form.pack}>
+                  <option value="">Choisir un pack…</option>
+                  <option value="STARTER">STARTER</option>
+                  <option value="STANDARD">STANDARD</option>
+                  <option value="PROFESSIONAL">PROFESSIONAL</option>
+                  <option value="ENTERPRISE">ENTERPRISE — Grand École</option>
+                </select>
+              </label>
+              <label className="sp-form-field">
+                Statut de l'abonnement
+                <select className="sp-field" onChange={(event) => setForm((current) => ({ ...current, subscriptionStatus: event.target.value }))} value={form.subscriptionStatus}>
+                  <option value="">Choisir un statut…</option>
+                  <option value="TRIAL">TRIAL</option>
+                  <option value="ACTIF">ACTIF</option>
+                  <option value="EXPIRE">EXPIRE</option>
+                  <option value="SUSPENDU">SUSPENDU</option>
+                </select>
+              </label>
+              <label className="sp-form-field">
+                Date de début
+                <input className="sp-field" onChange={(event) => setForm((current) => ({ ...current, startDate: event.target.value }))} type="date" value={form.startDate} />
+              </label>
+              <label className="sp-form-field">
+                Date d'expiration
+                <input className="sp-field" onChange={(event) => setForm((current) => ({ ...current, expirationDate: event.target.value }))} type="date" value={form.expirationDate} />
+              </label>
+              <div className="md:col-span-2">
+                <h3 className="mb-3 text-sm font-bold text-brand-900">Droits d'accès inclus</h3>
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                  {CENTRE_RIGHTS.map(([key, label]) => (
+                    <label className="flex items-center gap-2 rounded-lg border border-line p-2 text-sm" key={key}>
+                      <input
+                        checked={form.rights[key] === true}
+                        className="h-4 w-4"
+                        onChange={(event) => setForm((current) => ({
+                          ...current,
+                          rights: { ...current.rights, [key]: event.target.checked },
+                        }))}
+                        type="checkbox"
+                      />
+                      <span>{label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
             <Field
               className="md:col-span-2"
               label="Nom complet du directeur"
