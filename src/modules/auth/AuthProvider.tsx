@@ -14,9 +14,9 @@ import { getAuthProfile } from '../../data/repositories/profileRepository';
 import { getSupabaseClient } from '../../data/supabase/client';
 import { isPendingStudent } from '../../business/permissions/permissions';
 import type { AuthProfile, CentrePermissions } from '../../types/auth';
+import { hasPasswordAuthMethod } from './authSession';
 
 export type ActiveCentre = { id: string; name: string };
-import { hasPasswordAuthMethod } from './authSession';
 
 export type AuthStatus =
   'loading' | 'anonymous' | 'authenticated' | 'pending' | 'error' | 'configuration_error';
@@ -125,6 +125,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
           nextActiveCentreId = nextActiveCentres.some((centre) => centre.id === savedCentreId)
             ? savedCentreId
             : (nextActiveCentres[0]?.id ?? '');
+          if (nextActiveCentreId) {
+            window.localStorage.setItem('schoolplans_current_centre', nextActiveCentreId);
+          }
         }
 
         const permissionLoad = await getCentrePermissions(
