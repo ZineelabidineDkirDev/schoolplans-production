@@ -281,16 +281,27 @@ function ApplicationShell() {
             <NavIcon section="home" />
             <span className="sp-nav-label">Accueil</span>
           </NavLink>
-          {visibleSections.map((section) => (
+          {profile.role === 'super_admin' && (
             <NavLink
               className={({ isActive }) => navItemClass(isActive)}
-              key={section}
-              to={`/app/${section}`}
+              to="/app/vz"
             >
-              <NavIcon section={section} />
-              <span className="sp-nav-label">{SECTION_LABELS[section]}</span>
+              <NavIcon section="vz" />
+              <span className="sp-nav-label">Gérer les centres</span>
             </NavLink>
-          ))}
+          )}
+          {visibleSections
+            .filter((section) => !(profile.role === 'super_admin' && section === 'vz'))
+            .map((section) => (
+              <NavLink
+                className={({ isActive }) => navItemClass(isActive)}
+                key={section}
+                to={`/app/${section}`}
+              >
+                <NavIcon section={section} />
+                <span className="sp-nav-label">{SECTION_LABELS[section]}</span>
+              </NavLink>
+            ))}
         </nav>
 
         <main className="sp-app-content">
