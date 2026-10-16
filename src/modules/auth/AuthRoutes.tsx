@@ -76,40 +76,100 @@ function ApplicationShell() {
     signOut,
     setActiveCentreId,
   } = useAuth();
-  const [centres, setCentres] = useState<{ id: string; nom: string }[]>([]);
+  type CentreHeaderInfo = {
+    id: string;
+    nom: string;
+    actif: boolean;
+    logo_url?: string | null;
+    type_abonnement?: string | null;
+    statut_abonnement?: string | null;
+    date_debut?: string | null;
+    date_expiration?: string | null;
+  };
+  const [centres, setCentres] = useState<CentreHeaderInfo[]>([]);
+  const [activeCentre, setActiveCentre] = useState<CentreHeaderInfo | null>(null);
   const [centresLoading, setCentresLoading] = useState(false);
   const [centresError, setCentresError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!profile || profile.role !== 'super_admin') return;
+    if (!profile || !['super_admin', 'admin', 'director'].includes(profile.role)) return;
     let active = true;
+
+    async function loadSubscription(centreId: string, base: CentreHeaderInfo) {
+      const { data } = await getSupabaseClient()
+        .from('centres')
+        .select('type_abonnement, statut_abonnement, date_debut, date_expiration')
+        .eq('id', centreId)
+        .maybeSingle();
+      if (!active) return base;
+      return data ? { ...base, ...data } : base;
+    }
 
     async function loadCentres() {
       setCentresLoading(true);
       setCentresError(null);
-      const { data, error } = await getSupabaseClient()
-        .from('centres')
-        .select('id, nom, actif')
-        .eq('actif', true)
-        .order('nom');
+      const client = getSupabaseClient();
 
-      if (!active) return;
-      if (error) {
-        setCentresError(error.message);
-        setCentres([]);
+      if (profile.role === 'super_admin') {
+        const { data, error } = await client
+          .from('centres')
+          .select('id, nom, actif, logo_url')
+          .eq('actif', true)
+          .order('nom');
+
+        if (!active) return;
+        if (error) {
+          setCentresError(error.message);
+          setCentres([]);
+          setActiveCentre(null);
+          setCentresLoading(false);
+          return;
+        }
+
+        const available = (data ?? []).filter(
+          (centre) => typeof centre.id === 'string' && typeof centre.nom === 'string',
+        ) as CentreHeaderInfo[];
+        if (!available.some((centre) => centre.id === profile.centreId)) {
+          const firstId = available[0]?.id ?? null;
+          setActiveCentreId(firstId);
+          if (!firstId) {
+            setCentres([]);
+            setActiveCentre(null);
+            setCentresLoading(false);
+            return;
+          }
+        }
+        const selectedId = available.some((centre) => centre.id === profile.centreId)
+          ? profile.centreId
+          : available[0]?.id ?? null;
+        const selected = available.find((centre) => centre.id === selectedId) ?? null;
+        setCentres(available);
+        setActiveCentre(selected ? await loadSubscription(selected.id, selected) : null);
         setCentresLoading(false);
         return;
       }
 
-      const available = (data ?? []).filter(
-        (centre) => typeof centre.id === 'string' && typeof centre.nom === 'string',
-      );
-      setCentres(available.map(({ id, nom }) => ({ id, nom })));
-      setCentresLoading(false);
-
-      if (!available.some((centre) => centre.id === profile.centreId)) {
-        setActiveCentreId(available[0]?.id ?? null);
+      if (!profile.centreId) {
+        setActiveCentre(null);
+        setCentresLoading(false);
+        return;
       }
+      const { data, error } = await client
+        .from('centres')
+        .select('id, nom, actif, logo_url')
+        .eq('id', profile.centreId)
+        .maybeSingle();
+      if (!active) return;
+      if (error) {
+        setCentresError(error.message);
+        setActiveCentre(null);
+      } else if (data) {
+        const base = data as CentreHeaderInfo;
+        setActiveCentre(await loadSubscription(base.id, base));
+      } else {
+        setActiveCentre(null);
+      }
+      setCentresLoading(false);
     }
 
     void loadCentres();
@@ -129,7 +189,39 @@ function ApplicationShell() {
           <b className="sp-app-brand-mark">I</b>
           <span>SchoolPlans</span>
         </Link>
-        {profile.role === 'super_admin' && (
+        {['super_admin', 'admin', 'director'].includes(profile.role) && (
+          <div className="flex min-w-0 flex-wrap items-center gap-3 rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-white">
+            <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-lg bg-white">
+              {activeCentre?.logo_url ? (
+                <img alt={`Logo de ${activeCentre.nom}`} className="h-full w-full object-contain" src={activeCentre.logo_url} />
+              ) : (
+                <span aria-hidden="true" className="text-xl">🏫</span>
+              )}
+            </div>
+            <div className="flex min-w-0 flex-col gap-1">
+              <strong className="max-w-[220px] truncate text-sm">{activeCentre?.nom ?? (centresLoading ? 'Chargement du centre…' : 'Centre non défini')}</strong>
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                {activeCentre && (
+                  <span className={activeCentre.actif ? 'rounded-full bg-emerald-400/20 px-2 py-0.5 text-emerald-100' : 'rounded-full bg-rose-400/20 px-2 py-0.5 text-rose-100'}>
+                    {activeCentre.actif ? 'Centre actif' : 'Centre suspendu'}
+                  </span>
+                )}
+                {activeCentre?.type_abonnement && <span>Pack : <b>{activeCentre.type_abonnement}</b></span>}
+                {activeCentre?.statut_abonnement && <span>Abonnement : <b>{activeCentre.statut_abonnement}</b></span>}
+                {activeCentre?.date_expiration && (() => {
+                  const days = Math.round((new Date(`${activeCentre.date_expiration}T12:00:00`).getTime() - new Date(`${new Date().toISOString().slice(0, 10)}T12:00:00`).getTime()) / 86400000);
+                  return (
+                    <span className={days <= 30 ? 'font-bold text-amber-200' : 'text-white/90'}>
+                      Expiration : {activeCentre.date_expiration.split('-').reverse().join('/')} ({days < 0 ? `expiré depuis ${-days} j` : days === 0 ? 'expire aujourd’hui' : `${days} j restants`})
+                    </span>
+                  );
+                })()}
+                {!activeCentre?.type_abonnement && !activeCentre?.statut_abonnement && !activeCentre?.date_expiration && (
+                  <span className="text-white/75">Abonnement non défini</span>
+                )}
+              </div>
+            </div>
+            {profile.role === 'super_admin' && (
           <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3 py-2">
             <label className="whitespace-nowrap text-xs font-semibold text-white" htmlFor="sp-centre-select">
               Centre actif
@@ -150,6 +242,8 @@ function ApplicationShell() {
             </select>
             {centresError && (
               <small className="w-full text-xs text-red-200">{centresError}</small>
+            )}
+          </div>
             )}
           </div>
         )}
