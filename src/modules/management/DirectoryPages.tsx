@@ -25,7 +25,7 @@ import {
   updateCentreStudent,
   type StudentRecordInput,
 } from '../../data/repositories/studentManagementRepository';
-import { assignStudentToGroup, setStudentCourseEnrollment } from '../../data/repositories/studentAssignmentRepository';
+import { assignStudentToGroup } from '../../data/repositories/studentAssignmentRepository';
 import { getSupabaseClient } from '../../data/supabase/client';
 import type { PlanningData, PlanningOccurrence } from '../../types/planning';
 import type { AttendanceSheet, AttendanceStatus, ManagedStudent } from '../../types/management';
