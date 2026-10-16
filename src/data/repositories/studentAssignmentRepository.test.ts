@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
-import { assignStudentToGroup, setStudentCourseEnrollment } from './studentAssignmentRepository';
+import { assignStudentToGroup, getStudentCourseEnrollmentIds, setStudentCourseEnrollment } from './studentAssignmentRepository';
 
 type Result = { data: unknown; error: null | Error };
 
@@ -83,6 +83,30 @@ describe('student assignment repository', () => {
       method: 'insert',
       args: [{ centre_id: 'centre-a', cours_id: 8, etudiant_id: 12 }],
     });
+  });
+
+  it('loads persisted course enrollment IDs grouped by student', async () => {
+    const { client } = createClient({ lists: { inscriptions: [
+      { etudiant_id: 12, cours_id: 8 },
+      { etudiant_id: 12, cours_id: 9 },
+      { etudiant_id: 13, cours_id: 8 },
+    ] } });
+    await expect(getStudentCourseEnrollmentIds(client, 'centre-a')).resolves.toEqual({
+      '12': [8, 9],
+      '13': [8],
+    });
+  });
+
+  it('does not duplicate an existing course enrollment', async () => {
+    const { client, calls } = createClient({
+      single: {
+        etudiants: { id: 12, groupe_id: 4 },
+        cours: { id: 8, groupe_id: 4 },
+        inscriptions: { etudiant_id: 12 },
+      },
+    });
+    await expect(setStudentCourseEnrollment(client, 'centre-a', 12, 8, true)).resolves.toBeUndefined();
+    expect(calls.some((call) => call.table === 'inscriptions' && call.method === 'insert')).toBe(false);
   });
 
   it('removes a course enrollment using all three identifiers', async () => {
