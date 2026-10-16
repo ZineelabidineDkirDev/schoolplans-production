@@ -93,6 +93,7 @@ function ApplicationShell() {
 
   useEffect(() => {
     if (!profile || !['super_admin', 'admin', 'director'].includes(profile.role)) return;
+    const currentProfile = profile;
     let active = true;
 
     async function loadSubscription(centreId: string, base: CentreHeaderInfo) {
@@ -110,7 +111,7 @@ function ApplicationShell() {
       setCentresError(null);
       const client = getSupabaseClient();
 
-      if (profile.role === 'super_admin') {
+      if (currentProfile.role === 'super_admin') {
         const { data, error } = await client
           .from('centres')
           .select('id, nom, actif, logo_url')
@@ -129,7 +130,7 @@ function ApplicationShell() {
         const available = (data ?? []).filter(
           (centre) => typeof centre.id === 'string' && typeof centre.nom === 'string',
         ) as CentreHeaderInfo[];
-        if (!available.some((centre) => centre.id === profile.centreId)) {
+        if (!available.some((centre) => centre.id === currentProfile.centreId)) {
           const firstId = available[0]?.id ?? null;
           setActiveCentreId(firstId);
           if (!firstId) {
@@ -139,8 +140,8 @@ function ApplicationShell() {
             return;
           }
         }
-        const selectedId = available.some((centre) => centre.id === profile.centreId)
-          ? profile.centreId
+        const selectedId = available.some((centre) => centre.id === currentProfile.centreId)
+          ? currentProfile.centreId
           : available[0]?.id ?? null;
         const selected = available.find((centre) => centre.id === selectedId) ?? null;
         setCentres(available);
@@ -149,7 +150,7 @@ function ApplicationShell() {
         return;
       }
 
-      if (!profile.centreId) {
+      if (!currentProfile.centreId) {
         setActiveCentre(null);
         setCentresLoading(false);
         return;
@@ -157,7 +158,7 @@ function ApplicationShell() {
       const { data, error } = await client
         .from('centres')
         .select('id, nom, actif, logo_url')
-        .eq('id', profile.centreId)
+        .eq('id', currentProfile.centreId)
         .maybeSingle();
       if (!active) return;
       if (error) {
