@@ -116,3 +116,26 @@ export async function setStudentCourseEnrollment(
     .eq('etudiant_id', studentId);
   if (error) throw error;
 }
+
+export async function getStudentCourseEnrollmentIds(
+  client: SupabaseClient,
+  centreIdValue: string,
+): Promise<Record<string, StudentIdentifier[]>> {
+  const centreId = requireCentre(centreIdValue);
+  const { data, error } = await client
+    .from('inscriptions')
+    .select('etudiant_id,cours_id')
+    .eq('centre_id', centreId);
+  if (error) throw error;
+  if (!Array.isArray(data)) throw new Error('Réponse Supabase invalide : inscriptions attendues.');
+  const result: Record<string, StudentIdentifier[]> = {};
+  for (const entry of data) {
+    if (typeof entry !== 'object' || entry === null) continue;
+    const row = entry as { etudiant_id?: StudentIdentifier; cours_id?: StudentIdentifier };
+    if (row.etudiant_id === undefined || row.cours_id === undefined) continue;
+    const key = String(row.etudiant_id);
+    result[key] ??= [];
+    if (!result[key].some((id) => String(id) === String(row.cours_id))) result[key].push(row.cours_id);
+  }
+  return result;
+}
