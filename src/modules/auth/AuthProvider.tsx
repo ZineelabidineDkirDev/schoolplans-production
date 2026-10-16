@@ -32,6 +32,7 @@ type AuthContextValue = {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   changePassword: (password: string) => Promise<void>;
+  setActiveCentreId: (centreId: string | null) => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -77,7 +78,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setStatus('loading');
 
       try {
-        const nextProfile = await getAuthProfile(client, nextSession.user.id);
+        const databaseProfile = await getAuthProfile(client, nextSession.user.id);
+        const storedCentreId =
+          databaseProfile.role === 'super_admin'
+            ? window.localStorage.getItem('schoolplans_current_centre')
+            : null;
+        const nextProfile =
+          databaseProfile.role === 'super_admin' && storedCentreId
+            ? { ...databaseProfile, centreId: storedCentreId }
+            : databaseProfile;
 
         if (nextProfile.role === 'admin' && !hasPasswordAuthMethod(nextSession)) {
           const message =
@@ -201,6 +210,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
     if (authError) setError(authError.message);
   }, [requireClient]);
 
+  const setActiveCentreId = useCallback((centreId: string | null) => {
+    if (centreId) {
+      window.localStorage.setItem('schoolplans_current_centre', centreId);
+    } else {
+      window.localStorage.removeItem('schoolplans_current_centre');
+    }
+    setProfile((current) => {
+      if (!current || current.role !== 'super_admin' || current.centreId === centreId) {
+        return current;
+      }
+      return { ...current, centreId };
+    });
+  }, []);
+
   const changePassword = useCallback(
     async (password: string) => {
       const client = requireClient();
@@ -229,6 +252,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       signInWithGoogle,
       signOut,
       changePassword,
+      setActiveCentreId,
     }),
     [
       status,
@@ -243,6 +267,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       signInWithGoogle,
       signOut,
       changePassword,
+      setActiveCentreId,
     ],
   );
 
