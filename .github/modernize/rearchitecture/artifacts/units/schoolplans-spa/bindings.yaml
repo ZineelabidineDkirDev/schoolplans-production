@@ -1,0 +1,57 @@
+unit: schoolplans-spa
+bindings:
+  - type: convention
+    name: 'Auth session restoration and state subscription'
+    source_loc: 'legacy/vntest.html:6168'
+    target: 'React AuthProvider restores the Supabase session and responds to sign-out.'
+    must_appear_in_target: true
+    notes: 'Profile errors remain visible; do not fall back to an assumed role.'
+  - type: convention
+    name: 'Profile and centre permission lookup'
+    source_loc: 'legacy/vntest.html:2767'
+    target: 'Profile repository and centralized mc_droit permission repository.'
+    must_appear_in_target: true
+    notes: 'Unknown roles and RPC errors do not grant access; preserve the distinct source role and display label.'
+  - type: convention
+    name: 'Single HTML page with DOM section/tab switching'
+    source_loc: 'legacy/vntest.html:949'
+    target: 'Current application views selected by data-v and DOM state'
+    must_appear_in_target: true
+    notes: 'No URL routing is present in the reference; target router must preserve user-visible page behavior.'
+  - type: di-registration
+    name: 'Supabase JavaScript UMD client 2.45.4'
+    source_loc: 'legacy/vntest.html:2437'
+    target: 'Global browser client sb'
+    must_appear_in_target: true
+    notes: 'Legacy source contains project-specific URL/public key literals; target must use VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY, never service_role.'
+  - type: convention
+    name: 'Supabase Auth session restore and auth-state listener'
+    source_loc: 'legacy/vntest.html:6168'
+    target: 'Client session restore and signed-out behavior'
+    must_appear_in_target: true
+    notes: 'Password, Google OAuth, forced password change and pending registration flows are separately described in behavior.yaml.'
+  - type: convention
+    name: 'Centre-scoped browser state'
+    source_loc: 'legacy/vntest.html:2751'
+    target: 'CURRENT_CENTRE_ID, CURRENT_CENTRE_NAME, SUPER_CENTRES and selected centre localStorage key'
+    must_appear_in_target: true
+    notes: 'Tenant selection is UI state only; server authorization must remain enforced by verified Supabase policies/functions.'
+  - type: convention
+    name: 'One-login-per-session marker'
+    source_loc: 'legacy/vntest.html:6101'
+    target: 'sessionStorage key derived from Auth user ID'
+    must_appear_in_target: true
+    notes: 'Used to avoid duplicate connection log writes within the current tab session.'
+runtime_config:
+  - key: 'Supabase project URL and browser public key'
+    source_loc: 'legacy/vntest.html:2437'
+    source: code
+    default_value: 'Hard-coded in legacy; actual values intentionally not copied into artifacts.'
+    must_appear_in_target: true
+    notes: 'Externalize as VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY. Supabase server key must never be exposed.'
+  - key: 'Supabase browser SDK version'
+    source_loc: 'legacy/vntest.html:2437'
+    source: code
+    default_value: '2.45.4'
+    must_appear_in_target: true
+    notes: 'Target package is managed through package.json.'

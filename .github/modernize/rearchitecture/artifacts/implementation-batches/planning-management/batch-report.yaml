@@ -1,0 +1,99 @@
+batch_id: 'planning-course-management'
+completed_tasks: ['T007']
+blocked_tasks: []
+files_changed:
+  T007:
+    - file: 'src/business/planning/planningRules.ts'
+      change_type: 'created'
+      description: 'Validate course schedule, formation/module relation, teacher skill, permissions context and resource conflicts.'
+    - file: 'src/business/planning/planningRules.test.ts'
+      change_type: 'created'
+      description: 'Cover scheduling constraints, conflicts and automatic availability choices.'
+    - file: 'src/data/repositories/planningRepository.ts'
+      change_type: 'modified'
+      description: 'Add course and occurrence writes scoped to the active centre, and formateur completion scoped to the linked teacher.'
+    - file: 'src/data/repositories/planningRepository.test.ts'
+      change_type: 'modified'
+      description: 'Verify legacy insert columns, active-centre scoping and pre-write rejection of invalid input.'
+    - file: 'src/modules/planning/PlanningPage.tsx'
+      change_type: 'modified'
+      description: 'Add permission-gated course management and occurrence/session actions.'
+    - file: 'src/types/planning.ts'
+      change_type: 'modified'
+      description: 'Extend types for course management inputs and options.'
+    - file: 'src/styles/global.css'
+      change_type: 'modified'
+      description: 'Style the course form and management dialogs consistently with the reference theme.'
+    - file: 'docs/MIGRATION-PLAN.md'
+      change_type: 'modified'
+      description: 'Record delivered course actions and remaining scope.'
+    - file: 'docs/SCHEMA_SUPABASE.md'
+      change_type: 'modified'
+      description: 'Document client-observed write columns and unverified live contracts.'
+    - file: 'docs/TESTS_REGRESSION.md'
+      change_type: 'modified'
+      description: 'Document business-rule coverage and verification limits.'
+    - file: '.github/modernize/rearchitecture/checkpoints/tasks-to-impl.yaml'
+      change_type: 'modified'
+      description: 'Add completed task T007 and its traceability/verification evidence.'
+upstream_artifacts_consumed:
+  T007:
+    - artifact: 'docs/MIGRATION-PLAN.md'
+      used_for: 'Keep the Planning/Séances port incremental and identify remaining work.'
+    - artifact: 'docs/SCHEMA_SUPABASE.md'
+      used_for: 'Use only observed tables/columns; avoid applying schema changes.'
+    - artifact: 'legacy/vntest.html'
+      used_for: 'Reproduce course form constraints and session actions.'
+evidence_mapping:
+  T007:
+    - upstream: 'Reference course form validations'
+      output: 'src/business/planning/planningRules.ts'
+      evidence: 'Covered by planningRules tests; full test suite passes.'
+    - upstream: 'Centre-scoped course and session operations'
+      output: 'src/data/repositories/planningRepository.ts'
+      evidence: 'Repository tests verify active-centre columns and invalid-input rejection before writes.'
+    - upstream: 'Planning and session management actions'
+      output: 'src/modules/planning/PlanningPage.tsx'
+      evidence: 'Production TypeScript/Vite build passes; no authenticated live interaction was performed.'
+traceability:
+  - requirement: 'MIGRATION-PLAN.md — Planning/Séances management parity by verifiable batches'
+    plan_item: 'Course create/edit/delete, occurrence cancellation/restoration, and formateur completion'
+    task: 'T007'
+    files:
+      - 'src/business/planning/planningRules.ts'
+      - 'src/data/repositories/planningRepository.ts'
+      - 'src/modules/planning/PlanningPage.tsx'
+    source_files:
+      - 'legacy/vntest.html'
+    status: 'partial'
+protocol_violation: false
+errors: []
+warnings:
+  - severity: HIGH
+    message: 'Supabase write contracts, permissions, and RLS have not been exercised against an authorized test project; no live mutations were run.'
+  - severity: MEDIUM
+    message: 'Enrollment management, closure editing, and progression calculations remain outside this batch.'
+  - severity: LOW
+    message: 'The build succeeds with existing warnings for a non-module legacy script and a chunk larger than 500 kB.'
+required_endpoints: []
+endpoint_probes: []
+test_results:
+  T007:
+    command: 'npm test'
+    passed: 42
+    failed: 0
+    skipped: 0
+    failures: []
+build_result:
+  command: 'npm run build'
+  status: 'passed'
+lint_result:
+  command: 'npm run lint'
+  status: 'passed'
+format_result:
+  command: 'npx prettier --check src/types/planning.ts src/business/planning/planningRules.ts src/business/planning/planningRules.test.ts src/data/repositories/planningRepository.ts src/data/repositories/planningRepository.test.ts src/modules/planning/PlanningPage.tsx src/styles/global.css docs/MIGRATION-PLAN.md docs/SCHEMA_SUPABASE.md docs/TESTS_REGRESSION.md'
+  status: 'passed'
+runtime_check:
+  command: 'Not run; no authenticated test account or authorized Supabase environment provided.'
+  status: 'not-run'
+  notes: 'No live Supabase reads/writes or browser form submission performed.'

@@ -1,0 +1,210 @@
+batch_id: 'centre-directories-attendance-and-progress'
+completed_tasks: ['T012', 'T013', 'T014']
+blocked_tasks: []
+required_endpoints: []
+endpoint_probes: []
+files_changed:
+  T012:
+    - file: 'src/types/auth.ts'
+      change_type: 'modified'
+      description: 'Include observed seances, formations and groupes permission keys in the central permission load.'
+    - file: 'src/types/planning.ts'
+      change_type: 'modified'
+      description: 'Expose observed directory data for rooms, teachers and formations.'
+    - file: 'src/data/repositories/planningRepository.ts'
+      change_type: 'modified'
+      description: 'Reuse centre-scoped Planning reads for directory cards.'
+    - file: 'src/types/management.ts'
+      change_type: 'created'
+      description: 'Define student-directory and attendance-sheet types.'
+    - file: 'src/data/repositories/managementRepository.ts'
+      change_type: 'created'
+      description: 'Read centre students and date/course attendance; upsert attendance using the observed conflict key.'
+    - file: 'src/data/repositories/managementRepository.test.ts'
+      change_type: 'created'
+      description: 'Verify centre scope, group and course summaries, attendance sheet mapping, and attendance upsert payload.'
+    - file: 'src/modules/management/DirectoryPages.tsx'
+      change_type: 'created'
+      description: 'Add responsive Rooms, Students, Teachers, Attendance, and Formation/Groups views.'
+    - file: 'src/modules/auth/AuthRoutes.tsx'
+      change_type: 'modified'
+      description: 'Route the migrated sections through the existing centralized access check.'
+    - file: 'src/business/permissions/permissions.test.ts'
+      change_type: 'modified'
+      description: 'Check access with enabled migrated module permissions.'
+    - file: 'src/styles/global.css'
+      change_type: 'modified'
+      description: 'Add responsive directory cards and attendance controls within the existing theme.'
+    - file: 'docs/MIGRATION-PLAN.md'
+      change_type: 'modified'
+      description: 'Record delivered directory views and remaining CRUD work.'
+    - file: 'docs/SCHEMA_SUPABASE.md'
+      change_type: 'modified'
+      description: 'Document observed read/write contracts and retain the RLS verification caveat.'
+    - file: 'docs/TESTS_REGRESSION.md'
+      change_type: 'modified'
+      description: 'Record page coverage, behavior, tests and outstanding work.'
+  T013:
+    - file: 'src/business/planning/planningProgress.ts'
+      change_type: 'modified'
+      description: 'Calculate progress entries for every formation, including those without scheduled courses.'
+    - file: 'src/business/planning/planningProgress.test.ts'
+      change_type: 'modified'
+      description: 'Verify all formations produce a progress entry.'
+    - file: 'src/modules/planning/PlanningPage.tsx'
+      change_type: 'modified'
+      description: 'Display progress cards for every formation, not only the selected filter.'
+    - file: 'src/styles/global.css'
+      change_type: 'modified'
+      description: 'Use an auto-fit responsive grid for all progress cards.'
+    - file: 'docs/MIGRATION-PLAN.md'
+      change_type: 'modified'
+      description: 'Record all-formation progress cards.'
+    - file: 'docs/TESTS_REGRESSION.md'
+      change_type: 'modified'
+      description: 'Clarify all-formation progress presentation.'
+  T014:
+    - file: 'src/modules/planning/PlanningPage.tsx'
+      change_type: 'modified'
+      description: 'Select a formation by click and show only its progress details.'
+    - file: 'src/modules/management/DirectoryPages.tsx'
+      change_type: 'modified'
+      description: 'Match legacy room availability cards, show students as individual cards, and use four-column teacher/attendance grids.'
+    - file: 'src/styles/global.css'
+      change_type: 'modified'
+      description: 'Style the responsive selection controls, room timetable cards, student cards, and four-column grids.'
+    - file: 'docs/MIGRATION-PLAN.md'
+      change_type: 'modified'
+      description: 'Correct the progress and management-view behavior summary.'
+    - file: 'docs/TESTS_REGRESSION.md'
+      change_type: 'modified'
+      description: 'Document selected-formation progress and responsive card layouts.'
+upstream_artifacts_consumed:
+  T012:
+    - artifact: 'legacy/vntest.html'
+      used_for: 'Source behavior and visible data for rooms, students, teachers, presence and formation/group modules.'
+    - artifact: 'docs/MATRICE_PERMISSIONS.md'
+      used_for: 'Reuse role-specific access and fail-closed permission checks.'
+    - artifact: 'docs/SCHEMA_SUPABASE.md'
+      used_for: 'Use only observed fields, centre filters and attendance conflict key.'
+  T013:
+    - artifact: 'src/business/planning/planningProgress.ts'
+      used_for: 'Reuse the tested historical progress calculations for every formation.'
+evidence_mapping:
+  T012:
+    - upstream: 'legacy/vntest.html#renderRooms/renderTrainers/loadEtu'
+      output: 'src/modules/management/DirectoryPages.tsx'
+      evidence: 'Room, teacher, student and formation/group cards read the scoped source data and display responsive summaries.'
+    - upstream: 'legacy/vntest.html#loadPres/renderPres'
+      output: 'src/data/repositories/managementRepository.ts#saveAttendance'
+      evidence: 'Repository tests assert date, centre, status and onConflict fields; attendance is written only after a user selects a status.'
+    - upstream: 'central permissions for vr/vf/vp/vs/vfg'
+      output: 'src/modules/auth/AuthRoutes.tsx'
+      evidence: 'Routes stay behind SectionPlaceholder authorization; tests cover allowed and denied module permission paths.'
+  T013:
+    - upstream: 'legacy/vntest.html#mettreAJourCompteurFormation'
+      output: 'src/business/planning/planningProgress.ts#calculateAllFormationProgress'
+      evidence: 'A regression test verifies entries for every formation, including one without scheduled courses; the page renders them in a responsive card grid.'
+  T014:
+    - upstream: 'legacy/vntest.html#renderRooms'
+      output: 'src/modules/management/DirectoryPages.tsx#RoomsPage'
+      evidence: 'The room cards now include current availability, weekday-by-hour occupancy strips, capacity and weekly free/occupied totals.'
+    - upstream: 'legacy/vntest.html#renderTrainers/renderPres/loadEtu'
+      output: 'src/modules/management/DirectoryPages.tsx'
+      evidence: 'Teachers and attendance courses use four columns on desktop; students render as searchable individual profile cards.'
+    - upstream: 'legacy/vntest.html#mettreAJourCompteurFormation'
+      output: 'src/modules/planning/PlanningPage.tsx'
+      evidence: 'The user clicks a formation selector and only that formation’s hours and progress percentage are displayed.'
+source_references:
+  T012:
+    source_files:
+      - file: 'legacy/vntest.html'
+        methods_read:
+          ['renderRooms', 'renderTrainers', 'loadEtu', 'loadPres', 'renderPres', 'loadFormations']
+    branches_preserved: 10
+    validations_preserved: 5
+    side_effects_preserved: 1
+    notes: 'Only attendance-status upsert is enabled as a mutation in this batch. Directory record CRUD and enrollment editing remain outstanding.'
+  T013:
+    source_files:
+      - file: 'legacy/vntest.html'
+        methods_read: ['mettreAJourCompteurFormation']
+    branches_preserved: 7
+    validations_preserved: 4
+    side_effects_preserved: 0
+    notes: 'Progress cards now cover every formation regardless of the selected schedule filter, including formations without scheduled courses.'
+  T014:
+    source_files:
+      - file: 'legacy/vntest.html'
+        methods_read:
+          ['renderRooms', 'renderTrainers', 'renderPres', 'loadEtu', 'mettreAJourCompteurFormation']
+    branches_preserved: 8
+    validations_preserved: 0
+    side_effects_preserved: 0
+    notes: 'Room availability and directory presentation follow the reference; progress details are shown only after a formation is selected.'
+traceability:
+  - requirement: 'MIGRATION-PLAN.md — responsive directories and attendance'
+    plan_item: 'Add Salles, Étudiants, Formateurs, Présences, Formations & Groupes pages and attendance update'
+    task: 'T012'
+    files:
+      - 'src/modules/management/DirectoryPages.tsx'
+      - 'src/data/repositories/managementRepository.ts'
+    source_files:
+      - 'legacy/vntest.html'
+    status: 'partial'
+  - requirement: 'Planning progress for every formation'
+    plan_item: 'Display planned/completed/remaining hours and progress percent for each formation'
+    task: 'T013'
+    files:
+      - 'src/modules/planning/PlanningPage.tsx'
+      - 'src/business/planning/planningProgress.ts'
+    source_files:
+      - 'legacy/vntest.html'
+    status: 'partial'
+  - requirement: 'Reference-style rooms, directory card grids, and selected-formation progress'
+    plan_item: 'Render room availability strips; use four-column desktop layouts for teachers/attendance/students; show only clicked formation progress'
+    task: 'T014'
+    files:
+      - 'src/modules/management/DirectoryPages.tsx'
+      - 'src/modules/planning/PlanningPage.tsx'
+      - 'src/styles/global.css'
+    source_files:
+      - 'legacy/vntest.html'
+    status: 'partial'
+protocol_violation: false
+errors: []
+warnings:
+  - severity: HIGH
+    message: 'Supabase live RLS, attendance write permissions and data shape were not verified in an authorized test project.'
+  - severity: MEDIUM
+    message: 'Directory pages are currently read-only; student/teacher/room/formation/group CRUD and course enrollment editing remain outstanding.'
+  - severity: LOW
+    message: 'Authenticated browser runtime verification was not performed because no valid test session was available.'
+  - severity: LOW
+    message: 'Build retains existing legacy-script bundling and large-chunk warnings.'
+test_results:
+  T012:
+    command: 'npm test'
+    passed: 61
+    failed: 0
+    skipped: 0
+    failures: []
+  T014:
+    command: 'npm test'
+    passed: 61
+    failed: 0
+    skipped: 0
+    failures: []
+build_result:
+  command: 'npm run build'
+  status: 'passed'
+lint_result:
+  command: 'npm run lint'
+  status: 'passed'
+format_result:
+  command: 'npx prettier --check all changed source, documentation, checkpoint and batch report files'
+  status: 'passed'
+runtime_check:
+  command: 'Not run; authenticated session unavailable'
+  status: 'skipped'
+  notes: 'No Supabase mutations were executed during validation; manual attendance writes require an authorized test project.'

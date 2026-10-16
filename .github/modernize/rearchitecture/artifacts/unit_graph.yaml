@@ -1,0 +1,11 @@
+units:
+  - name: schoolplans-spa
+    trigger: page
+    trigger_detail: "Single HTML page; internal views switch DOM sections and tabs, with no URL route."
+    source_anchors:
+      - path: legacy/vntest.html
+        line: 1
+    exported_signature: []
+    dynamic_entrypoints: []
+    depends_on: []
+    shared_refs: []

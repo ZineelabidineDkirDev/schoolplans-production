@@ -1,0 +1,54 @@
+user_intent:
+  raw_request: 'Migrate SchoolPlans from a single HTML/JavaScript/Supabase application to React/TypeScript/Vite, preserve behavior, and proceed by verifiable batches.'
+  inferred_acceptance:
+    - 'Initialize a React/TypeScript/Vite app without changing the legacy reference.'
+    - 'Preserve all existing user-visible behavior during later module migration.'
+    - 'Keep the legacy app available until functional parity and cutover are verified.'
+  cleanup_required: false
+strategy: phased
+runtime_reachable:
+  - react-app.html
+  - src/main.tsx
+  - src/app/router.tsx
+  - src/app/App.tsx
+must_rewrite:
+  - path: react-app.html
+    reason: 'Separate HTML entry is required for the new Vite runtime while the existing index.html remains untouched.'
+  - path: src/main.tsx
+    reason: 'React application bootstrap required by the target runtime.'
+  - path: src/app/router.tsx
+    reason: 'React Router is an explicit target requirement.'
+  - path: src/app/App.tsx
+    reason: 'React root component required to render the target runtime.'
+  - path: src/data/supabase/client.ts
+    reason: 'Target Supabase client must use public environment configuration rather than legacy literals.'
+  - path: src/modules/auth/AuthProvider.tsx
+    reason: 'Session restoration, authentication actions and profile state are explicit foundations for the React runtime.'
+  - path: src/data/repositories/profileRepository.ts
+    reason: 'Authenticated routes require the observed profile role/status/centre fields.'
+  - path: src/data/repositories/centrePermissionRepository.ts
+    reason: 'The target access model must centralize the observed mc_droit RPC behavior and fail closed.'
+  - path: src/business/permissions/permissions.ts
+    reason: 'Role-to-view and centre-right rules must be centralized and independently testable.'
+  - path: src/modules/auth/LoginPage.tsx
+    reason: 'Password, signup and Google OAuth are existing authentication entry points in the reference.'
+  - path: src/modules/auth/ForcedPasswordChange.tsx
+    reason: 'The source blocks access until users with must_change update their password.'
+copy_as_is:
+  - path: legacy/vntest.html
+    reason: 'Authoritative behavior reference; no source change is requested.'
+  - path: index.html
+    reason: 'Existing runtime remains available during the phased migration.'
+  - path: css/app.css
+    reason: 'Existing styling continues to serve the legacy app.'
+  - path: js/app.js
+    reason: 'Existing runtime continues to serve the legacy app.'
+legacy_allowed_to_remain:
+  - legacy/vntest.html
+  - index.html
+  - css/app.css
+  - js/app.js
+defer_cleanup:
+  - 'Do not remove or redirect the legacy entry until feature parity, regression evidence and deployment routing are approved.'
+full_rewrite_reason: null
+implementation_rule: 'Scope is the React entry/bootstrap listed in must_rewrite. Do not infer a rewrite from source_anchors; the legacy reference is frozen.'

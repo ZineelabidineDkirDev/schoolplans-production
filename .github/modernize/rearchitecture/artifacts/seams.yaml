@@ -1,0 +1,9 @@
+seams:
+  - id: "legacy/vntest.html:1"
+    description: "The supplied legacy HTML stays unchanged as the functional reference while the parallel React runtime is initialized."
+    source: declared
+    cut_between:
+      migrated_side: schoolplans-spa
+      frozen_side: legacy-reference
+    protocol_shift: null
+    frozen_side_rule: "legacy-reference (legacy/vntest.html) MUST NOT be modified during the React bootstrap or subsequent migration batches unless the user explicitly changes this boundary."

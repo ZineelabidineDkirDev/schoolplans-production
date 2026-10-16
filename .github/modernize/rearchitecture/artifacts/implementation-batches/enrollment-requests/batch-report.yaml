@@ -1,0 +1,112 @@
+batch_id: 'enrollment-requests-admin'
+completed_tasks: ['T009']
+blocked_tasks: []
+files_changed:
+  T009:
+    - file: 'src/types/enrollmentRequests.ts'
+      change_type: 'created'
+      description: 'Define supported request statuses, filters, and shared request data.'
+    - file: 'src/data/repositories/enrollmentRequestRepository.ts'
+      change_type: 'created'
+      description: 'Read centre-scoped requests and invoke the existing approve/reject RPC contracts.'
+    - file: 'src/data/repositories/enrollmentRequestRepository.test.ts'
+      change_type: 'created'
+      description: 'Cover filters, scope, order/limit, parsing, RPC arguments and surfaced failures.'
+    - file: 'src/modules/enrollments/EnrollmentRequestsPage.tsx'
+      change_type: 'created'
+      description: 'Render the responsive administration table, status filter and optional-reason rejection dialog.'
+    - file: 'src/modules/auth/AuthRoutes.tsx'
+      change_type: 'modified'
+      description: 'Connect the vi route to the migrated request administration page.'
+    - file: 'src/business/permissions/permissions.test.ts'
+      change_type: 'modified'
+      description: 'Verify that request administration is visible to admin/director only.'
+    - file: 'src/styles/global.css'
+      change_type: 'modified'
+      description: 'Style request controls, statuses, table actions and rejection dialog responsively.'
+    - file: 'docs/MIGRATION-PLAN.md'
+      change_type: 'modified'
+      description: 'Record administrative request management as implemented and keep public signup outstanding.'
+    - file: 'docs/SCHEMA_SUPABASE.md'
+      change_type: 'modified'
+      description: 'Document observed request columns, centre scope, limit/order and RPC usage.'
+    - file: 'docs/TESTS_REGRESSION.md'
+      change_type: 'modified'
+      description: 'Record request-management coverage and local verification.'
+    - file: '.github/modernize/rearchitecture/checkpoints/tasks-to-impl.yaml'
+      change_type: 'modified'
+      description: 'Add task T009 traceability and verification.'
+upstream_artifacts_consumed:
+  T009:
+    - artifact: 'docs/INVENTAIRE_FONCTIONNEL.md'
+      used_for: 'Identify roles, fields and approval/rejection behavior.'
+    - artifact: 'docs/MATRICE_PERMISSIONS.md'
+      used_for: 'Preserve admin/director-only access and distinguish UI permissions from verified RLS.'
+    - artifact: 'docs/SCHEMA_SUPABASE.md'
+      used_for: 'Use only observed demandes_inscription fields and RPC names.'
+    - artifact: 'legacy/vntest.html'
+      used_for: 'Source-anchored behavior of loadDem, ifl filter, approve/reject click handlers and refreshBadge.'
+evidence_mapping:
+  T009:
+    - upstream: 'legacy/vntest.html#loadDem'
+      output: 'src/data/repositories/enrollmentRequestRepository.ts#getEnrollmentRequests'
+      evidence: 'Repository tests assert centre_id, optional status predicate, created_at descending and limit 200.'
+    - upstream: 'legacy/vntest.html#idt approve/reject click handler'
+      output: 'src/data/repositories/enrollmentRequestRepository.ts#approveEnrollmentRequest/rejectEnrollmentRequest'
+      evidence: 'Repository tests assert the did/motif RPC payloads and propagate errors.'
+    - upstream: 'Admin request table and filter'
+      output: 'src/modules/enrollments/EnrollmentRequestsPage.tsx'
+      evidence: 'TypeScript/Vite build and lint pass; React route loads and requires authentication.'
+source_references:
+  T009:
+    source_files:
+      - file: 'legacy/vntest.html'
+        methods_read: ['loadDem', 'ifl onchange handler', 'idt click handler', 'refreshBadge']
+    branches_preserved: 8
+    validations_preserved: 3
+    error_paths_preserved: 2
+    side_effects_preserved: 3
+    notes: 'Preserved pending-only actions, optional rejection reason, status filter, centre filter, 200-row cap, error propagation and list/badge refresh; added fail-closed missing-centre and row-shape validation.'
+traceability:
+  - requirement: 'INVENTAIRE_FONCTIONNEL.md — administration des demandes d’inscription'
+    plan_item: 'Filtrer les demandes, approuver ou refuser avec motif facultatif'
+    task: 'T009'
+    files:
+      - 'src/data/repositories/enrollmentRequestRepository.ts'
+      - 'src/modules/enrollments/EnrollmentRequestsPage.tsx'
+    source_files:
+      - 'legacy/vntest.html'
+    status: 'partial'
+protocol_violation: false
+errors: []
+warnings:
+  - severity: HIGH
+    message: 'Approval/rejection RPC behavior, centre isolation and RLS have not been validated on an authorized Supabase test project; no RPC was invoked.'
+  - severity: MEDIUM
+    message: 'Public signup request form and formation progression are not part of this batch.'
+  - severity: LOW
+    message: 'Browser verification reached the React SPA, which redirected to sign-in because no authenticated test session was available.'
+  - severity: LOW
+    message: 'Build still reports the legacy-script bundling and large-chunk warnings.'
+required_endpoints: []
+endpoint_probes: []
+test_results:
+  T009:
+    command: 'npm test'
+    passed: 51
+    failed: 0
+    skipped: 0
+    failures: []
+build_result:
+  command: 'npm run build'
+  status: 'passed'
+lint_result:
+  command: 'npm run lint'
+  status: 'passed'
+format_result:
+  command: 'npx prettier --check src/types/enrollmentRequests.ts src/data/repositories/enrollmentRequestRepository.ts src/data/repositories/enrollmentRequestRepository.test.ts src/modules/enrollments/EnrollmentRequestsPage.tsx src/modules/auth/AuthRoutes.tsx src/business/permissions/permissions.test.ts src/styles/global.css docs/MIGRATION-PLAN.md docs/SCHEMA_SUPABASE.md docs/TESTS_REGRESSION.md .github/modernize/rearchitecture/checkpoints/tasks-to-impl.yaml .github/modernize/rearchitecture/artifacts/implementation-batches/enrollment-requests/batch-report.yaml'
+  status: 'passed'
+runtime_check:
+  command: 'GET http://127.0.0.1:5173/react-app.html/app/vi; inspected browser snapshot'
+  status: 'passed'
+  notes: 'React SPA loaded and redirected to sign-in because the browser had no authenticated session. The request table and decisions were not exercised.'

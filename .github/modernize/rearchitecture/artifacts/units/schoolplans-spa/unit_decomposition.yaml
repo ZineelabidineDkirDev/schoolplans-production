@@ -1,0 +1,21 @@
+unit: schoolplans-spa
+commit: false
+candidate_splits:
+  - id: "legacy/vntest.html:2751-2869"
+    drivers: [concern_split, reuse_split]
+    rationale: "Centre selection, role rights and shared identity state are interleaved with UI bootstrap and feed many application views."
+    source_slice:
+      file: legacy/vntest.html
+      lines: [2751, 2869]
+  - id: "legacy/vntest.html:6184-6545"
+    drivers: [concern_split, data_ownership_split]
+    rationale: "Course editor owns group/formation/module/student dependencies, schedule validation, persistence and related enrollment mutations."
+    source_slice:
+      file: legacy/vntest.html
+      lines: [6184, 6545]
+  - id: "legacy/vntest.html:8237-8330"
+    drivers: [concern_split, protocol_split]
+    rationale: "Support metadata and object lifecycle combine authorization, Supabase Storage, signed URLs, upload cleanup and document presentation."
+    source_slice:
+      file: legacy/vntest.html
+      lines: [8237, 8330]

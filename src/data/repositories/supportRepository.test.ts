@@ -1,0 +1,82 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { describe, expect, it, vi } from 'vitest';
+import { deleteCourseSupport, getCourseSupports, uploadCourseSupport } from './supportRepository';
+
+describe('support repository', () => {
+  it('skips a query when the student has no enrolled courses', async () => {
+    const from = vi.fn();
+    const client = { from } as unknown as SupabaseClient;
+    await expect(getCourseSupports(client, 'centre-a', [])).resolves.toEqual([]);
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it('rejects files larger than the reference 20 MiB limit', async () => {
+    const client = {} as SupabaseClient;
+    const file = new File([new Uint8Array(20 * 1024 * 1024 + 1)], 'cours.pdf', {
+      type: 'application/pdf',
+    });
+    await expect(
+      uploadCourseSupport(client, {
+        centreId: 'centre-a',
+        courseId: 5,
+        title: 'Support',
+        description: '',
+        file,
+      }),
+    ).rejects.toThrow('20 Mo maximum');
+  });
+
+  it('prevents a teacher from deleting another course support before storage access', async () => {
+    const from = vi.fn();
+    const client = { from, storage: { from: vi.fn() } } as unknown as SupabaseClient;
+    await expect(
+      deleteCourseSupport(
+        client,
+        'centre-a',
+        {
+          id: 1,
+          courseId: 12,
+          title: 'Support',
+          description: null,
+          filePath: '12/support.pdf',
+          fileName: 'support.pdf',
+          size: 10,
+          mimeType: 'application/pdf',
+          createdAt: '2026-01-01',
+        },
+        [13],
+      ),
+    ).rejects.toThrow('vos propres cours');
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it('removes the uploaded object when saving its metadata fails', async () => {
+    const query = {
+      insert: vi.fn(),
+      select: vi.fn(),
+      single: vi.fn(async () => ({ data: null, error: new Error('metadata rejected') })),
+    };
+    query.insert.mockReturnValue(query);
+    query.select.mockReturnValue(query);
+    const remove = vi.fn(async () => ({ error: null }));
+    const upload = vi.fn(async () => ({ error: null }));
+    const storageFrom = vi.fn(() => ({ upload, remove }));
+    const client = {
+      from: vi.fn(() => query),
+      storage: { from: storageFrom },
+    } as unknown as SupabaseClient;
+    const file = new File(['lesson'], 'cours.pdf', { type: 'application/pdf' });
+
+    await expect(
+      uploadCourseSupport(client, {
+        centreId: 'centre-a',
+        courseId: 5,
+        title: 'Cours',
+        description: '',
+        file,
+      }),
+    ).rejects.toThrow('metadata rejected');
+    expect(upload).toHaveBeenCalledOnce();
+    expect(remove).toHaveBeenCalledWith(expect.any(Array));
+  });
+});

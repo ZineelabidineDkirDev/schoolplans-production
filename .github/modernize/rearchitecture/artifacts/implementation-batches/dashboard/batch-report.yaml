@@ -1,0 +1,97 @@
+batch_id: 'dashboard-react'
+completed_tasks: ['T003']
+blocked_tasks: []
+files_changed:
+  T003:
+    - file: 'src/types/dashboard.ts'
+      change_type: 'created'
+      description: 'Define shared dashboard data, filter, occurrence and metric types.'
+    - file: 'src/business/dashboard/dashboardMetrics.ts'
+      change_type: 'created'
+      description: 'Calculate date ranges, course occurrences, filters, attendance and dashboard aggregates.'
+    - file: 'src/business/dashboard/dashboardMetrics.test.ts'
+      change_type: 'created'
+      description: 'Cover dashboard date ranges, exclusions, filters, attendance and aggregates.'
+    - file: 'src/data/repositories/dashboardRepository.ts'
+      change_type: 'created'
+      description: 'Read dashboard source tables with centre and formateur scoping and explicit errors.'
+    - file: 'src/modules/dashboard/DashboardPage.tsx'
+      change_type: 'created'
+      description: 'Render role-specific dashboard views, metrics, filters, popular trainings/domains and charts.'
+    - file: 'src/app/router.tsx'
+      change_type: 'modified'
+      description: 'Use the dashboard as the authenticated app landing page.'
+    - file: 'src/modules/auth/AuthRoutes.tsx'
+      change_type: 'modified'
+      description: 'Wire the authorized vd route to the dashboard.'
+    - file: 'src/styles/global.css'
+      change_type: 'modified'
+      description: 'Style dashboard cards, filters, tables and charts responsively.'
+    - file: 'docs/MIGRATION-PLAN.md'
+      change_type: 'modified'
+      description: 'Record dashboard port status without claiming complete HTML parity.'
+    - file: 'docs/TESTS_REGRESSION.md'
+      change_type: 'modified'
+      description: 'Document local validation and pending live tests.'
+    - file: 'docs/SCHEMA_SUPABASE.md'
+      change_type: 'modified'
+      description: 'Document observed dashboard data reads and remaining schema/RLS verification.'
+upstream_artifacts_consumed:
+  T003:
+    - artifact: 'docs/INVENTAIRE_FONCTIONNEL.md'
+      used_for: 'Identify dashboard roles, views and data-driven behaviors in the reference.'
+    - artifact: 'docs/MIGRATION-PLAN.md'
+      used_for: 'Keep the migration incremental and distinguish implemented dashboard scope from remaining parity.'
+    - artifact: 'docs/SCHEMA_SUPABASE.md'
+      used_for: 'Use only observed table dependencies and avoid applying schema changes.'
+evidence_mapping:
+  T003:
+    - upstream: 'legacy/vntest.html dashboard behavior'
+      output: 'src/modules/dashboard/DashboardPage.tsx'
+      evidence: 'Production build passes and the dashboard metrics suite is included in the passing Vitest run.'
+    - upstream: 'Observed dashboard date, attendance and aggregation rules'
+      output: 'src/business/dashboard/dashboardMetrics.ts'
+      evidence: 'Unit tests cover date ranges, closures/cancellations, filters and aggregates.'
+    - upstream: 'Centre and formateur role boundaries'
+      output: 'src/data/repositories/dashboardRepository.ts'
+      evidence: 'Repository scoping is implemented; live Supabase/RLS behavior is not yet verified.'
+traceability:
+  - requirement: 'MIGRATION-PLAN.md — portage de toutes les vues du tableau de bord'
+    plan_item: 'Tableau de bord admin et formateur'
+    task: 'T003'
+    files:
+      - 'src/business/dashboard/dashboardMetrics.ts'
+      - 'src/data/repositories/dashboardRepository.ts'
+      - 'src/modules/dashboard/DashboardPage.tsx'
+    source_files:
+      - 'legacy/vntest.html'
+    status: 'partial'
+protocol_violation: false
+errors: []
+warnings:
+  - severity: HIGH
+    message: 'The authenticated dashboard, centre isolation and actual Supabase table/RLS contracts have not been exercised with an authorized test project.'
+  - severity: LOW
+    message: 'The production build reports existing legacy-script bundling and large-bundle warnings; compilation and bundling succeed.'
+required_endpoints: []
+endpoint_probes: []
+runtime_check:
+  command: 'GET http://127.0.0.1:5173/react-app.html; inspect in browser'
+  status: 200
+  notes: 'React entry loads and renders the sign-in screen. No authenticated account was used, so dashboard runtime data was not exercised.'
+test_results:
+  T003:
+    command: 'npm test'
+    passed: 22
+    failed: 0
+    skipped: 0
+    failures: []
+build_result:
+  command: 'npm run build'
+  status: 'passed'
+lint_result:
+  command: 'npm run lint'
+  status: 'passed'
+format_result:
+  command: 'npx prettier --check src docs/MIGRATION-PLAN.md docs/TESTS_REGRESSION.md docs/SCHEMA_SUPABASE.md'
+  status: 'passed'

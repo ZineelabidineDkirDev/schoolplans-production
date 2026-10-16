@@ -1,0 +1,122 @@
+batch_id: 'students-v2'
+completed_tasks: ['T001']
+blocked_tasks:
+  - task_id: 'T002'
+    reason: 'A Supabase test project and authorized synthetic Nezha/Reda records are unavailable; live RPC/RLS verification was not run.'
+    required_task_ids: ['T001']
+files_changed:
+  T001:
+    - file: 'src/types/students.ts'
+      change_type: 'created'
+      description: 'Define typed student, enrollment, course and subject records.'
+    - file: 'src/business/students/studentList.ts'
+      change_type: 'created'
+      description: 'Join students to their enrolled course labels while preserving source ordering and fallbacks.'
+    - file: 'src/data/repositories/studentRepository.ts'
+      change_type: 'created'
+      description: 'Read the observed RPC and centre-filtered enrollment/course data; reject malformed or cross-centre RPC results.'
+    - file: 'src/modules/students/MyStudentsPage.tsx'
+      change_type: 'created'
+      description: "Render the formateur's read-only student list with loading, empty, retry and error states."
+    - file: 'src/modules/auth/AuthRoutes.tsx'
+      change_type: 'modified'
+      description: 'Route the centrally authorized vn section to the student module.'
+    - file: 'src/business/permissions/permissions.ts'
+      change_type: 'modified'
+      description: 'Reserve vn access to formateur, matching the strict source rule.'
+    - file: 'src/business/permissions/permissions.test.ts'
+      change_type: 'modified'
+      description: 'Cover the role restriction for vn.'
+    - file: 'src/business/students/studentList.test.ts'
+      change_type: 'created'
+      description: 'Test ordering, enrollment joins, missing relations and the unknown-subject fallback.'
+    - file: 'src/data/repositories/studentRepository.test.ts'
+      change_type: 'created'
+      description: 'Test RPC row mapping, centre isolation and the required centre guard.'
+    - file: 'src/styles/global.css'
+      change_type: 'modified'
+      description: 'Style the responsive student table and course labels.'
+    - file: 'docs/MIGRATION-PLAN.md'
+      change_type: 'modified'
+      description: 'Record implementation status and the remaining live Supabase gate.'
+    - file: 'docs/SCHEMA_SUPABASE.md'
+      change_type: 'modified'
+      description: "Document the React module's observed RPC and read contract."
+    - file: 'docs/TESTS_REGRESSION.md'
+      change_type: 'modified'
+      description: 'Record unit coverage and pending live integration scenarios.'
+upstream_artifacts_consumed:
+  T001:
+    - artifact: 'docs/MIGRATION-PLAN.md#V2'
+      used_for: 'Select the Students domain as the first migration module and identify the RPC, service, view and synthetic-data validation steps.'
+    - artifact: 'docs/MATRICE_PERMISSIONS.md#Accès aux onglets et actions'
+      used_for: 'Keep Mes étudiants limited to the formateur role.'
+    - artifact: 'docs/SCHEMA_SUPABASE.md#RPC et fonctions Edge'
+      used_for: 'Use the observed get_my_centre_students RPC and avoid claiming an applied database schema.'
+    - artifact: 'legacy/vntest.html#loadMyStu, appliquerMenuRole, load'
+      used_for: 'Preserve the source table columns, empty/error states, enrollment-to-course mapping and missing-subject fallback.'
+evidence_mapping:
+  T001:
+    - upstream: 'docs/MIGRATION-PLAN.md#V2'
+      output: 'src/data/repositories/studentRepository.ts and src/modules/students/MyStudentsPage.tsx'
+      evidence: 'Production build and repository contract tests pass.'
+    - upstream: 'docs/MATRICE_PERMISSIONS.md#Accès aux onglets et actions'
+      output: 'src/business/permissions/permissions.ts'
+      evidence: 'Role permission tests confirm vn is granted only to formateur.'
+    - upstream: 'legacy/vntest.html#loadMyStu'
+      output: 'src/business/students/studentList.ts and src/modules/students/MyStudentsPage.tsx'
+      evidence: 'Student list tests pass; UI retains source columns, empty state and contact links.'
+source_references:
+  T001:
+    source_files:
+      - file: 'legacy/vntest.html'
+        methods_read: ['loadMyStu', 'appliquerMenuRole', 'load']
+    branches_preserved: 5
+    validations_preserved: 1
+    error_paths_preserved: 2
+    side_effects_preserved: 0
+    notes: 'Read-only migration. Added fail-closed validation for missing profile centre and RPC rows that do not match that centre. Live server behavior remains unverified.'
+traceability:
+  - requirement: 'docs/MIGRATION-PLAN.md — V2 — premier domaine Étudiants'
+    plan_item: 'V2.1-V2.3'
+    task: 'T001'
+    files:
+      - 'src/data/repositories/studentRepository.ts'
+      - 'src/modules/students/MyStudentsPage.tsx'
+      - 'src/business/students/studentList.ts'
+    source_files:
+      - 'legacy/vntest.html'
+    status: 'completed'
+  - requirement: 'docs/MIGRATION-PLAN.md — vérifier Nezha et Reda sur Supabase de test'
+    plan_item: 'V2.4'
+    task: 'T002'
+    files: []
+    source_files: []
+    status: 'blocked'
+protocol_violation: false
+errors: []
+warnings:
+  - severity: HIGH
+    message: 'The local SQL file for get_my_centre_students remains a proposal. RPC signature, grants and RLS behavior require verification on an authorized Supabase test project before this domain is accepted or another domain is started.'
+required_endpoints: []
+endpoint_probes: []
+runtime_check:
+  command: 'GET http://127.0.0.1:4173/react-app.html'
+  status: 200
+  notes: 'The app renders the login view and reports missing VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY; authenticated module runtime requires authorized test configuration.'
+test_results:
+  T001:
+    command: 'npm test'
+    passed: 16
+    failed: 0
+    skipped: 0
+    failures: []
+build_result:
+  command: 'npm run build'
+  status: 'passed'
+lint_result:
+  command: 'npm run lint'
+  status: 'passed'
+format_result:
+  command: 'npx prettier --check docs/MIGRATION-PLAN.md docs/TESTS_REGRESSION.md docs/SCHEMA_SUPABASE.md src'
+  status: 'passed'

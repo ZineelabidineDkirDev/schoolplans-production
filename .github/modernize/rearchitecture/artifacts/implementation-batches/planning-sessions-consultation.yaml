@@ -1,0 +1,100 @@
+batch_id: 'planning-sessions-consultation'
+completed_tasks: ['T006']
+blocked_tasks: []
+files_changed:
+  T006:
+    - file: 'src/types/planning.ts'
+      change_type: 'added'
+      description: 'Shared types for planning courses, groups, filters and weekly occurrences.'
+    - file: 'src/business/planning/planningSchedule.ts'
+      change_type: 'added'
+      description: 'Pure weekly schedule, filter and room availability calculations.'
+    - file: 'src/business/planning/planningSchedule.test.ts'
+      change_type: 'added'
+      description: 'Tests for recurring occurrences, date bounds, closures, completion, cancellation and room gaps.'
+    - file: 'src/data/repositories/planningRepository.ts'
+      change_type: 'added'
+      description: 'Centre-scoped planning reads and trainer-linked course filtering.'
+    - file: 'src/data/repositories/planningRepository.test.ts'
+      change_type: 'added'
+      description: 'Tests centre requirement and tenant/trainer query scopes.'
+    - file: 'src/modules/planning/PlanningPage.tsx'
+      change_type: 'added'
+      description: 'Responsive weekly calendar and session list for the authorized vcal/vl routes.'
+    - file: 'src/modules/auth/AuthRoutes.tsx'
+      change_type: 'modified'
+      description: 'Route authorized Planning and Sessions sections to the new views.'
+    - file: 'src/styles/global.css'
+      change_type: 'modified'
+      description: 'Reference-inspired themed and responsive calendar styles.'
+    - file: 'docs/MIGRATION-PLAN.md'
+      change_type: 'modified'
+      description: 'Track read-only scope and outstanding planning workflows.'
+    - file: 'docs/SCHEMA_SUPABASE.md'
+      change_type: 'modified'
+      description: 'Record observed planning reads and live validation constraints.'
+    - file: 'docs/TESTS_REGRESSION.md'
+      change_type: 'modified'
+      description: 'Record planning test coverage and unimplemented workflow scenarios.'
+    - file: '.github/modernize/rearchitecture/checkpoints/tasks-to-impl.yaml'
+      change_type: 'modified'
+      description: 'Record T006 implementation and validation evidence.'
+upstream_artifacts_consumed:
+  T006:
+    - artifact: 'legacy/vntest.html'
+      used_for: 'Weekly schedule, six-day calendar, 08:00–19:00 hours, filters, closures, cancellations and session list.'
+    - artifact: 'docs/SCHEMA_SUPABASE.md'
+      used_for: 'Observed table/column contracts and the requirement to leave schema and remote data untouched.'
+evidence_mapping:
+  T006:
+    - upstream: 'legacy/vntest.html#planning'
+      output: 'src/modules/planning/PlanningPage.tsx'
+      evidence: 'Implements the responsive weekly calendar, daily agenda, filters, and status labels.'
+    - upstream: 'legacy/vntest.html#session-list'
+      output: 'src/modules/planning/PlanningPage.tsx'
+      evidence: 'Implements the six-column session list with room availability.'
+    - upstream: 'legacy/vntest.html#weekly-occurrences'
+      output: 'src/business/planning/planningSchedule.ts'
+      evidence: 'Unit tests cover recurring dates, closed days, cancellations, completed sessions, filters and free room gaps.'
+traceability:
+  - requirement: 'Planning and Sessions consultation parity with legacy/vntest.html'
+    plan_item: 'Weekly calendar and session list (read-only batch)'
+    task: 'T006'
+    files:
+      - 'src/data/repositories/planningRepository.ts'
+      - 'src/business/planning/planningSchedule.ts'
+      - 'src/modules/planning/PlanningPage.tsx'
+    source_files:
+      - 'legacy/vntest.html'
+    status: 'partial'
+protocol_violation: false
+errors: []
+warnings:
+  - severity: MEDIUM
+    message: 'Adding/editing/deleting sessions, cancelling/restoring occurrences, enrollment management, closure editing and formation progress are not implemented in this read-only batch.'
+  - severity: MEDIUM
+    message: 'Supabase reads, RLS policies and active-centre behavior require verification on an authorized test project; no writes were performed.'
+  - severity: LOW
+    message: 'Production build passes with existing warnings for the legacy script tag in index.html and a bundle over 500 kB.'
+required_endpoints: []
+endpoint_probes: []
+runtime_check:
+  command: 'No authenticated browser check run for the Planning/Sessions routes.'
+  status: 'not_run'
+  notes: 'The route requires an authenticated role and live tenant data; no Supabase session or synthetic test tenant was provided for safe runtime verification.'
+test_results:
+  T006:
+    command: 'npm test'
+    passed: 35
+    failed: 0
+    skipped: 0
+    failures: []
+build_result:
+  command: 'npm run build'
+  status: 'passed'
+lint_result:
+  command: 'npm run lint'
+  status: 'passed'
+format_result:
+  command: 'npx prettier --check <planning files and directly updated docs>'
+  status: 'passed'

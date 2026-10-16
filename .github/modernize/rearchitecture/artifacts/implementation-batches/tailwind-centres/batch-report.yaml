@@ -1,0 +1,129 @@
+batch_id: 'tailwind-shared-ui-centres'
+completed_tasks: ['T004']
+blocked_tasks: []
+files_changed:
+  T004:
+    - file: 'vite.config.ts'
+      change_type: 'modified'
+      description: 'Enable the Tailwind Vite plugin without removing the historic build entry.'
+    - file: 'src/styles/global.css'
+      change_type: 'modified'
+      description: 'Match the reference theme tokens, dark mode, desktop/mobile shell, login and responsive table styles.'
+    - file: 'src/components/ui.tsx'
+      change_type: 'created'
+      description: 'Add shared UI primitives styled with reference theme tokens, alerts, fields, buttons and theme control.'
+    - file: 'src/modules/auth/LoginPage.tsx'
+      change_type: 'modified'
+      description: 'Match the reference two-panel login, copy, training poles, form and Google sign-in presentation.'
+    - file: 'src/modules/auth/AuthRoutes.tsx'
+      change_type: 'modified'
+      description: 'Match the responsive dark vertical/mobile bottom navigation, header, icon controls and theme toggle.'
+    - file: 'src/modules/auth/ForcedPasswordChange.tsx'
+      change_type: 'modified'
+      description: 'Apply the shared reference theme and form styling to mandatory password change.'
+    - file: 'src/modules/auth/PendingAccess.tsx'
+      change_type: 'modified'
+      description: 'Match the centered pending-access card and refresh/sign-out actions from the reference.'
+    - file: 'src/modules/dashboard/DashboardPage.tsx'
+      change_type: 'modified'
+      description: 'Use reference theme colors and responsive labeled tables for dashboard states.'
+    - file: 'src/modules/students/MyStudentsPage.tsx'
+      change_type: 'modified'
+      description: 'Use reference theme colors and responsive labeled table presentation.'
+    - file: 'src/modules/centres/CentreManagementPage.tsx'
+      change_type: 'created'
+      description: 'Implement centre search/list/status, create centre+director, list directors and reset director password.'
+    - file: 'src/data/repositories/edgeFunctionRepository.ts'
+      change_type: 'created'
+      description: 'Type and validate calls to admin-users and centre-director-access.'
+    - file: 'src/data/repositories/edgeFunctionRepository.test.ts'
+      change_type: 'created'
+      description: 'Test Edge Function requests, response validation and surfaced application errors.'
+    - file: 'src/app/App.tsx'
+      change_type: 'modified'
+      description: 'Render the shared Tailwind loading state.'
+    - file: 'src/app/router.tsx'
+      change_type: 'modified'
+      description: 'Style the not-found route with Tailwind.'
+    - file: 'backend/edge-functions/centre-director-access.ts'
+      change_type: 'modified'
+      description: 'Use explicit Supabase client typing and remove unused catch bindings without changing function behavior.'
+    - file: 'package.json'
+      change_type: 'modified'
+      description: 'Add Tailwind and its Vite plugin dependencies.'
+    - file: 'package-lock.json'
+      change_type: 'modified'
+      description: 'Lock Tailwind CSS and its Vite plugin dependencies.'
+    - file: 'backend/edge-functions/admin-users.ts'
+      change_type: 'modified'
+      description: 'Restore the missing cors object declaration in function response headers.'
+    - file: 'docs/MIGRATION-PLAN.md'
+      change_type: 'modified'
+      description: 'Record the React centre page and remaining non-migrated views.'
+    - file: 'docs/SCHEMA_SUPABASE.md'
+      change_type: 'modified'
+      description: 'Document the React centre queries and Edge Function usage.'
+    - file: 'docs/TESTS_REGRESSION.md'
+      change_type: 'modified'
+      description: 'Record Edge Function test coverage and live validation limits.'
+upstream_artifacts_consumed:
+  T004:
+    - artifact: 'legacy/vntest.html#vz'
+      used_for: 'Preserve centre listing/search/status behavior and observed centre fields.'
+    - artifact: 'legacy/vntest.html#centre-director-access'
+      used_for: 'Preserve list/reset/create actions for centre director access.'
+    - artifact: 'backend/edge-functions/centre-director-access.ts'
+      used_for: 'Match action names, payloads, validation limits and response shapes.'
+    - artifact: 'backend/edge-functions/admin-users.ts'
+      used_for: 'Match the existing account-management action contract for subsequent page batches.'
+evidence_mapping:
+  T004:
+    - upstream: 'Tailwind responsive SchoolPlans visual shell'
+      output: 'src/components/ui.tsx and src/modules/auth/AuthRoutes.tsx'
+      evidence: 'Desktop and narrow mobile browser views show the reference login layout; production build and targeted formatting pass.'
+    - upstream: 'Super-admin centre and director workflows'
+      output: 'src/modules/centres/CentreManagementPage.tsx'
+      evidence: 'UI maps to observed Edge actions; component is build-checked. Live Supabase actions remain untested.'
+    - upstream: 'Edge Function contracts'
+      output: 'src/data/repositories/edgeFunctionRepository.ts'
+      evidence: 'Three Vitest cases verify invocation payloads, response validation and error propagation.'
+traceability:
+  - requirement: 'MIGRATION-PLAN.md — centre management super-admin'
+    plan_item: 'Centre list, status, new centre/director and director access'
+    task: 'T004'
+    files:
+      - 'src/modules/centres/CentreManagementPage.tsx'
+      - 'src/data/repositories/edgeFunctionRepository.ts'
+    source_files:
+      - 'legacy/vntest.html'
+      - 'backend/edge-functions/centre-director-access.ts'
+    status: 'partial'
+protocol_violation: false
+errors: []
+warnings:
+  - severity: HIGH
+    message: 'Supabase Edge Function authorization, database access/RLS, centre creation, suspension and password reset have not been tested in an authorized Supabase test project.'
+  - severity: MEDIUM
+    message: 'Remaining reference pages are not yet migrated; the current batch does not claim complete feature parity.'
+required_endpoints: []
+endpoint_probes: []
+runtime_check:
+  command: 'GET /react-app.html and render login page'
+  status: 200
+  notes: 'Local Vite route rendered the reference two-panel desktop login and single-column mobile login. No authenticated Supabase session was used.'
+test_results:
+  T004:
+    command: 'npm test'
+    passed: 27
+    failed: 0
+    skipped: 0
+    failures: []
+build_result:
+  command: 'npm run build'
+  status: 'passed'
+lint_result:
+  command: 'npm run lint'
+  status: 'passed'
+format_result:
+  command: 'npx prettier --check src/components/ui.tsx src/modules/auth/LoginPage.tsx src/modules/auth/AuthRoutes.tsx src/modules/auth/ForcedPasswordChange.tsx src/modules/auth/PendingAccess.tsx src/modules/students/MyStudentsPage.tsx src/modules/centres/CentreManagementPage.tsx src/modules/dashboard/DashboardPage.tsx src/styles/global.css'
+  status: 'passed'

@@ -1,0 +1,70 @@
+batch_id: 'dashboard-reference-visuals'
+completed_tasks: ['T005']
+blocked_tasks: []
+files_changed:
+  T005:
+    - file: 'src/modules/dashboard/DashboardPage.tsx'
+      change_type: 'modified'
+      description: 'Match the reference dashboard metric cards, period controls, graph controls, SVG chart, and domain donut.'
+    - file: 'src/styles/global.css'
+      change_type: 'modified'
+      description: 'Apply reference tokens and responsive layout to dashboard components and mobile navigation labels.'
+    - file: 'docs/MIGRATION-PLAN.md'
+      change_type: 'modified'
+      description: 'Record dashboard visual alignment while retaining live validation limitations.'
+    - file: 'docs/TESTS_REGRESSION.md'
+      change_type: 'modified'
+      description: 'Document dashboard rendering coverage and runtime validation scope.'
+upstream_artifacts_consumed:
+  T005:
+    - artifact: 'legacy/vntest.html'
+      used_for: 'Dashboard design tokens, KPI cards, period controls, SVG chart behavior, domain donut and responsive layout.'
+    - artifact: 'docs/MIGRATION-PLAN.md'
+      used_for: 'Existing admin and trainer dashboard scope and known integration limitations.'
+evidence_mapping:
+  T005:
+    - upstream: 'legacy/vntest.html#dashboard'
+      output: 'src/modules/dashboard/DashboardPage.tsx'
+      evidence: 'Authenticated browser render shows KPI cards, period controls, SVG enrollment chart, attendance summaries and domain chart.'
+    - upstream: 'legacy/vntest.html#responsive-dashboard'
+      output: 'src/styles/global.css'
+      evidence: 'Mobile browser render stacks dashboard sections and no longer overflows the document horizontally.'
+traceability:
+  - requirement: 'Dashboard visual parity with legacy/vntest.html'
+    plan_item: 'Admin/formateur dashboard presentation and responsive behavior'
+    task: 'T005'
+    files:
+      - 'src/modules/dashboard/DashboardPage.tsx'
+      - 'src/styles/global.css'
+    source_files:
+      - 'legacy/vntest.html'
+    status: 'partial'
+protocol_violation: false
+errors: []
+warnings:
+  - severity: MEDIUM
+    message: 'The dashboard repository still requires complete authorized Supabase/RLS validation; no data writes were performed.'
+  - severity: MEDIUM
+    message: 'Other legacy modules remain unimplemented and will be migrated incrementally.'
+required_endpoints: []
+endpoint_probes: []
+runtime_check:
+  command: 'Vite browser check for /react-app.html/app/vd at desktop and mobile widths'
+  status: 'passed'
+  notes: 'Verified authenticated dashboard rendering and responsive layout with the existing browser session; no write workflows were invoked.'
+test_results:
+  T005:
+    command: 'npm test'
+    passed: 27
+    failed: 0
+    skipped: 0
+    failures: []
+build_result:
+  command: 'npm run build'
+  status: 'passed'
+lint_result:
+  command: 'npm run lint'
+  status: 'passed'
+format_result:
+  command: 'npx prettier --check src/modules/dashboard/DashboardPage.tsx src/styles/global.css docs/MIGRATION-PLAN.md docs/TESTS_REGRESSION.md .github/modernize/rearchitecture/checkpoints/tasks-to-impl.yaml .github/modernize/rearchitecture/artifacts/implementation-batches/dashboard-reference-visuals.yaml'
+  status: 'passed'

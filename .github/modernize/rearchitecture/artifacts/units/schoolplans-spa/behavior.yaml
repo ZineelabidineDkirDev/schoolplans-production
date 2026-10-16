@@ -1,0 +1,110 @@
+unit: schoolplans-spa
+side_effects:
+  - source_loc: 'legacy/vntest.html:6150'
+    effect: 'Authenticate with email/password and show a user-facing error on failure.'
+    must_preserve: true
+  - source_loc: 'legacy/vntest.html:6155'
+    effect: 'Create an Auth account; require at least six password characters and report email confirmation when no session is returned.'
+    must_preserve: true
+  - source_loc: 'legacy/vntest.html:6158'
+    effect: 'Start Google OAuth with the select_account prompt and return to the current app URL.'
+    must_preserve: true
+  - source_loc: 'legacy/vntest.html:6168'
+    effect: 'Clear the authenticated UI after an Auth SIGNED_OUT event.'
+    must_preserve: true
+  - source_loc: 'legacy/vntest.html:6150'
+    effect: 'Authenticate with email/password and enter the member runtime on success.'
+    must_preserve: true
+  - source_loc: 'legacy/vntest.html:6155'
+    effect: 'Create a Supabase Auth account; pending e-mail confirmation is communicated to the user.'
+    must_preserve: true
+  - source_loc: 'legacy/vntest.html:6158'
+    effect: 'Start Google OAuth with account selection.'
+    must_preserve: true
+  - source_loc: 'legacy/vntest.html:6502'
+    effect: 'Upsert a realized session by course/date after verifying the authenticated user is linked to the assigned teacher.'
+    must_preserve: true
+  - source_loc: 'legacy/vntest.html:6667'
+    effect: 'Upsert a centre closure date and reload the planning data.'
+    must_preserve: true
+  - source_loc: 'legacy/vntest.html:8318'
+    effect: 'Upload course document and insert metadata; remove the uploaded object if metadata insertion fails.'
+    must_preserve: true
+  - source_loc: 'legacy/vntest.html:8378'
+    effect: 'Approve or refuse a registration request through RPC.'
+    must_preserve: true
+  - source_loc: 'legacy/vntest.html:8655'
+    effect: 'Upload centre logo to Storage and update centre profile.'
+    must_preserve: true
+branches:
+  - source_loc: 'legacy/vntest.html:6017'
+    condition: 'Authenticated user metadata has must_change set.'
+    behavior: 'Require a password update before showing member views; set must_change=false only after successful update.'
+    must_preserve: true
+  - source_loc: 'legacy/vntest.html:6015'
+    condition: 'Profile centre is inactive.'
+    behavior: 'Sign out and show a suspended-centre message.'
+    must_preserve: true
+  - source_loc: 'legacy/vntest.html:6019'
+    condition: 'Admin uses a non-password Google session.'
+    behavior: 'Sign out and require email/password.'
+    must_preserve: true
+  - source_loc: 'legacy/vntest.html:6016'
+    condition: 'Student profile is pending.'
+    behavior: 'Run the application/approval flow instead of entering the member app.'
+    must_preserve: true
+  - source_loc: 'legacy/vntest.html:2903'
+    condition: 'Role is Formateur.'
+    behavior: 'Restrict navigation to teacher-specific tabs and common views.'
+    must_preserve: true
+  - source_loc: 'legacy/vntest.html:6484'
+    condition: 'Teacher account is not linked to its teacher record.'
+    behavior: 'Prevent creating/editing course and explain the missing linkage.'
+    must_preserve: true
+  - source_loc: 'legacy/vntest.html:6324'
+    condition: "Teacher attempts to edit another teacher's course."
+    behavior: 'Do not open the course editor.'
+    must_preserve: true
+  - source_loc: 'legacy/vntest.html:6225'
+    condition: 'Course group has a formation.'
+    behavior: 'Limit module options to formation modules and clear an invalid selected module.'
+    must_preserve: true
+  - source_loc: 'legacy/vntest.html:6451'
+    condition: 'Course session is marked realized.'
+    behavior: 'Confirm, verify assigned teacher, then upsert the realization record.'
+    must_preserve: true
+  - source_loc: 'legacy/vntest.html:8315'
+    condition: 'Support file exceeds 20 MiB.'
+    behavior: 'Reject before upload with a size-limit message.'
+    must_preserve: true
+  - source_loc: 'legacy/vntest.html:8240'
+    condition: 'Teacher deletes a document.'
+    behavior: 'Allow deletion only if its course is assigned to the linked teacher.'
+    must_preserve: true
+  - source_loc: 'legacy/vntest.html:3242'
+    condition: 'Computed percentage is greater than 100.'
+    behavior: 'Display a progress percentage capped at 100.'
+    must_preserve: true
+error_paths:
+  - source_loc: 'legacy/vntest.html:6150'
+    trigger: 'Email/password authentication fails.'
+    outcome: 'Show invalid credentials or the Supabase error in the login view.'
+    contract: 'No route/status code; user-visible login error.'
+    must_preserve: true
+  - source_loc: 'legacy/vntest.html:6502'
+    trigger: 'User/course linkage check or realized-session upsert fails.'
+    outcome: 'Keep the dialog open and display an error; re-enable the action button.'
+    contract: 'Supabase query/upsert error surfaced to user.'
+    must_preserve: true
+  - source_loc: 'legacy/vntest.html:8326'
+    trigger: 'Document metadata insert fails after Storage upload.'
+    outcome: 'Remove the uploaded support object and show the insert error.'
+    contract: 'Compensating delete; cleanup result is not separately surfaced.'
+    must_preserve: true
+concurrency:
+  model: async
+  tx_boundary:
+    source_loc: 'legacy/vntest.html:6502'
+    scope: 'A single realized-session upsert is issued; multi-request course/enrollment and upload/metadata flows are not shown as a single transaction.'
+    isolation: 'Database isolation and RPC transaction semantics are À vérifier dans Supabase.'
+    must_preserve: true

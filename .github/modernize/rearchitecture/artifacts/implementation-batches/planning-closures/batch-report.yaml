@@ -1,0 +1,88 @@
+batch_id: 'planning-closures'
+completed_tasks: ['T008']
+blocked_tasks: []
+files_changed:
+  T008:
+    - file: 'src/data/repositories/planningRepository.ts'
+      change_type: 'modified'
+      description: 'Add validated centre-scoped upsert and removal operations for closed dates.'
+    - file: 'src/data/repositories/planningRepository.test.ts'
+      change_type: 'modified'
+      description: 'Test upsert payload, default label, centre scoping, date validation and role rejection.'
+    - file: 'src/modules/planning/PlanningPage.tsx'
+      change_type: 'modified'
+      description: 'Add admin/director-only closed-days control, responsive dialog, list and explicit errors.'
+    - file: 'src/styles/global.css'
+      change_type: 'modified'
+      description: 'Style the closure dialog and list responsively.'
+    - file: 'docs/MIGRATION-PLAN.md'
+      change_type: 'modified'
+      description: 'Record closure management as implemented and remaining Planning/Séances scope.'
+    - file: 'docs/SCHEMA_SUPABASE.md'
+      change_type: 'modified'
+      description: 'Document the observed fermeture write contract and live verification requirements.'
+    - file: 'docs/TESTS_REGRESSION.md'
+      change_type: 'modified'
+      description: 'Record closure tests, validation results and live-test limitations.'
+    - file: '.github/modernize/rearchitecture/checkpoints/tasks-to-impl.yaml'
+      change_type: 'modified'
+      description: 'Add completed T008 traceability and evidence.'
+upstream_artifacts_consumed:
+  T008:
+    - artifact: 'docs/MIGRATION-PLAN.md'
+      used_for: 'Confirm the next Planning/Séances migration scope.'
+    - artifact: 'docs/SCHEMA_SUPABASE.md'
+      used_for: 'Use only observed closure columns and avoid remote schema changes.'
+    - artifact: 'legacy/vntest.html'
+      used_for: 'Reproduce the Jours fermés control, date/label form and remove action.'
+evidence_mapping:
+  T008:
+    - upstream: 'legacy/vntest.html closure manager and centre closure writes'
+      output: 'src/modules/planning/PlanningPage.tsx'
+      evidence: 'The React closure dialog and list are implemented; no browser submit was performed.'
+    - upstream: 'Centre-scoped fermeture contract'
+      output: 'src/data/repositories/planningRepository.ts'
+      evidence: 'Repository tests verify centre_id,date upsert conflict, centre-scoped delete and validation.'
+traceability:
+  - requirement: 'MIGRATION-PLAN.md — Planning/Séances closure management parity by verifiable batches'
+    plan_item: 'Add/update and remove closed dates'
+    task: 'T008'
+    files:
+      - 'src/data/repositories/planningRepository.ts'
+      - 'src/modules/planning/PlanningPage.tsx'
+    source_files:
+      - 'legacy/vntest.html'
+    status: 'partial'
+protocol_violation: false
+errors: []
+warnings:
+  - severity: HIGH
+    message: 'Supabase writes, authorization and RLS have not been exercised against an authorized test project; no live mutation was performed.'
+  - severity: MEDIUM
+    message: 'Enrollment management and formation progression remain to be ported.'
+  - severity: LOW
+    message: 'The shared browser tab showed the legacy reference, and the React entrypoint returned ERR_CONNECTION_REFUSED; the React dialog was not visually verified.'
+  - severity: LOW
+    message: 'The production build retains the legacy-script and large-chunk warnings.'
+required_endpoints: []
+endpoint_probes: []
+test_results:
+  T008:
+    command: 'npm test'
+    passed: 45
+    failed: 0
+    skipped: 0
+    failures: []
+build_result:
+  command: 'npm run build'
+  status: 'passed'
+lint_result:
+  command: 'npm run lint'
+  status: 'passed'
+format_result:
+  command: 'npx prettier --check src/modules/planning/PlanningPage.tsx src/data/repositories/planningRepository.ts src/data/repositories/planningRepository.test.ts src/styles/global.css docs/MIGRATION-PLAN.md docs/SCHEMA_SUPABASE.md docs/TESTS_REGRESSION.md .github/modernize/rearchitecture/checkpoints/tasks-to-impl.yaml .github/modernize/rearchitecture/artifacts/implementation-batches/planning-closures/batch-report.yaml'
+  status: 'passed'
+runtime_check:
+  command: 'Attempted legacy toolbar click and React entrypoint navigation; no React dialog submit or Supabase write.'
+  status: 'not-verified'
+  notes: 'The click was intercepted by overlapping legacy navigation controls; navigation then failed because the local server was unavailable. No data was changed.'

@@ -1,0 +1,49 @@
+contracts:
+  - name: "Supabase client data/auth/RPC/storage interface"
+    unit: schoolplans-spa
+    type: sdk
+    stability: must_preserve
+    source_loc: "legacy/vntest.html:2437"
+    contract:
+      method: "Supabase JavaScript v2 client calls"
+      path: "PostgREST tables, Auth, RPC, Edge Functions and Storage"
+      request: "Observed table names and query/mutation families are listed in docs/SCHEMA_SUPABASE.md; exact server schema is unavailable."
+      response: "Supabase client result objects; per-call result/error handling is in the reference."
+      error: "User-visible errors or logged failures vary by operation; preserve per-flow behavior."
+      auth: "Supabase Auth session token supplied by the browser client."
+    target_contract:
+      method: "@supabase/supabase-js client configured with VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY"
+      notes: "Preserve observed request filters and RPC/Storage calls; verify schema and RLS against the live Supabase project before implementation."
+    semantic_divergence: []
+  - name: "Supabase Edge Functions"
+    unit: schoolplans-spa
+    type: sdk
+    stability: must_preserve
+    source_loc: "legacy/vntest.html:5168"
+    contract:
+      method: "functions.invoke"
+      path: "centre-director-access; admin-users"
+      request: "centre-director-access actions list/reset; admin-users body shape is called from source."
+      response: "Function response is checked for error; exact response schema is not available."
+      error: "Function errors are displayed or returned to the calling operation."
+      auth: "Current Supabase session; centre-director-access explicitly sends bearer access token."
+    target_contract:
+      method: "Supabase Functions invoke with the same function names, actions and payloads"
+      notes: "Do not replace privileged server operations with frontend writes; verify deployed function contracts."
+    semantic_divergence: []
+  - name: "Supabase Storage"
+    unit: schoolplans-spa
+    type: sdk
+    stability: must_preserve
+    source_loc: "legacy/vntest.html:8301"
+    contract:
+      method: "upload, remove, createSignedUrl, getPublicUrl"
+      path: "supports and centre-logos buckets"
+      request: "Course documents uploaded under course-id/timestamp-filename; logos under centre-id/timestamp-filename."
+      response: "Signed URL for support preview/download (120 seconds); public URL for logo."
+      error: "Metadata insert failure triggers support object cleanup; other failures are surfaced to the user."
+      auth: "Supabase browser session; bucket policies not available."
+    target_contract:
+      method: "Supabase Storage client operations with the same bucket, object lifecycle and URL behavior"
+      notes: "Preserve 20 MiB frontend support limit and compensating object cleanup; verify bucket policies and server-side limits."
+    semantic_divergence: []

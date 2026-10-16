@@ -1,0 +1,176 @@
+batch_id: 'formation-groups-profile-public'
+completed_tasks: ['T015', 'T016', 'T017']
+blocked_tasks: []
+required_endpoints: []
+endpoint_probes: []
+files_changed:
+  T015:
+    - file: 'src/data/repositories/formationGroupRepository.ts'
+      change_type: 'created'
+      description: 'Create, update, delete and load formations, groups and centre modules using observed table fields.'
+    - file: 'src/data/repositories/formationGroupRepository.test.ts'
+      change_type: 'created'
+      description: 'Test date derivation, centre scope, module association and formation input validation.'
+    - file: 'src/modules/management/DirectoryPages.tsx'
+      change_type: 'modified'
+      description: 'Add the formation editor, module picker and group management UI.'
+    - file: 'src/styles/global.css'
+      change_type: 'modified'
+      description: 'Style formation/group cards and editors, plus the responsive public landing.'
+  T016:
+    - file: 'src/data/repositories/centreProfileRepository.ts'
+      change_type: 'created'
+      description: 'Load/update observed centre fields and upload logo files to centre-logos.'
+    - file: 'src/data/repositories/centreProfileRepository.test.ts'
+      change_type: 'created'
+      description: 'Test scoped reads/writes, required values and image upload validation.'
+    - file: 'src/modules/management/CentreProfilePage.tsx'
+      change_type: 'created'
+      description: 'Add centre profile form, preview, user feedback and centre-role scoping.'
+    - file: 'src/modules/auth/AuthRoutes.tsx'
+      change_type: 'modified'
+      description: 'Route the centre profile section behind centralized authorization.'
+    - file: 'src/styles/global.css'
+      change_type: 'modified'
+      description: 'Style the centre profile editor and local logo preview.'
+    - file: 'src/business/permissions/permissions.ts'
+      change_type: 'modified'
+      description: 'Keep centre profile navigation for centre administrators/directors, not unscoped super-admins.'
+    - file: 'src/business/permissions/permissions.test.ts'
+      change_type: 'modified'
+      description: 'Align super-admin section expectation with centre-scoped profile access.'
+  T017:
+    - file: 'src/modules/public/LandingPage.tsx'
+      change_type: 'created'
+      description: 'Port the reference hero, features, workflow, benefits, prices, FAQ and contact.'
+    - file: 'src/app/router.tsx'
+      change_type: 'modified'
+      description: 'Route the public landing at root and the sign-in flow at /login.'
+    - file: 'src/modules/auth/LoginPage.tsx'
+      change_type: 'modified'
+      description: 'Use basename-aware navigation for returning to the public landing.'
+    - file: 'src/styles/global.css'
+      change_type: 'modified'
+      description: 'Add the reference-inspired landing theme and responsive layouts.'
+  documentation:
+    - file: 'docs/MIGRATION-PLAN.md'
+      change_type: 'modified'
+      description: 'Record completed public landing, formation/group CRUD and centre profile scope.'
+    - file: 'docs/TESTS_REGRESSION.md'
+      change_type: 'modified'
+      description: 'Document new mocked repository tests and live-service limitations.'
+    - file: 'docs/SCHEMA_SUPABASE.md'
+      change_type: 'modified'
+      description: 'Document the observed formation/group writes without claiming a database change.'
+    - file: '.github/modernize/rearchitecture/checkpoints/tasks-to-impl.yaml'
+      change_type: 'modified'
+      description: 'Record T015-T017 and update traceability.'
+upstream_artifacts_consumed:
+  T015:
+    - artifact: 'legacy/vntest.html'
+      used_for: 'Formation/module/group fields, input behavior and duration-derived group end date.'
+    - artifact: 'src/data/repositories/planningRepository.ts'
+      used_for: 'Existing scoped planning data and formation/group model.'
+  T016:
+    - artifact: 'legacy/vntest.html'
+      used_for: 'Centre profile fields and centre-logos storage bucket contract.'
+    - artifact: 'src/business/permissions/permissions.ts'
+      used_for: 'Existing role access checks and profile-section visibility.'
+  T017:
+    - artifact: 'legacy/vntest.html'
+      used_for: 'Public landing design, section content, contact defaults, pricing and contact mailto flow.'
+    - artifact: 'src/app/router.tsx'
+      used_for: 'Existing router basename and authenticated route conventions.'
+evidence_mapping:
+  T015:
+    - upstream: 'legacy/vntest.html formation/group/module forms'
+      output: 'src/data/repositories/formationGroupRepository.ts'
+      evidence: 'Mocked repository tests cover the observed writes, centre scoping and date calculation.'
+  T016:
+    - upstream: 'legacy/vntest.html centre profile and centre-logos'
+      output: 'src/modules/management/CentreProfilePage.tsx'
+      evidence: 'Profile is accessible only for centre-linked admin/director profiles; repository tests cover the contract.'
+  T017:
+    - upstream: 'legacy/vntest.html #landing and contact form'
+      output: 'src/modules/public/LandingPage.tsx'
+      evidence: 'Browser check confirmed the public root, responsive menu, login navigation and pricing controls.'
+source_references:
+  T015:
+    source_files:
+      - file: 'legacy/vntest.html'
+        methods_read:
+          [
+            'formation CRUD handlers',
+            'formation_matieres handlers',
+            'group creation and end-date calculation',
+          ]
+    notes: 'Repository mutations follow observed fields; no Supabase schema or live data was changed.'
+  T016:
+    source_files:
+      - file: 'legacy/vntest.html'
+        methods_read: ['centre profile load/save', 'centre-logos upload']
+    notes: 'Storage authorization and centre RLS remain unverified against Supabase.'
+  T017:
+    source_files:
+      - file: 'legacy/vntest.html'
+        methods_read: ['#landing sections', 'pricing controls', 'contact mailto handler']
+    notes: 'External media assets from the reference were not added; product dashboard preview is CSS/HTML.'
+traceability:
+  - requirement: 'Formation, group and module management'
+    plan_item: 'Create/edit/delete centre formations and groups; associate modules'
+    task: 'T015'
+    files:
+      - 'src/data/repositories/formationGroupRepository.ts'
+      - 'src/modules/management/DirectoryPages.tsx'
+  - requirement: 'Centre profile contact fields and logo'
+    plan_item: 'Centre-scoped profile and centre-logos upload'
+    task: 'T016'
+    files:
+      - 'src/data/repositories/centreProfileRepository.ts'
+      - 'src/modules/management/CentreProfilePage.tsx'
+  - requirement: 'Public landing page parity and authentication navigation'
+    plan_item: 'Responsive public page and login route'
+    task: 'T017'
+    files:
+      - 'src/modules/public/LandingPage.tsx'
+      - 'src/app/router.tsx'
+validation:
+  passed: true
+  errors: []
+  warnings:
+    - severity: MEDIUM
+      message: 'Supabase write contracts, storage bucket permissions and RLS were not tested against an authorized Supabase environment.'
+    - severity: LOW
+      message: 'Build retains the existing warning for the legacy non-module script and the large React chunk.'
+test_results:
+  T015:
+    command: 'npm test'
+    passed: 71
+    failed: 0
+    skipped: 0
+    failures: []
+  T016:
+    command: 'npm test'
+    passed: 71
+    failed: 0
+    skipped: 0
+    failures: []
+  T017:
+    command: 'npm test'
+    passed: 71
+    failed: 0
+    skipped: 0
+    failures: []
+build_result:
+  command: 'npm run build'
+  status: 'passed'
+lint_result:
+  command: 'npm run lint'
+  status: 'passed'
+format_result:
+  command: 'npx prettier --check changed files'
+  status: 'passed'
+runtime_check:
+  command: 'Browser smoke check on http://127.0.0.1:5174/react-app.html'
+  status: 'passed'
+  notes: 'Public landing rendered; responsive navigation, /login link and pricing next control were exercised. Authenticated profile and mail client were not submitted.'

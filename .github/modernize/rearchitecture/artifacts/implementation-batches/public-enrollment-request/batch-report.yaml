@@ -1,0 +1,101 @@
+batch_id: 'public-enrollment-request-student'
+completed_tasks: ['T011']
+blocked_tasks: []
+required_endpoints: []
+endpoint_probes: []
+files_changed:
+  T011:
+    - file: 'src/types/enrollmentRequests.ts'
+      change_type: 'modified'
+      description: 'Share education-level options, active centre data and the public request submission shape.'
+    - file: 'src/data/repositories/enrollmentRequestRepository.ts'
+      change_type: 'modified'
+      description: 'Read active centres and the signed-in user request; insert only the historical request fields.'
+    - file: 'src/data/repositories/enrollmentRequestRepository.test.ts'
+      change_type: 'modified'
+      description: 'Cover active-centre lookup, user filter, insert payload normalization and required-field validation.'
+    - file: 'src/modules/auth/PendingAccess.tsx'
+      change_type: 'modified'
+      description: 'Render the request form when no request exists and show pending, approved or refusal states.'
+    - file: 'src/styles/global.css'
+      change_type: 'modified'
+      description: 'Style the form responsively using the existing theme.'
+    - file: 'docs/MIGRATION-PLAN.md'
+      change_type: 'modified'
+      description: 'Update module status and leave the public vitrine outstanding.'
+    - file: 'docs/SCHEMA_SUPABASE.md'
+      change_type: 'modified'
+      description: 'Record observed centre/request reads and insert fields; retain live RLS caveat.'
+    - file: 'docs/TESTS_REGRESSION.md'
+      change_type: 'modified'
+      description: 'Document request flow behavior, tests and validation limits.'
+    - file: '.github/modernize/rearchitecture/checkpoints/tasks-to-impl.yaml'
+      change_type: 'modified'
+      description: 'Add T011 task and traceability.'
+upstream_artifacts_consumed:
+  T011:
+    - artifact: 'legacy/vntest.html'
+      used_for: 'Source-anchored behavior of askInscription, pendingFlow and showPend.'
+    - artifact: 'src/data/repositories/enrollmentRequestRepository.ts'
+      used_for: 'Reuse the observed request mapping and existing shared status type.'
+    - artifact: 'src/modules/auth/AuthProvider.tsx'
+      used_for: 'Use the authenticated session and pending-student route without changing auth policy.'
+evidence_mapping:
+  T011:
+    - upstream: 'legacy/vntest.html#askInscription'
+      output: 'src/modules/auth/PendingAccess.tsx#EnrollmentRequestForm'
+      evidence: 'Retains prefilled account name/email, active centre selection, historic education levels, required fields and optional phone/address.'
+    - upstream: 'legacy/vntest.html#pendingFlow/showPend'
+      output: 'src/modules/auth/PendingAccess.tsx#PendingAccess'
+      evidence: 'Checks the signed-in user request and renders the pending, approved or refused status, including optional refusal reason.'
+    - upstream: 'legacy/vntest.html#insf submit handler'
+      output: 'src/data/repositories/enrollmentRequestRepository.ts#createEnrollmentRequest'
+      evidence: 'Repository tests assert the historical insert payload and trimming/null handling; no status/date fields are invented.'
+source_references:
+  T011:
+    source_files:
+      - file: 'legacy/vntest.html'
+        methods_read: ['askInscription', 'pendingFlow', 'showPend']
+    branches_preserved: 6
+    validations_preserved: 4
+    side_effects_preserved: 1
+    notes: 'The form submits only to the existing demandes_inscription table; no schema or live project was changed.'
+traceability:
+  - requirement: 'INVENTAIRE_FONCTIONNEL.md — formulaire de demande d’inscription'
+    plan_item: 'Submit a centre-specific student request and display its decision'
+    task: 'T011'
+    files:
+      - 'src/data/repositories/enrollmentRequestRepository.ts'
+      - 'src/modules/auth/PendingAccess.tsx'
+    source_files:
+      - 'legacy/vntest.html'
+    status: 'partial'
+protocol_violation: false
+errors: []
+warnings:
+  - severity: HIGH
+    message: 'The existing RLS policies, user_id uniqueness and insert/read access were not verified against an authorized Supabase test project; no form submission was performed.'
+  - severity: LOW
+    message: 'Authenticated browser verification was not performed because no valid test session was available.'
+  - severity: LOW
+    message: 'Build retains the existing legacy-script bundling and large-chunk warnings.'
+test_results:
+  T011:
+    command: 'npm test'
+    passed: 57
+    failed: 0
+    skipped: 0
+    failures: []
+build_result:
+  command: 'npm run build'
+  status: 'passed'
+lint_result:
+  command: 'npm run lint'
+  status: 'passed'
+format_result:
+  command: 'npx prettier --check changed source and documentation files'
+  status: 'passed'
+runtime_check:
+  command: 'Not run; authenticated session unavailable'
+  status: 'skipped'
+  notes: 'No live Supabase reads or writes were attempted.'

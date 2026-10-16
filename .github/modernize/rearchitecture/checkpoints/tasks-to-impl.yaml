@@ -1,0 +1,1045 @@
+metadata:
+  generated: '2026-10-16'
+  source_tasks: 'docs/MIGRATION-PLAN.md (V2; no tasks.json or REQ feature spec exists)'
+  last_updated: '2026-10-16'
+summary:
+  total_tasks: 20
+  completed_tasks: 19
+  in_progress_tasks: 0
+  pending_tasks: 0
+  blocked_tasks: 1
+  completion_percentage: 95.0
+tasks:
+  - task_id: 'T001'
+    description: 'Implement the read-only formateur student list and centre-scoped repository.'
+    status: 'completed'
+    implementation:
+      files_changed:
+        - file: 'src/types/students.ts'
+          change_type: 'added'
+          description: 'Student and course relation types.'
+        - file: 'src/data/repositories/studentRepository.ts'
+          change_type: 'added'
+          description: 'RPC and centre-scoped student list repository.'
+        - file: 'src/business/students/studentList.ts'
+          change_type: 'added'
+          description: 'Student/enrollment/course view mapping.'
+        - file: 'src/modules/students/MyStudentsPage.tsx'
+          change_type: 'added'
+          description: 'Read-only student list view.'
+        - file: 'src/modules/auth/AuthRoutes.tsx'
+          change_type: 'modified'
+          description: 'Route the authorized vn section to the migrated page.'
+        - file: 'src/business/permissions/permissions.ts'
+          change_type: 'modified'
+          description: 'Restrict vn to formateurs.'
+    verification:
+      build_passed: true
+      test_results:
+        command: 'npm test'
+        passed: 16
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: 'npm run lint and Prettier also pass. No live Supabase calls were made.'
+    upstream_trace:
+      plan_item: 'V2.1-V2.3'
+      requirements: ['MIGRATION-PLAN.md V2 — Students']
+      full_trace: 'MIGRATION-PLAN.md V2 → T001 → student repository, business mapping and page'
+  - task_id: 'T002'
+    description: 'Validate the RPC/RLS contract and the Nezha/Reda scenarios on an authorized Supabase test project.'
+    status: 'blocked'
+    implementation:
+      files_changed: []
+    verification:
+      build_passed: true
+      test_results:
+        command: 'Not run; Supabase test project and synthetic data unavailable.'
+        passed: 0
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: 'Do not execute the local SQL proposal or proceed to the next domain until this check is completed.'
+    upstream_trace:
+      plan_item: 'V2.1 and V2.4'
+      requirements: ['MIGRATION-PLAN.md V2 — Validate RPC and synthetic users']
+      full_trace: 'MIGRATION-PLAN.md V2 → T002 → Supabase RPC/RLS verification'
+  - task_id: 'T003'
+    description: 'Port the admin and formateur dashboards from the HTML reference with scoped data, filters, metrics and charts.'
+    status: 'completed'
+    implementation:
+      files_changed:
+        - file: 'src/types/dashboard.ts'
+          change_type: 'added'
+          description: 'Shared dashboard data, filter, occurrence and metric types.'
+        - file: 'src/business/dashboard/dashboardMetrics.ts'
+          change_type: 'added'
+          description: 'Pure date-range, course occurrence, filtering and dashboard metric calculations.'
+        - file: 'src/business/dashboard/dashboardMetrics.test.ts'
+          change_type: 'added'
+          description: 'Regression tests for date ranges, exclusions, filters, attendance and aggregates.'
+        - file: 'src/data/repositories/dashboardRepository.ts'
+          change_type: 'added'
+          description: 'Dashboard reads with centre and teacher scoping; repository errors are surfaced.'
+        - file: 'src/modules/dashboard/DashboardPage.tsx'
+          change_type: 'added'
+          description: 'Role-specific dashboard views, indicators, enrollment chart modes and upcoming courses.'
+        - file: 'src/app/router.tsx'
+          change_type: 'modified'
+          description: 'Render the dashboard at the authenticated app index.'
+        - file: 'src/modules/auth/AuthRoutes.tsx'
+          change_type: 'modified'
+          description: 'Connect the authorized vd section to the dashboard.'
+        - file: 'src/styles/global.css'
+          change_type: 'modified'
+          description: 'Responsive dashboard cards, filters, tables and charts.'
+        - file: 'docs/MIGRATION-PLAN.md'
+          change_type: 'modified'
+          description: 'Record dashboard scope and remaining functional parity work.'
+        - file: 'docs/TESTS_REGRESSION.md'
+          change_type: 'modified'
+          description: 'Record dashboard coverage and current local validation.'
+        - file: 'docs/SCHEMA_SUPABASE.md'
+          change_type: 'modified'
+          description: 'Record observed dashboard read dependencies and live validation limits.'
+      verification:
+        build_passed: true
+        test_results:
+          command: 'npm test'
+          passed: 22
+          failed: 0
+          skipped: 0
+          failures: []
+        notes: 'npm run lint, Prettier and the React-entry browser smoke check also pass. Authenticated dashboard and live Supabase behavior remain unverified.'
+    upstream_trace:
+      plan_item: 'Portage de legacy/vntest.html — Tableau de bord'
+      requirements: ['MIGRATION-PLAN.md — dashboard parity by verifiable batches']
+      full_trace: 'legacy/vntest.html → MIGRATION-PLAN.md dashboard row → T003 → dashboard metrics, repository and page'
+  - task_id: 'T004'
+    description: 'Add Tailwind-based shared React UI, migrate the current application shell/auth/student/dashboard presentation, and port super-admin centre management using the available Supabase Edge Functions.'
+    status: 'completed'
+    implementation:
+      files_changed:
+        - file: 'vite.config.ts'
+          change_type: 'modified'
+          description: 'Enable the Tailwind Vite plugin while preserving the legacy application build.'
+        - file: 'src/styles/global.css'
+          change_type: 'modified'
+          description: 'Import Tailwind and define SchoolPlans brand tokens.'
+        - file: 'src/components/ui.tsx'
+          change_type: 'added'
+          description: 'Provide reusable buttons, fields, page headers, panels, alerts, badges and loading/empty states.'
+        - file: 'src/modules/auth/LoginPage.tsx'
+          change_type: 'modified'
+          description: 'Use Tailwind and shared components for the login and account-creation form.'
+        - file: 'src/modules/auth/AuthRoutes.tsx'
+          change_type: 'modified'
+          description: 'Use a responsive Tailwind application shell and connect the centres page.'
+        - file: 'src/modules/auth/ForcedPasswordChange.tsx'
+          change_type: 'modified'
+          description: 'Use the shared Tailwind UI for required password changes.'
+        - file: 'src/modules/auth/PendingAccess.tsx'
+          change_type: 'modified'
+          description: 'Use the shared Tailwind UI for pending student access.'
+        - file: 'src/modules/dashboard/DashboardPage.tsx'
+          change_type: 'modified'
+          description: 'Adopt shared UI components and Tailwind layout/table styles.'
+        - file: 'src/modules/students/MyStudentsPage.tsx'
+          change_type: 'modified'
+          description: 'Adopt shared UI components and Tailwind table styles.'
+        - file: 'src/modules/centres/CentreManagementPage.tsx'
+          change_type: 'added'
+          description: 'Implement centre listing/search/status, centre+director creation, director listing and password reset.'
+        - file: 'src/data/repositories/edgeFunctionRepository.ts'
+          change_type: 'added'
+          description: 'Invoke admin-users and centre-director-access with validated requests/responses and surfaced errors.'
+        - file: 'src/data/repositories/edgeFunctionRepository.test.ts'
+          change_type: 'added'
+          description: 'Test Edge Function invocation names, payloads, response validation and application errors.'
+        - file: 'src/app/App.tsx'
+          change_type: 'modified'
+          description: 'Use the Tailwind loading state.'
+        - file: 'src/app/router.tsx'
+          change_type: 'modified'
+          description: 'Use Tailwind styling for the not-found route.'
+        - file: 'backend/edge-functions/centre-director-access.ts'
+          change_type: 'modified'
+          description: 'Replace explicit any and unused catch bindings with typed equivalents without changing runtime behavior.'
+        - file: 'package.json'
+          change_type: 'modified'
+          description: 'Add Tailwind CSS and its Vite plugin.'
+        - file: 'package-lock.json'
+          change_type: 'modified'
+          description: 'Lock Tailwind CSS and its Vite plugin dependencies.'
+        - file: 'backend/edge-functions/admin-users.ts'
+          change_type: 'modified'
+          description: 'Restore the missing cors object declaration in the function response headers.'
+        - file: 'docs/MIGRATION-PLAN.md'
+          change_type: 'modified'
+          description: 'Record the implemented centre-management scope and remaining modules.'
+        - file: 'docs/SCHEMA_SUPABASE.md'
+          change_type: 'modified'
+          description: 'Document the Edge Function and centre page read/write contracts.'
+        - file: 'docs/TESTS_REGRESSION.md'
+          change_type: 'modified'
+          description: 'Document Edge Function tests and pending live validation.'
+      verification:
+        build_passed: true
+        test_results:
+          command: 'npm test'
+          passed: 27
+          failed: 0
+          skipped: 0
+          failures: []
+        notes: 'npm run lint and Prettier pass. Live Edge Function and RLS behavior remains unverified.'
+    upstream_trace:
+      plan_item: 'Portage React de la navigation, de la gestion des centres et des composants UI'
+      requirements: ['MIGRATION-PLAN.md — portage incrémental de legacy/vntest.html']
+      full_trace: 'legacy/vntest.html centre view and Edge Function calls → T004 → Tailwind UI, Edge repository and centre page'
+  - task_id: 'T005'
+    description: 'Align the React admin/formateur dashboards and charts with the reference design.'
+    status: 'completed'
+    implementation:
+      files_changed:
+        - file: 'src/modules/dashboard/DashboardPage.tsx'
+          change_type: 'modified'
+          description: 'Render reference-style KPI cards, period presets, icon chart controls, axis/grid/fill chart and domain donut while retaining existing calculations.'
+        - file: 'src/styles/global.css'
+          change_type: 'modified'
+          description: 'Style dashboard surfaces, charts, responsive grids, dashboard controls and mobile navigation labels with theme tokens.'
+        - file: 'docs/MIGRATION-PLAN.md'
+          change_type: 'modified'
+          description: 'Record dashboard visual alignment without claiming Supabase/RLS validation.'
+        - file: 'docs/TESTS_REGRESSION.md'
+          change_type: 'modified'
+          description: 'Document dashboard UI coverage and live validation limits.'
+      verification:
+        build_passed: true
+        test_results:
+          command: 'npm test -- src/business/dashboard/dashboardMetrics.test.ts'
+          passed: 6
+          failed: 0
+          skipped: 0
+          failures: []
+        notes: 'npm run build, npm run lint, targeted Prettier and desktop/mobile browser checks pass. Horizontal document overflow was removed at mobile width; Supabase writes were not performed.'
+    upstream_trace:
+      plan_item: 'Tableau de bord admin/formateur — parité visuelle avec la référence'
+      requirements:
+        [
+          'docs/MIGRATION-PLAN.md — Tableau de bord',
+          'legacy/vntest.html — styles .sdh/.sdk/.sdm/.sdb',
+        ]
+      full_trace: 'legacy/vntest.html dashboard styles and chart renderer → T005 → React dashboard and responsive theme CSS'
+  - task_id: 'T006'
+    description: 'Porter en consultation les vues Planning et Séances avec les filtres et occurrences hebdomadaires de la référence.'
+    status: 'completed'
+    implementation:
+      files_changed:
+        - file: 'src/types/planning.ts'
+          change_type: 'added'
+          description: 'Types partagés pour les cours, groupes, filtres et occurrences du planning.'
+        - file: 'src/business/planning/planningSchedule.ts'
+          change_type: 'added'
+          description: 'Calcul pur des semaines, occurrences, filtres et créneaux de disponibilité des salles.'
+        - file: 'src/business/planning/planningSchedule.test.ts'
+          change_type: 'added'
+          description: 'Tests de récurrence, dates limites, fermetures, annulations, séances réalisées et disponibilités.'
+        - file: 'src/data/repositories/planningRepository.ts'
+          change_type: 'added'
+          description: 'Lectures scopées au centre pour le planning; cours formateur limités à sa fiche liée.'
+        - file: 'src/data/repositories/planningRepository.test.ts'
+          change_type: 'added'
+          description: 'Tests de centre requis et de filtres centre/formateur.'
+        - file: 'src/modules/planning/PlanningPage.tsx'
+          change_type: 'added'
+          description: 'Calendrier responsive et liste des séances, avec filtres de formation, groupe, formateur et module.'
+        - file: 'src/modules/auth/AuthRoutes.tsx'
+          change_type: 'modified'
+          description: 'Relier les routes autorisées vcal et vl aux vues Planning et Séances.'
+        - file: 'src/styles/global.css'
+          change_type: 'modified'
+          description: 'Styles responsive du calendrier et des cartes de séance selon le thème existant.'
+        - file: 'docs/MIGRATION-PLAN.md'
+          change_type: 'modified'
+          description: 'Documenter la consultation livrée et les opérations métier restant à migrer.'
+        - file: 'docs/SCHEMA_SUPABASE.md'
+          change_type: 'modified'
+          description: 'Documenter les tables lues et les limites de vérification live.'
+        - file: 'docs/TESTS_REGRESSION.md'
+          change_type: 'modified'
+          description: 'Documenter la couverture locale et les scénarios encore ouverts.'
+      verification:
+        build_passed: true
+        test_results:
+          command: 'npm test'
+          passed: 35
+          failed: 0
+          skipped: 0
+          failures: []
+        notes: 'npm run lint et Prettier passent. Aucun script de contrat API trouvé; aucune écriture Supabase ni validation live/RLS n’a été exécutée.'
+    upstream_trace:
+      plan_item: 'Portage de legacy/vntest.html — Planning et séances (lot consultation)'
+      requirements:
+        - 'docs/MIGRATION-PLAN.md — portage incrémental de legacy/vntest.html'
+        - 'legacy/vntest.html — filtres, calendrier hebdomadaire et liste des cours'
+      full_trace: 'legacy/vntest.html planning and course list → T006 → scoped repository, schedule calculations and React views'
+  - task_id: 'T007'
+    description: 'Implement local validation and course management actions for Planning/Séances using the existing centre scope and role permissions.'
+    status: 'completed'
+    implementation:
+      files_changed:
+        - file: 'src/business/planning/planningRules.ts'
+          change_type: 'added'
+          description: 'Validate course dates, hours, group/formation/subject, teacher skills and room/teacher conflicts.'
+        - file: 'src/business/planning/planningRules.test.ts'
+          change_type: 'added'
+          description: 'Test course validation, availability checks and automatic room/teacher selection.'
+        - file: 'src/data/repositories/planningRepository.ts'
+          change_type: 'modified'
+          description: 'Load management options and add centre-scoped course, cancellation and completed-session writes.'
+        - file: 'src/data/repositories/planningRepository.test.ts'
+          change_type: 'modified'
+          description: 'Test centre-scoped legacy-column insertion and ensure invalid input makes no write.'
+        - file: 'src/modules/planning/PlanningPage.tsx'
+          change_type: 'modified'
+          description: 'Add permission-gated course form and occurrence/session actions with confirmation and surfaced errors.'
+        - file: 'src/types/planning.ts'
+          change_type: 'modified'
+          description: 'Extend shared planning types for management form data.'
+        - file: 'src/styles/global.css'
+          change_type: 'modified'
+          description: 'Style course management forms, dialogs and controls consistently with the existing theme.'
+        - file: 'docs/MIGRATION-PLAN.md'
+          change_type: 'modified'
+          description: 'Record delivered course management and remaining migration scope.'
+        - file: 'docs/SCHEMA_SUPABASE.md'
+          change_type: 'modified'
+          description: 'Document client-observed write contracts and live verification limits.'
+        - file: 'docs/TESTS_REGRESSION.md'
+          change_type: 'modified'
+          description: 'Record local business-rule and repository tests plus unverified live behavior.'
+      verification:
+        build_passed: true
+        test_results:
+          command: 'npm test'
+          passed: 42
+          failed: 0
+          skipped: 0
+          failures: []
+        notes: 'npm run lint et Prettier passent. Le build signale le script legacy non-module et un chunk supérieur à 500 kB; aucune mutation Supabase ni validation live/RLS n’a été exécutée.'
+    upstream_trace:
+      plan_item: 'Portage de legacy/vntest.html — gestion de cours, annulations et séances réalisées'
+      requirements:
+        - 'docs/MIGRATION-PLAN.md — portage incrémental de legacy/vntest.html'
+        - 'legacy/vntest.html — formulaire cours, règles de validation et actions de séance'
+      full_trace: 'legacy/vntest.html course form and session actions → T007 → local rules, scoped repository, permission-gated React actions'
+  - task_id: 'T008'
+    description: 'Porter la gestion des jours fermés du centre dans le Planning, avec droits admin/director et écritures strictement scopées.'
+    status: 'completed'
+    implementation:
+      files_changed:
+        - file: 'src/data/repositories/planningRepository.ts'
+          change_type: 'modified'
+          description: 'Ajouter/upserter et retirer les fermetures en validant la date, le rôle et le centre actif.'
+        - file: 'src/data/repositories/planningRepository.test.ts'
+          change_type: 'modified'
+          description: 'Couvrir le libellé par défaut, l’upsert, le filtre centre et les refus d’autorisation/date.'
+        - file: 'src/modules/planning/PlanningPage.tsx'
+          change_type: 'modified'
+          description: 'Afficher le bouton admin/director, la fenêtre de gestion, la liste et les erreurs de chargement/écriture.'
+        - file: 'src/styles/global.css'
+          change_type: 'modified'
+          description: 'Ajouter les styles responsives de la fenêtre des jours fermés.'
+        - file: 'docs/MIGRATION-PLAN.md'
+          change_type: 'modified'
+          description: 'Mettre à jour le périmètre Planning/Séances livré.'
+        - file: 'docs/SCHEMA_SUPABASE.md'
+          change_type: 'modified'
+          description: 'Documenter les écritures observées sur fermetures et leurs limites de validation live.'
+        - file: 'docs/TESTS_REGRESSION.md'
+          change_type: 'modified'
+          description: 'Documenter les tests et le résultat du lot.'
+      verification:
+        build_passed: true
+        test_results:
+          command: 'npm test'
+          passed: 45
+          failed: 0
+          skipped: 0
+          failures: []
+        notes: 'npm run lint et Prettier passent. Deux avertissements de build déjà présents persistent. La validation du navigateur partagé n’a pas été terminée car il affiche la référence historique; aucune mutation Supabase/RLS n’a été exécutée.'
+    upstream_trace:
+      plan_item: 'Portage de legacy/vntest.html — jours fermés du planning'
+      requirements:
+        - 'docs/MIGRATION-PLAN.md — portage incrémental par lots'
+        - 'legacy/vntest.html — commande Jours fermés, formulaire et suppression'
+      full_trace: 'legacy/vntest.html closure manager → T008 → permission-gated React dialog and centre-scoped closure repository'
+  - task_id: 'T009'
+    description: 'Porter le module administratif des demandes d’inscription avec filtre d’état, affichage des dossiers, approbation et refus motivé facultatif.'
+    status: 'completed'
+    implementation:
+      files_changed:
+        - file: 'src/types/enrollmentRequests.ts'
+          change_type: 'added'
+          description: 'Définir les statuts, filtres et données des demandes d’inscription.'
+        - file: 'src/data/repositories/enrollmentRequestRepository.ts'
+          change_type: 'added'
+          description: 'Lire les 200 demandes les plus récentes du centre et appeler les RPC historiques de décision.'
+        - file: 'src/data/repositories/enrollmentRequestRepository.test.ts'
+          change_type: 'added'
+          description: 'Tester filtre, centre, limite/tri, validation des données, paramètres RPC et propagation des erreurs.'
+        - file: 'src/modules/enrollments/EnrollmentRequestsPage.tsx'
+          change_type: 'added'
+          description: 'Afficher et traiter les demandes dans une page responsive avec refus facultatif motivé.'
+        - file: 'src/modules/auth/AuthRoutes.tsx'
+          change_type: 'modified'
+          description: 'Rendre le module sur la route vi après validation des permissions centrales.'
+        - file: 'src/business/permissions/permissions.test.ts'
+          change_type: 'modified'
+          description: 'Vérifier que l’onglet est réservé à admin/director.'
+        - file: 'src/styles/global.css'
+          change_type: 'modified'
+          description: 'Ajouter la présentation responsive du filtre, du tableau, des statuts et du dialogue de refus.'
+        - file: 'docs/MIGRATION-PLAN.md'
+          change_type: 'modified'
+          description: 'Distinguer la gestion administrative livrée du formulaire public restant.'
+        - file: 'docs/SCHEMA_SUPABASE.md'
+          change_type: 'modified'
+          description: 'Documenter le contrat observé des demandes et RPC, sans supposer RLS validée.'
+        - file: 'docs/TESTS_REGRESSION.md'
+          change_type: 'modified'
+          description: 'Documenter tests, couverture et limites live du module.'
+      verification:
+        build_passed: true
+        test_results:
+          command: 'npm test'
+          passed: 51
+          failed: 0
+          skipped: 0
+          failures: []
+        notes: 'npm run lint et Prettier passent. Entrypoint React vérifié dans Vite; route atteignable mais authentification requise. Aucune action RPC n’a été exécutée.'
+    upstream_trace:
+      plan_item: 'Portage de legacy/vntest.html — Inscriptions admin'
+      requirements:
+        - 'docs/INVENTAIRE_FONCTIONNEL.md — Inscriptions : filtre d’état, approbation et refus'
+        - 'legacy/vntest.html — demandes récentes, filtres, approbation/refus via RPC'
+      full_trace: 'legacy/vntest.html loadDem/ifl/idt → T009 → centre-scoped request repository, RPC decisions and React route'
+  - task_id: 'T010'
+    description: 'Porter le compteur de progression des formations dans le Planning, avec le volume prévu, les heures réalisées et restantes et le pourcentage.'
+    status: 'completed'
+    implementation:
+      files_changed:
+        - file: 'src/business/planning/planningProgress.ts'
+          change_type: 'added'
+          description: 'Calculer les occurrences de cours bornées par groupe et leur progression selon le contrat historique.'
+        - file: 'src/business/planning/planningProgress.test.ts'
+          change_type: 'added'
+          description: 'Couvrir les heures totales, le repli planning, les occurrences annulées/fermées, les bornes de groupe et les valeurs invalides.'
+        - file: 'src/types/planning.ts'
+          change_type: 'modified'
+          description: 'Ajouter le volume horaire configuré aux formations des options Planning.'
+        - file: 'src/data/repositories/planningRepository.ts'
+          change_type: 'modified'
+          description: 'Lire heures_totales sans modifier le schéma; conserver la portée centre existante.'
+        - file: 'src/data/repositories/planningRepository.test.ts'
+          change_type: 'modified'
+          description: 'Vérifier la lecture du champ heures_totales.'
+        - file: 'src/modules/planning/PlanningPage.tsx'
+          change_type: 'modified'
+          description: 'Afficher les indicateurs de progression de chaque formation dans le Planning.'
+        - file: 'src/styles/global.css'
+          change_type: 'modified'
+          description: 'Ajouter la grille de barres et cartes responsive dans le thème de référence.'
+        - file: 'docs/MIGRATION-PLAN.md'
+          change_type: 'modified'
+          description: 'Marquer le calcul de progression comme porté et laisser le formulaire public en attente.'
+        - file: 'docs/SCHEMA_SUPABASE.md'
+          change_type: 'modified'
+          description: 'Documenter la lecture du volume horaire sans supposer que le contrat live/RLS est validé.'
+        - file: 'docs/TESTS_REGRESSION.md'
+          change_type: 'modified'
+          description: 'Documenter le calcul, ses tests et les limites de validation Supabase live.'
+      verification:
+        build_passed: true
+        test_results:
+          command: 'npm test'
+          passed: 55
+          failed: 0
+          skipped: 0
+          failures: []
+        notes: 'npm run lint et Prettier passent. Aucune mutation Supabase ni modification du schéma distant n’a été effectuée.'
+    upstream_trace:
+      plan_item: 'Portage de legacy/vntest.html — progression des formations'
+      requirements:
+        - 'docs/MIGRATION-PLAN.md — progression responsive de la formation sélectionnée'
+        - 'legacy/vntest.html — mettreAJourCompteurFormation'
+      full_trace: 'legacy/vntest.html mettreAJourCompteurFormation → T010 → calcul métier pur et indicateurs responsives dans Planning'
+  - task_id: 'T011'
+    description: 'Porter le formulaire de demande d’inscription étudiant et l’affichage de la décision existante après connexion.'
+    status: 'completed'
+    implementation:
+      files_changed:
+        - file: 'src/types/enrollmentRequests.ts'
+          change_type: 'modified'
+          description: 'Partager les niveaux historiques, les centres actifs et le modèle de soumission.'
+        - file: 'src/data/repositories/enrollmentRequestRepository.ts'
+          change_type: 'modified'
+          description: 'Lire les centres actifs et la demande de l’utilisateur, puis insérer les champs historiques validés.'
+        - file: 'src/data/repositories/enrollmentRequestRepository.test.ts'
+          change_type: 'modified'
+          description: 'Tester le filtre utilisateur, les centres actifs, le payload et les validations de soumission.'
+        - file: 'src/modules/auth/PendingAccess.tsx'
+          change_type: 'modified'
+          description: 'Présenter le formulaire après authentification et les messages pending/approved/refused.'
+        - file: 'src/styles/global.css'
+          change_type: 'modified'
+          description: 'Mettre en page le formulaire responsive dans le thème existant.'
+        - file: 'docs/MIGRATION-PLAN.md'
+          change_type: 'modified'
+          description: 'Marquer le parcours étudiant comme porté et la vitrine publique encore en attente.'
+        - file: 'docs/SCHEMA_SUPABASE.md'
+          change_type: 'modified'
+          description: 'Documenter les lectures et l’insertion selon le contrat historique, sans supposer RLS validée.'
+        - file: 'docs/TESTS_REGRESSION.md'
+          change_type: 'modified'
+          description: 'Documenter le parcours et les vérifications locales.'
+      verification:
+        build_passed: true
+        test_results:
+          command: 'npm test'
+          passed: 57
+          failed: 0
+          skipped: 0
+          failures: []
+        notes: 'npm run lint et Prettier passent. Aucun formulaire n’a été soumis au projet live.'
+    upstream_trace:
+      plan_item: 'Portage de legacy/vntest.html — demande d’inscription étudiant'
+      requirements:
+        - 'docs/INVENTAIRE_FONCTIONNEL.md — formulaire de demande d’inscription'
+        - 'legacy/vntest.html — askInscription, pendingFlow et showPend'
+      full_trace: 'legacy/vntest.html askInscription/pendingFlow/showPend → T011 → repository centre/user scoped, formulaire authentifié et états de décision'
+  - task_id: 'T012'
+    description: 'Créer et brancher les vues responsives Salles, Étudiants, Formateurs, Présences et Formations & Groupes.'
+    status: 'completed'
+    implementation:
+      files_changed:
+        - file: 'src/types/auth.ts'
+          change_type: 'modified'
+          description: 'Charger les droits centre seances, formations et groupes pour que les rubriques déployées soient accessibles.'
+        - file: 'src/types/planning.ts'
+          change_type: 'modified'
+          description: 'Fournir les volumes, descriptions, statuts et coordonnées observés pour les référentiels.'
+        - file: 'src/data/repositories/planningRepository.ts'
+          change_type: 'modified'
+          description: 'Réutiliser les lectures centre-scopées existantes pour les salles, formateurs, formations et groupes.'
+        - file: 'src/types/management.ts'
+          change_type: 'added'
+          description: 'Définir les dossiers étudiants et modèles de feuille de présence.'
+        - file: 'src/data/repositories/managementRepository.ts'
+          change_type: 'added'
+          description: 'Lire les étudiants et feuilles de présence avec portée centre et enregistrer les statuts historiques.'
+        - file: 'src/data/repositories/managementRepository.test.ts'
+          change_type: 'added'
+          description: 'Tester les scopes, effectifs et payload de présence.'
+        - file: 'src/modules/management/DirectoryPages.tsx'
+          change_type: 'added'
+          description: 'Ajouter les pages responsives Salles, Étudiants, Formateurs, Présences et Formations & Groupes.'
+        - file: 'src/modules/auth/AuthRoutes.tsx'
+          change_type: 'modified'
+          description: 'Connecter les rubriques migrées aux pages React sous contrôle des permissions existantes.'
+        - file: 'src/business/permissions/permissions.test.ts'
+          change_type: 'modified'
+          description: 'Vérifier l’accès aux modules lorsque le droit centre correspondant est accordé.'
+        - file: 'src/styles/global.css'
+          change_type: 'modified'
+          description: 'Ajouter les cartes, listes et contrôles de présence responsives au thème existant.'
+        - file: 'docs/MIGRATION-PLAN.md'
+          change_type: 'modified'
+          description: 'Décrire les vues portées et distinguer les opérations CRUD restantes.'
+        - file: 'docs/SCHEMA_SUPABASE.md'
+          change_type: 'modified'
+          description: 'Documenter les lectures et upsert observés pour ces rubriques.'
+        - file: 'docs/TESTS_REGRESSION.md'
+          change_type: 'modified'
+          description: 'Documenter les vues, tests et limites.'
+      verification:
+        build_passed: true
+        test_results:
+          command: 'npm test'
+          passed: 60
+          failed: 0
+          skipped: 0
+          failures: []
+        notes: 'npm run lint et Prettier passent. CRUD des référentiels et vérification Supabase live restent en attente.'
+    upstream_trace:
+      plan_item: 'Portage des rubriques Salles/Étudiants/Séances/Formateurs/Présences/Formations & Groupes'
+      requirements:
+        - 'docs/INVENTAIRE_FONCTIONNEL.md — usages des rubriques, formulaires et états'
+        - 'docs/MATRICE_PERMISSIONS.md — rôles et droits centre'
+        - 'legacy/vntest.html — données et traitements des répertoires et présences'
+      full_trace: 'legacy/vntest.html repositories and attendance workflow → T012 → centre-scoped directory pages and presence upsert'
+  - task_id: 'T013'
+    description: 'Afficher la progression de toutes les formations dans le Planning en conservant le style responsive de référence.'
+    status: 'completed'
+    implementation:
+      files_changed:
+        - file: 'src/modules/planning/PlanningPage.tsx'
+          change_type: 'modified'
+          description: 'Calculer et afficher une carte d’indicateurs par formation, indépendamment du filtre sélectionné.'
+        - file: 'src/styles/global.css'
+          change_type: 'modified'
+          description: 'Présenter les cartes de progression en grille auto-adaptative responsive.'
+        - file: 'docs/MIGRATION-PLAN.md'
+          change_type: 'modified'
+          description: 'Indiquer que la progression de toutes les formations est désormais présentée.'
+        - file: 'docs/TESTS_REGRESSION.md'
+          change_type: 'modified'
+          description: 'Préciser la couverture du calcul et l’affichage toutes formations.'
+      verification:
+        build_passed: true
+        test_results:
+          command: 'npm test'
+          passed: 60
+          failed: 0
+          skipped: 0
+          failures: []
+        notes: 'La progression est toujours calculée par la fonction métier pure testée dans T010.'
+    upstream_trace:
+      plan_item: 'Planning — afficher chaque formation avec ses heures prévues, réalisées, restantes et son pourcentage'
+      requirements:
+        - 'legacy/vntest.html — mettreAJourCompteurFormation et présentation du planning'
+      full_trace: 'legacy/vntest.html formation progress → T013 → responsive per-formation progress grid in React Planning'
+  - task_id: 'T014'
+    description: 'Aligner les cartes de gestion sur le style historique et afficher la progression uniquement pour la formation sélectionnée.'
+    status: 'completed'
+    implementation:
+      files_changed:
+        - file: 'src/modules/planning/PlanningPage.tsx'
+          change_type: 'modified'
+          description: 'Permettre de sélectionner une formation par clic et afficher uniquement sa progression.'
+        - file: 'src/modules/management/DirectoryPages.tsx'
+          change_type: 'modified'
+          description: 'Reprendre les cartes de disponibilité historiques des salles, afficher les étudiants en cartes modernes, et organiser formateurs et présences en grille.'
+        - file: 'src/styles/global.css'
+          change_type: 'modified'
+          description: 'Ajouter les cartes et grilles responsives, avec quatre colonnes sur grand écran.'
+        - file: 'docs/MIGRATION-PLAN.md'
+          change_type: 'modified'
+          description: 'Préciser le fonctionnement de la progression et la présentation des rubriques.'
+        - file: 'docs/TESTS_REGRESSION.md'
+          change_type: 'modified'
+          description: 'Documenter les présentations et comportements demandés.'
+      verification:
+        build_passed: true
+        test_results:
+          command: 'npm test'
+          passed: 61
+          failed: 0
+          skipped: 0
+          failures: []
+        notes: 'npm run lint, Prettier et le build passent; le rendu authentifié n’a pas été contrôlé faute de session de test.'
+    upstream_trace:
+      plan_item: 'Aligner les salles, étudiants, formateurs, présences et progression sur la référence HTML.'
+      requirements:
+        - 'legacy/vntest.html — renderRooms, renderTrainers, renderPres, loadEtu'
+        - 'legacy/vntest.html — sélection d’une formation et mettreAJourCompteurFormation'
+      full_trace: 'legacy/vntest.html room and directory cards plus formation progress → T014 → responsive legacy-style rooms, four-column directories, and selected-formation progress'
+  - task_id: 'T015'
+    description: 'Ajouter la gestion des formations, groupes et modules avec les contrats centre-scopés observés.'
+    status: 'completed'
+    implementation:
+      files_changed:
+        - file: 'src/data/repositories/formationGroupRepository.ts'
+          change_type: 'created'
+          description: 'Ajouter les opérations centre-scopées pour modules, formations et groupes.'
+        - file: 'src/data/repositories/formationGroupRepository.test.ts'
+          change_type: 'created'
+          description: 'Tester les mutations, les validations, les associations de modules et les dates de groupe.'
+        - file: 'src/modules/management/DirectoryPages.tsx'
+          change_type: 'modified'
+          description: 'Fournir les formulaires CRUD de formations/groupes et la sélection de modules.'
+        - file: 'src/styles/global.css'
+          change_type: 'modified'
+          description: 'Ajouter les styles responsive des éditeurs et cartes catalogue.'
+      verification:
+        build_passed: true
+        test_results:
+          command: 'npm test'
+          passed: 71
+          failed: 0
+          skipped: 0
+          failures: []
+        notes: 'Les mutations sont couvertes par mocks; aucune écriture Supabase live ni validation RLS n’a été exécutée.'
+    upstream_trace:
+      plan_item: 'Portage des formulaires formations, modules et groupes de legacy/vntest.html.'
+      requirements:
+        - 'legacy/vntest.html — gestion formations, formation_matieres et groupes'
+      full_trace: 'legacy/vntest.html catalogue forms → T015 → CRUD React centre-scopé avec tests de repository'
+  - task_id: 'T016'
+    description: 'Ajouter le profil du centre et téléversement de logo selon le contrat historique.'
+    status: 'completed'
+    implementation:
+      files_changed:
+        - file: 'src/data/repositories/centreProfileRepository.ts'
+          change_type: 'created'
+          description: 'Lire et mettre à jour les champs observés et téléverser les logos au bucket centre-logos.'
+        - file: 'src/data/repositories/centreProfileRepository.test.ts'
+          change_type: 'created'
+          description: 'Vérifier le chargement, la mise à jour, les gardes de saisie et le type d’image.'
+        - file: 'src/modules/management/CentreProfilePage.tsx'
+          change_type: 'created'
+          description: 'Ajouter le formulaire du profil, l’aperçu du logo, les états et le contrôle de rattachement/role.'
+        - file: 'src/styles/global.css'
+          change_type: 'modified'
+          description: 'Ajouter les styles responsive du formulaire profil et de l’aperçu logo.'
+        - file: 'src/modules/auth/AuthRoutes.tsx'
+          change_type: 'modified'
+          description: 'Router la section profil après la vérification des permissions existantes.'
+      verification:
+        build_passed: true
+        test_results:
+          command: 'npm test'
+          passed: 71
+          failed: 0
+          skipped: 0
+          failures: []
+        notes: 'Comportement local vérifié; le bucket, les droits et la RLS restent à valider sur un projet autorisé.'
+    upstream_trace:
+      plan_item: 'Portage du formulaire profil centre de legacy/vntest.html.'
+      requirements:
+        - 'legacy/vntest.html — lecture/mise à jour centres et stockage centre-logos'
+      full_trace: 'legacy/vntest.html profile form → T016 → profil React réservé aux responsables de centre'
+  - task_id: 'T017'
+    description: 'Porter la vitrine publique responsive et la navigation vers l’authentification.'
+    status: 'completed'
+    implementation:
+      files_changed:
+        - file: 'src/modules/public/LandingPage.tsx'
+          change_type: 'created'
+          description: 'Porter le hero, fonctionnalités, parcours, offres, FAQ, contact mailto et liens de connexion.'
+        - file: 'src/app/router.tsx'
+          change_type: 'modified'
+          description: 'Servir la vitrine en racine et maintenir la connexion sur /login.'
+        - file: 'src/modules/auth/LoginPage.tsx'
+          change_type: 'modified'
+          description: 'Rendre le retour à l’accueil compatible avec le basename du routeur.'
+        - file: 'src/styles/global.css'
+          change_type: 'modified'
+          description: 'Reproduire le thème et la mise en page responsive de la vitrine.'
+        - file: 'src/styles/global.css'
+          change_type: 'modified'
+          description: 'Reproduire le thème bleu nuit/indigo/teal et rendre les sections responsives.'
+      verification:
+        build_passed: true
+        test_results:
+          command: 'npm test'
+          passed: 71
+          failed: 0
+          skipped: 0
+          failures: []
+        notes: 'Compilation et tests réussis; parcours de navigation réel vérifié séparément dans le navigateur.'
+    upstream_trace:
+      plan_item: 'Migrer la dernière vitrine fonctionnelle de legacy/vntest.html.'
+      requirements:
+        - 'legacy/vntest.html — landing, navigation, tarification, FAQ et contact'
+      full_trace: 'legacy/vntest.html #landing → T017 → vitrine React et route /login'
+  - task_id: 'T018'
+    description: 'Porter les supports pédagogiques ainsi que les vues étudiant Mes cours et Mes présences.'
+    status: 'completed'
+    implementation:
+      files_changed:
+        - file: 'src/data/repositories/supportRepository.ts'
+          change_type: 'added'
+          description: 'Centre-scope documents, signed URLs, 20 MiB validation, upload cleanup and teacher-owned deletion.'
+        - file: 'src/data/repositories/studentWorkspaceRepository.ts'
+          change_type: 'added'
+          description: 'Resolve the signed-in student by exact email and centre; load enrolled courses and attendance only.'
+        - file: 'src/modules/management/SupportsPage.tsx'
+          change_type: 'added'
+          description: 'Add course support upload, preview, download and authorized deletion UI.'
+        - file: 'src/modules/students/StudentWorkspacePage.tsx'
+          change_type: 'added'
+          description: 'Add the student course schedule and attendance summary/details.'
+        - file: 'src/modules/auth/AuthRoutes.tsx'
+          change_type: 'modified'
+          description: 'Connect the protected support and student workspace routes.'
+        - file: 'src/business/permissions/permissions.ts'
+          change_type: 'modified'
+          description: 'Expose student supports safely and require centre document/support rights for staff.'
+        - file: 'src/data/repositories/supportRepository.test.ts'
+          change_type: 'added'
+          description: 'Verify file limits, empty enrollment scope, owner checks and storage rollback.'
+        - file: 'src/data/repositories/studentWorkspaceRepository.test.ts'
+          change_type: 'added'
+          description: 'Verify centre and signed-in email are required before student data access.'
+    verification:
+      build_passed: true
+      test_results:
+        command: 'npm test'
+        passed: 77
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: 'Live Supabase and Storage/RLS checks remain unavailable.'
+    upstream_trace:
+      plan_item: 'Porter les supports et espaces étudiant décrits dans l’inventaire fonctionnel.'
+      requirements:
+        - 'legacy/vntest.html — supports, renderMine and renderMyPres'
+      full_trace: 'legacy/vntest.html supports/student sections → T018 → centre/email/enrollment-scoped React pages'
+  - task_id: 'T019'
+    description: 'Porter l’émission des certificats PDF et empêcher l’exposition globale de l’historique.'
+    status: 'completed'
+    implementation:
+      files_changed:
+        - file: 'src/data/repositories/certificateRepository.ts'
+          change_type: 'added'
+          description: 'Centre-scoped certificate reads/writes with module, date and duration validation.'
+        - file: 'src/modules/management/CertificatesPage.tsx'
+          change_type: 'added'
+          description: 'Add certificate issue/list/download flow with local jsPDF generation.'
+        - file: 'src/modules/management/HistoryPage.tsx'
+          change_type: 'added'
+          description: 'Explain why unscoped connection history remains hidden.'
+        - file: 'src/data/repositories/certificateRepository.test.ts'
+          change_type: 'added'
+          description: 'Test certificate validation before database writes.'
+        - file: 'package.json'
+          change_type: 'modified'
+          description: 'Add patched jsPDF 4.2.1 as the local PDF-generation dependency.'
+        - file: 'src/modules/auth/AuthRoutes.tsx'
+          change_type: 'modified'
+          description: 'Connect the certificate and safe-history pages.'
+    verification:
+      build_passed: true
+      test_results:
+        command: 'npm test'
+        passed: 77
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: 'npm audit reports no production vulnerabilities; certificate writes and RLS remain unverified live.'
+    upstream_trace:
+      plan_item: 'Porter l’émission PDF; suspendre l’affichage si la portée centre ne peut être garantie.'
+      requirements:
+        - 'legacy/vntest.html — loadCert/makePdf and connexions history'
+      full_trace: 'legacy certificate/history behavior → T019 → local PDF and fail-closed history page'
+  - task_id: 'T020'
+    description: 'Rapprocher la vitrine du thème de référence avec une navigation persistante et un bandeau de métriques.'
+    status: 'completed'
+    implementation:
+      files_changed:
+        - file: 'src/modules/public/LandingPage.tsx'
+          change_type: 'modified'
+          description: 'Switch the fixed navigation into its scrolled glass state.'
+        - file: 'src/styles/global.css'
+          change_type: 'modified'
+          description: 'Align the landing metrics band with the reference navy theme and responsive grid.'
+    verification:
+      build_passed: true
+      test_results:
+        command: 'npm test'
+        passed: 77
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: 'Browser validation is recorded in the implementation batch report.'
+    upstream_trace:
+      plan_item: 'Améliorer la fidélité visuelle responsive de la vitrine React.'
+      requirements:
+        - 'legacy/vntest.html — sticky landing header and dark statistics band'
+      full_trace: 'legacy/vntest.html landing → T020 → fixed scrolled header and responsive navy metrics'
+pending_tasks: []
+untracked_changes: []
+traceability_chain:
+  - chain_id: 'TRACE-STUDENTS-V2'
+    requirement: 'MIGRATION-PLAN.md V2 — Students'
+    plan_phase: 'V2'
+    plan_item: 'V2.1-V2.3'
+    tasks: ['T001']
+    files:
+      - 'src/data/repositories/studentRepository.ts'
+      - 'src/business/students/studentList.ts'
+      - 'src/modules/students/MyStudentsPage.tsx'
+    status: 'partial'
+  - chain_id: 'TRACE-DASHBOARD-REACT'
+    requirement: 'MIGRATION-PLAN.md — portage du tableau de bord'
+    plan_phase: 'Portage React par lots'
+    plan_item: 'Tableau de bord admin et formateur'
+    tasks: ['T003']
+    files:
+      - 'src/business/dashboard/dashboardMetrics.ts'
+      - 'src/data/repositories/dashboardRepository.ts'
+      - 'src/modules/dashboard/DashboardPage.tsx'
+    status: 'partial'
+  - chain_id: 'TRACE-DASHBOARD-VISUAL'
+    requirement: 'Dashboard visual parity with legacy/vntest.html'
+    plan_phase: 'Portage React par lots'
+    plan_item: 'Reference-style dashboard cards, period controls and charts'
+    tasks: ['T005']
+    files:
+      - 'src/modules/dashboard/DashboardPage.tsx'
+      - 'src/styles/global.css'
+    status: 'partial'
+  - chain_id: 'TRACE-CENTRES-TAILWIND'
+    requirement: 'MIGRATION-PLAN.md — gestion des centres super-admin'
+    plan_phase: 'Portage React par lots'
+    plan_item: 'Gérer les centres et accès directeurs'
+    tasks: ['T004']
+    files:
+      - 'src/modules/centres/CentreManagementPage.tsx'
+      - 'src/data/repositories/edgeFunctionRepository.ts'
+    status: 'partial'
+  - chain_id: 'TRACE-PLANNING-CONSULTATION'
+    requirement: 'Planning/Séances consultation parity with legacy/vntest.html'
+    plan_phase: 'Portage React par lots'
+    plan_item: 'Weekly planning and session list, read-only scope'
+    tasks: ['T006']
+    files:
+      - 'src/data/repositories/planningRepository.ts'
+      - 'src/business/planning/planningSchedule.ts'
+      - 'src/modules/planning/PlanningPage.tsx'
+    status: 'partial'
+  - chain_id: 'TRACE-PLANNING-COURSE-MANAGEMENT'
+    requirement: 'Course management and session actions from legacy/vntest.html'
+    plan_phase: 'Portage React par lots'
+    plan_item: 'Course create/edit/delete, occurrence cancel/restore, formateur completion'
+    tasks: ['T007']
+    files:
+      - 'src/business/planning/planningRules.ts'
+      - 'src/data/repositories/planningRepository.ts'
+      - 'src/modules/planning/PlanningPage.tsx'
+    status: 'partial'
+  - chain_id: 'TRACE-PLANNING-CLOSURES'
+    requirement: 'Centre closure management parity with legacy/vntest.html'
+    plan_phase: 'Portage React par lots'
+    plan_item: 'Upsert/remove closed dates from Planning'
+    tasks: ['T008']
+    files:
+      - 'src/data/repositories/planningRepository.ts'
+      - 'src/modules/planning/PlanningPage.tsx'
+    status: 'partial'
+  - chain_id: 'TRACE-ENROLLMENT-REQUEST-ADMIN'
+    requirement: 'Administrative enrollment request management parity with legacy/vntest.html'
+    plan_phase: 'Portage React par lots'
+    plan_item: 'Filter request state; approve or refuse requests'
+    tasks: ['T009']
+    files:
+      - 'src/data/repositories/enrollmentRequestRepository.ts'
+      - 'src/modules/enrollments/EnrollmentRequestsPage.tsx'
+    status: 'partial'
+  - chain_id: 'TRACE-FORMATION-PROGRESS'
+    requirement: 'Formation progress parity with legacy/vntest.html'
+    plan_phase: 'Portage React par lots'
+    plan_item: 'Planned, completed, remaining hours and percentage for the selected formation'
+    tasks: ['T010']
+    files:
+      - 'src/business/planning/planningProgress.ts'
+      - 'src/modules/planning/PlanningPage.tsx'
+    status: 'partial'
+  - chain_id: 'TRACE-STUDENT-ENROLLMENT-FORM'
+    requirement: 'Student enrollment request flow parity with legacy/vntest.html'
+    plan_phase: 'Portage React par lots'
+    plan_item: 'Collect student data and centre choice after authentication; show request decision'
+    tasks: ['T011']
+    files:
+      - 'src/data/repositories/enrollmentRequestRepository.ts'
+      - 'src/modules/auth/PendingAccess.tsx'
+    status: 'partial'
+  - chain_id: 'TRACE-CENTRE-DIRECTORIES-ATTENDANCE'
+    requirement: 'Responsive centre pages for rooms, students, teachers, attendance and formation groups'
+    plan_phase: 'Portage React par lots'
+    plan_item: 'Directory views and date-specific attendance marking'
+    tasks: ['T012']
+    files:
+      - 'src/modules/management/DirectoryPages.tsx'
+      - 'src/data/repositories/managementRepository.ts'
+    status: 'partial'
+  - chain_id: 'TRACE-ALL-FORMATION-PROGRESS'
+    requirement: 'Show progress indicators for the selected formation in Planning'
+    plan_phase: 'Portage React par lots'
+    plan_item: 'Select a formation, then show only its detailed progress card'
+    tasks: ['T013', 'T014']
+    files:
+      - 'src/business/planning/planningProgress.ts'
+      - 'src/modules/planning/PlanningPage.tsx'
+    status: 'partial'
+  - chain_id: 'TRACE-SELECTED-FORMATION-PROGRESS-AND-CARDS'
+    requirement: 'Match the reference room cards, four-column directories, and selected-formation progress behavior'
+    plan_phase: 'Portage React par lots'
+    plan_item: 'Responsive management cards and per-selected-formation progress'
+    tasks: ['T014']
+    files:
+      - 'src/modules/management/DirectoryPages.tsx'
+      - 'src/modules/planning/PlanningPage.tsx'
+      - 'src/styles/global.css'
+    status: 'partial'
+  - chain_id: 'TRACE-FORMATION-GROUPS-CRUD'
+    requirement: 'Create and maintain centre formations, module associations and groups'
+    plan_phase: 'Portage React par lots'
+    plan_item: 'Formation/group management with observed Supabase fields'
+    tasks: ['T015']
+    files:
+      - 'src/data/repositories/formationGroupRepository.ts'
+      - 'src/modules/management/DirectoryPages.tsx'
+    status: 'partial'
+  - chain_id: 'TRACE-CENTRE-PROFILE'
+    requirement: 'Edit centre profile and logo using the observed storage bucket'
+    plan_phase: 'Portage React par lots'
+    plan_item: 'Profile centre section for a centre-scoped administrator/director'
+    tasks: ['T016']
+    files:
+      - 'src/data/repositories/centreProfileRepository.ts'
+      - 'src/modules/management/CentreProfilePage.tsx'
+    status: 'partial'
+  - chain_id: 'TRACE-PUBLIC-LANDING'
+    requirement: 'Port the functional public landing page and login navigation'
+    plan_phase: 'Portage React par lots'
+    plan_item: 'Responsive landing, pricing, FAQ and contact from legacy/vntest.html'
+    tasks: ['T017']
+    files:
+      - 'src/modules/public/LandingPage.tsx'
+      - 'src/app/router.tsx'
+    status: 'partial'
+  - chain_id: 'TRACE-SUPPORTS-STUDENT-WORKSPACE'
+    requirement: 'Port course supports and student-specific courses/attendance without cross-centre exposure'
+    plan_phase: 'Portage React par lots'
+    plan_item: 'Supports, Mes cours and Mes présences'
+    tasks: ['T018']
+    files:
+      - 'src/data/repositories/supportRepository.ts'
+      - 'src/data/repositories/studentWorkspaceRepository.ts'
+      - 'src/modules/management/SupportsPage.tsx'
+      - 'src/modules/students/StudentWorkspacePage.tsx'
+    status: 'partial'
+  - chain_id: 'TRACE-CERTIFICATE-HISTORY-SAFETY'
+    requirement: 'Issue locally generated centre certificates and fail closed for unscoped history'
+    plan_phase: 'Portage React par lots'
+    plan_item: 'Certificates PDF and connection history'
+    tasks: ['T019']
+    files:
+      - 'src/data/repositories/certificateRepository.ts'
+      - 'src/modules/management/CertificatesPage.tsx'
+      - 'src/modules/management/HistoryPage.tsx'
+    status: 'partial'
+  - chain_id: 'TRACE-LANDING-REFERENCE-REFINEMENT'
+    requirement: 'Match the landing header and metrics-band behavior in legacy/vntest.html'
+    plan_phase: 'Portage React par lots'
+    plan_item: 'Responsive reference-style landing'
+    tasks: ['T020']
+    files:
+      - 'src/modules/public/LandingPage.tsx'
+      - 'src/styles/global.css'
+    status: 'partial'
+validation:
+  passed: false
+  errors: []
+  warnings:
+    - 'Live RPC/RLS verification and Nezha/Reda test data are unavailable.'
+    - 'Dashboard repository and role-scoped runtime behavior require verification on an authorized Supabase test project.'
+    - 'Centre Edge Function and active-status operations have not been run against a test Supabase project.'
+    - 'Planning/Séances and administrative enrollment request workflows are implemented locally; live RPC/write and RLS behavior remain unverified.'
+    - 'Create/edit/delete workflows for student, teacher and room directory records remain outstanding.'
+    - 'Support Storage, certificate writes/PDF behavior, and student email-to-dossier linking remain unverified against authorized Supabase data.'
+    - 'Production bundle still reports the preserved legacy non-module script warning and a large lazy-loaded certificate/PDF chunk.'
+  blocking_issues:
+    - 'The migration plan requires Supabase contract validation before the Students domain is accepted.'

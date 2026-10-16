@@ -1,0 +1,846 @@
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
+
+const features = [
+  [
+    '↗',
+    'Planning intelligent',
+    'Visualisez les cours, salles, formateurs et créneaux sans vous perdre dans les tableaux.',
+    'Créer & modifier des cours',
+    'blue',
+  ],
+  [
+    '◉',
+    'Suivi des étudiants',
+    'Retrouvez les dossiers, inscriptions et informations essentielles depuis un seul espace.',
+    'Gérer les étudiants',
+    'teal',
+  ],
+  [
+    '✓',
+    'Présences & assiduité',
+    'Les formateurs pointent les séances et le centre garde une vision fiable de la présence.',
+    'Suivre les présences',
+    'violet',
+  ],
+  [
+    '▣',
+    'Supports & documents',
+    'Centralisez les ressources pédagogiques et gardez les documents utiles accessibles.',
+    'Partager les supports',
+    'amber',
+  ],
+  [
+    '★',
+    'Certificats PDF',
+    'Émettez les certificats depuis l’application et retrouvez l’historique des documents délivrés.',
+    'Générer un certificat',
+    'pink',
+  ],
+  [
+    '⌁',
+    'Espaces par rôle',
+    'Super Admin, Directeur, Formateur et Étudiant voient uniquement ce qui les concerne.',
+    'Accès adaptés',
+    'slate',
+  ],
+];
+
+const plans = [
+  {
+    name: 'STARTER',
+    label: 'Pour démarrer',
+    price: '1 490',
+    description: 'Les essentiels pour structurer votre centre et commencer simplement.',
+    includes: 'Inclus dans cette formule',
+    items: [
+      'Planning & salles',
+      'Étudiants & formateurs',
+      'Supports & documents',
+      '14 jours d’essai gratuit',
+    ],
+  },
+  {
+    name: 'STANDARD',
+    label: 'Pour un centre actif',
+    price: '2 990',
+    description: 'Davantage de visibilité pour piloter l’activité quotidienne du centre.',
+    includes: 'Tout le nécessaire au quotidien',
+    items: ['Toutes les bases Starter', 'Présences & suivi', 'Certificats PDF', 'Tableau de bord'],
+  },
+  {
+    name: 'PROFESSIONAL',
+    label: 'Pour aller plus loin',
+    price: '5 990',
+    description: 'Une formule complète pour mieux centraliser la gestion du centre.',
+    includes: 'Le meilleur équilibre',
+    items: [
+      'Toutes les bases Standard',
+      'Statistiques & reporting',
+      'Import / export Excel',
+      'Gestion multi-centres',
+    ],
+    featured: true,
+  },
+  {
+    name: 'ENTERPRISE',
+    label: 'Pour les grandes structures',
+    price: '9 990',
+    pricePrefix: 'À partir de ',
+    description: 'Une offre sur mesure pour les besoins avancés des grandes écoles et structures.',
+    includes: 'Accompagnement personnalisé',
+    items: [
+      'Architecture adaptée',
+      'Fonctionnalités sur mesure',
+      'Accompagnement dédié',
+      'Déploiement personnalisé',
+    ],
+  },
+];
+
+const questions = [
+  [
+    'Qu’est-ce que SchoolPlans ?',
+    'SchoolPlans est une plateforme de gestion destinée aux centres de formation pour centraliser le planning, les étudiants, les formateurs, les salles, les présences et les documents.',
+  ],
+  [
+    'Les données de chaque centre sont-elles séparées ?',
+    'Oui. Le fonctionnement multi-centres est conçu pour isoler les données de chaque centre et réserver les accès selon le profil de l’utilisateur.',
+  ],
+  [
+    'Quels rôles sont disponibles ?',
+    'La plateforme prévoit un Super Admin, un Directeur, un Manager, un Formateur et un Étudiant, avec des droits adaptés à chaque espace.',
+  ],
+  [
+    'Les étudiants peuvent-ils s’inscrire avec Google ?',
+    'Oui. Le workflow existant permet à un étudiant de se connecter avec Google, choisir son centre puis envoyer une demande d’inscription.',
+  ],
+  [
+    'Y a-t-il une période d’essai ?',
+    'Oui. Le modèle de SchoolPlans prévoit une période de démonstration gratuite de 14 jours.',
+  ],
+];
+
+function AnimatedMetric({ label, value }: { label: string; value: number }) {
+  const [count, setCount] = useState(0);
+  const metricRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const element = metricRef.current;
+    if (!element) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setCount(value);
+      return;
+    }
+
+    let frame = 0;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        observer.disconnect();
+        const startTime = performance.now();
+        const update = (now: number) => {
+          const progress = Math.min((now - startTime) / 1200, 1);
+          setCount(Math.round(value * progress));
+          if (progress < 1) frame = requestAnimationFrame(update);
+        };
+        frame = requestAnimationFrame(update);
+      },
+      { threshold: 0.5 },
+    );
+    observer.observe(element);
+    return () => {
+      observer.disconnect();
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [value]);
+
+  return (
+    <div ref={metricRef}>
+      <strong>{count}</strong>
+      <span>{label}</span>
+    </div>
+  );
+}
+
+export function LandingPage() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [pricingIndex, setPricingIndex] = useState(0);
+  const [contactMessage, setContactMessage] = useState('');
+  const pricingViewport = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const syncScroll = () => setScrolled(window.scrollY > 40);
+    syncScroll();
+    window.addEventListener('scroll', syncScroll, { passive: true });
+    return () => window.removeEventListener('scroll', syncScroll);
+  }, []);
+
+  function movePricing(direction: -1 | 1) {
+    const viewport = pricingViewport.current;
+    if (!viewport) return;
+    const nextIndex = Math.max(0, Math.min(plans.length - 1, pricingIndex + direction));
+    setPricingIndex(nextIndex);
+    const card = viewport.querySelector<HTMLElement>('.sp-landing-plan');
+    const step = card ? card.offsetWidth + 16 : viewport.clientWidth;
+    viewport.scrollTo({ left: nextIndex * step, behavior: 'smooth' });
+  }
+
+  function submitContact(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    const name = String(data.get('name') ?? '').trim();
+    const phone = String(data.get('phone') ?? '').trim();
+    const formation = String(data.get('subject') ?? 'Démonstration SchoolPlans');
+    const text = String(data.get('message') ?? '').trim();
+    const body = `Nom : ${name}\nTéléphone : ${phone}\nFormation : ${formation}\n\n${text}`;
+    setContactMessage('Votre application de messagerie va s’ouvrir avec la demande préremplie.');
+    window.location.href = `mailto:contact@test-formation.ma?subject=${encodeURIComponent(`Demande d'information - ${formation}`)}&body=${encodeURIComponent(body)}`;
+  }
+
+  return (
+    <main className="sp-landing" id="landing">
+      <header
+        className={`sp-landing-nav${menuOpen ? ' menu-open' : ''}${scrolled ? ' is-scrolled' : ''}`}
+      >
+        <Link aria-label="SchoolPlans, accueil" className="sp-landing-brand" to="/">
+          <span className="sp-landing-mark">
+            <i />
+            <i />
+            <i />
+          </span>
+          <span>
+            School<span>Plans</span>
+          </span>
+        </Link>
+        <button
+          aria-expanded={menuOpen}
+          aria-label={menuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+          className="sp-landing-menu-toggle"
+          onClick={() => setMenuOpen((open) => !open)}
+          type="button"
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+        <nav aria-label="Navigation du site" className="sp-landing-links">
+          {[
+            ['Fonctionnalités', '#lp-dom'],
+            ['Comment ça marche', '#lp-app'],
+            ['Pourquoi SchoolPlans', '#lp-why'],
+            ['Tarifs', '#lp-pricing'],
+            ['FAQ', '#lp-faq'],
+          ].map(([label, href]) => (
+            <a href={href} key={href} onClick={() => setMenuOpen(false)}>
+              {label}
+            </a>
+          ))}
+          <a href="#lp-ct" onClick={() => setMenuOpen(false)}>
+            Nous contacter
+          </a>
+          <Link className="sp-landing-login" to="/login">
+            Se connecter <span aria-hidden="true">→</span>
+          </Link>
+        </nav>
+      </header>
+
+      <section aria-label="Présentation de SchoolPlans" className="sp-landing-hero">
+        <div className="sp-landing-hero-inner">
+          <div className="sp-landing-hero-copy">
+            <span className="sp-landing-pill">
+              <i />
+              La plateforme de gestion pour les centres de formation et les écoles
+            </span>
+            <h1>
+              Gérez votre centre.
+              <br />
+              <span>Simplement.</span>
+            </h1>
+            <p>
+              SchoolPlans centralise les étudiants, formateurs, cours, salles, formations, présences
+              et documents dans un seul espace clair et professionnel.
+            </p>
+            <div className="sp-landing-actions">
+              <Link className="sp-landing-button sp-landing-button-primary" to="/login">
+                Accéder à mon espace <span>→</span>
+              </Link>
+              <a className="sp-landing-button sp-landing-button-text" href="#lp-dom">
+                Découvrir la plateforme <span>↓</span>
+              </a>
+            </div>
+            <div className="sp-landing-trust">
+              <div>
+                <strong>+40</strong>
+                <span>Formations</span>
+              </div>
+              <i />
+              <div>
+                <strong>24/7</strong>
+                <span>accès en ligne</span>
+              </div>
+              <i />
+              <div>
+                <strong>100%</strong>
+                <span>responsive</span>
+              </div>
+            </div>
+          </div>
+          <div aria-hidden="true" className="sp-landing-product">
+            <div className="sp-landing-window">
+              <div className="sp-landing-window-top">
+                <div>
+                  <span className="sp-landing-mini-mark">
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                  <b>SchoolPlans</b>
+                </div>
+                <span className="sp-landing-window-user">
+                  <i />
+                  <i />
+                </span>
+              </div>
+              <div className="sp-landing-window-body">
+                <div className="sp-landing-window-sidebar">
+                  <i className="is-active">▦</i>
+                  <i>▥</i>
+                  <i>☷</i>
+                  <i>◉</i>
+                  <i>✓</i>
+                </div>
+                <div className="sp-landing-calendar">
+                  <div className="sp-landing-calendar-head">
+                    <span>
+                      <small>Cette semaine</small>
+                      <b>Planning</b>
+                    </span>
+                    <i>6–11 OCT.</i>
+                  </div>
+                  <div className="sp-landing-week-days">
+                    <b />
+                    <b>LUN</b>
+                    <b>MAR</b>
+                    <b>MER</b>
+                    <b>JEU</b>
+                    <b>VEN</b>
+                    <b>SAM</b>
+                  </div>
+                  <div className="sp-landing-week-grid">
+                    <small>09h</small>
+                    <i />
+                    <i>
+                      <b className="is-data">Power BI</b>
+                    </i>
+                    <i />
+                    <i>
+                      <b className="is-lang">Français</b>
+                    </i>
+                    <i />
+                    <i>
+                      <b className="is-bur">Excel</b>
+                    </i>
+                    <small>11h</small>
+                    <i>
+                      <b className="is-math">Maths</b>
+                    </i>
+                    <i />
+                    <i />
+                    <i>
+                      <b className="is-data">SQL</b>
+                    </i>
+                    <i />
+                    <i />
+                    <small>14h</small>
+                    <i />
+                    <i>
+                      <b className="is-lang">Anglais</b>
+                    </i>
+                    <i>
+                      <b className="is-bur">Word</b>
+                    </i>
+                    <i />
+                    <i>
+                      <b className="is-data">Python</b>
+                    </i>
+                    <i />
+                    <small>16h</small>
+                    <i>
+                      <b className="is-data">Data</b>
+                    </i>
+                    <i />
+                    <i />
+                    <i>
+                      <b className="is-lang">Allemand</b>
+                    </i>
+                    <i />
+                    <i>
+                      <b className="is-bur">Excel</b>
+                    </i>
+                  </div>
+                  <div className="sp-landing-kpis">
+                    <span>
+                      <small>Étudiants</small>
+                      <b>+228</b>
+                    </span>
+                    <span>
+                      <small>Formateurs</small>
+                      <b>+40</b>
+                    </span>
+                    <span>
+                      <small>Présences</small>
+                      <b>94%</b>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="sp-landing-float sp-landing-float-one">
+              <b>✓</b>
+              <span>
+                <strong>Présences</strong>
+                <small>Suivi en temps réel</small>
+              </span>
+            </div>
+            <div className="sp-landing-float sp-landing-float-two">
+              <b>+</b>
+              <span>
+                <strong>Planning</strong>
+                <small>Mis à jour en 1 clic</small>
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section aria-label="Fonctionnalités de la plateforme" className="sp-landing-band">
+        <span>Tout ce qu’il faut pour piloter un centre de formation</span>
+        <div>
+          {[
+            'Rapport intelligent',
+            'Formations & groupes',
+            'Étudiants',
+            'Formateurs',
+            'Planning',
+            'Présences',
+            'Documents',
+          ].map((item) => (
+            <b key={item}>{item}</b>
+          ))}
+        </div>
+      </section>
+
+      <section className="sp-landing-section" id="lp-dom">
+        <div className="sp-landing-container">
+          <p className="sp-landing-kicker">UNE PLATEFORME, UN SEUL ESPACE</p>
+          <div className="sp-landing-section-heading">
+            <h2>
+              Tout votre centre,
+              <br />
+              <span>au même endroit.</span>
+            </h2>
+            <p>
+              Une interface pensée pour réduire les tâches administratives et donner à chaque profil
+              une expérience claire.
+            </p>
+          </div>
+          <div className="sp-landing-feature-grid">
+            {features.map(([icon, title, description, label, tone]) => (
+              <article className={`sp-landing-feature tone-${tone}`} key={title}>
+                <span aria-hidden="true">{icon}</span>
+                <div>
+                  <h3>{title}</h3>
+                  <p>{description}</p>
+                  <b>{label}</b>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section aria-label="Chiffres clés" className="sp-landing-stats">
+        {(
+          [
+            [5, 'rôles gérés'],
+            [6, 'jours de planning'],
+            [14, 'jours d’essai'],
+            [1, 'plateforme multi-centres'],
+          ] as const
+        ).map(([value, label]) => (
+          <AnimatedMetric key={label} label={label} value={value} />
+        ))}
+      </section>
+
+      <section className="sp-landing-section sp-landing-section-soft" id="lp-app">
+        <div className="sp-landing-container sp-landing-howto">
+          <div>
+            <p className="sp-landing-kicker">UNE PRISE EN MAIN RAPIDE</p>
+            <h2>
+              De la première connexion
+              <br />
+              <span>au pilotage quotidien.</span>
+            </h2>
+            <p className="sp-landing-muted">
+              SchoolPlans garde les flux simples : chacun se connecte, retrouve son espace et
+              travaille avec les informations utiles à son rôle.
+            </p>
+            <div className="sp-landing-steps">
+              {[
+                [
+                  '01',
+                  'Organisez votre centre',
+                  'Ajoutez vos salles, formations, matières, formateurs et étudiants.',
+                ],
+                [
+                  '02',
+                  'Construisez le planning',
+                  'Planifiez les cours et gardez les disponibilités visibles au même endroit.',
+                ],
+                [
+                  '03',
+                  'Suivez l’activité',
+                  'Présences, documents, certificats et informations étudiants restent accessibles.',
+                ],
+              ].map(([number, title, description]) => (
+                <article key={number}>
+                  <span>{number}</span>
+                  <div>
+                    <h3>{title}</h3>
+                    <p>{description}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+          <div className="sp-landing-side-panel">
+            <div className="sp-landing-side-heading">
+              <small>Centre de formation</small>
+              <b>Vue d’ensemble</b>
+            </div>
+            <div className="sp-landing-side-person">
+              <i>YA</i>
+              <span>
+                <b>Yassine El Amrani</b>
+                <small>Étudiant · Centre Privilège</small>
+              </span>
+              <em>Actif</em>
+            </div>
+            <div className="sp-landing-side-person">
+              <i>RA</i>
+              <span>
+                <b>Razan Allouch</b>
+                <small>Formateur · Langues</small>
+              </span>
+              <em>Actif</em>
+            </div>
+            <div className="sp-landing-side-chart">
+              <div>
+                <small>Présences cette semaine</small>
+                <b>94%</b>
+              </div>
+              <span>
+                {[36, 58, 48, 78, 66, 88].map((height) => (
+                  <i key={height} style={{ height: `${height}%` }} />
+                ))}
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="sp-landing-section sp-landing-section-soft" id="lp-why">
+        <div className="sp-landing-container">
+          <p className="sp-landing-kicker">POUR LES CENTRES QUI VEULENT GAGNER DU TEMPS</p>
+          <div className="sp-landing-section-heading">
+            <h2>
+              Une gestion plus claire.
+              <br />
+              <span>Un quotidien plus simple.</span>
+            </h2>
+            <p>
+              Une base solide pour faire évoluer votre centre sans multiplier les outils, les
+              fichiers Excel et les échanges dispersés.
+            </p>
+          </div>
+          <div className="sp-landing-benefit-grid">
+            {[
+              [
+                '01',
+                'Moins d’administratif',
+                'Les informations essentielles sont regroupées et accessibles depuis la même interface.',
+              ],
+              [
+                '02',
+                'Plus de visibilité',
+                'Les cours, salles, formateurs et présences restent lisibles pour chaque profil.',
+              ],
+              [
+                '03',
+                'Une base SaaS évolutive',
+                'Une plateforme peut accompagner plusieurs centres avec une isolation des données.',
+              ],
+            ].map(([number, title, description]) => (
+              <article key={number}>
+                <strong>{number}</strong>
+                <h3>{title}</h3>
+                <p>{description}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section aria-label="Tarifs SchoolPlans" className="sp-landing-section" id="lp-pricing">
+        <div className="sp-landing-container">
+          <p className="sp-landing-kicker">DES OFFRES SIMPLES</p>
+          <div className="sp-landing-section-heading">
+            <h2>
+              Choisissez votre
+              <br />
+              <span>formule SchoolPlans.</span>
+            </h2>
+            <p>
+              Commencez avec 14 jours d’essai gratuit et choisissez ensuite l’offre adaptée à votre
+              centre.
+            </p>
+          </div>
+          <div className="sp-landing-price-intro">
+            <span>FACTURATION ANNUELLE</span>
+            <b>14 jours d’essai gratuit</b>
+          </div>
+          <div className="sp-landing-pricing-viewport" ref={pricingViewport}>
+            <div className="sp-landing-pricing-track">
+              {plans.map((plan) => (
+                <article
+                  className={`sp-landing-plan${plan.featured ? ' is-featured' : ''}`}
+                  key={plan.name}
+                >
+                  {plan.featured && <span className="sp-landing-plan-badge">Le plus choisi</span>}
+                  <small>{plan.label}</small>
+                  <h3>{plan.name}</h3>
+                  <p className="sp-landing-price">
+                    <strong>
+                      {'pricePrefix' in plan && plan.pricePrefix}
+                      {plan.price}
+                    </strong>
+                    <span>DH / an</span>
+                  </p>
+                  <p>{plan.description}</p>
+                  <b className="sp-landing-plan-includes">{plan.includes}</b>
+                  <ul>
+                    {plan.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                  <a className="sp-landing-plan-cta" href="#lp-ct">
+                    {plan.name === 'ENTERPRISE' ? 'Nous contacter' : 'Demander une démo'}
+                  </a>
+                  <small className="sp-landing-plan-note">
+                    Sans engagement pendant la démonstration
+                  </small>
+                </article>
+              ))}
+            </div>
+          </div>
+          <div aria-label="Navigation des tarifs" className="sp-landing-price-controls">
+            <button
+              aria-label="Tarif précédent"
+              disabled={pricingIndex === 0}
+              onClick={() => movePricing(-1)}
+              type="button"
+            >
+              ‹
+            </button>
+            <div>
+              {plans.map((plan, index) => (
+                <button
+                  aria-label={`Afficher ${plan.name}`}
+                  aria-pressed={index === pricingIndex}
+                  className={index === pricingIndex ? 'is-active' : ''}
+                  key={plan.name}
+                  onClick={() => {
+                    setPricingIndex(index);
+                    const viewport = pricingViewport.current;
+                    const card = viewport?.querySelector<HTMLElement>('.sp-landing-plan');
+                    if (viewport && card)
+                      viewport.scrollTo({
+                        left: index * (card.offsetWidth + 16),
+                        behavior: 'smooth',
+                      });
+                  }}
+                  type="button"
+                />
+              ))}
+            </div>
+            <button
+              aria-label="Tarif suivant"
+              disabled={pricingIndex === plans.length - 1}
+              onClick={() => movePricing(1)}
+              type="button"
+            >
+              ›
+            </button>
+          </div>
+          <p className="sp-landing-pricing-note">
+            14 jours d’essai gratuit · Facturation annuelle · Sans engagement pendant la période de
+            démonstration.
+          </p>
+        </div>
+      </section>
+
+      <section className="sp-landing-section sp-landing-section-soft" id="lp-faq">
+        <div className="sp-landing-container sp-landing-faq">
+          <p className="sp-landing-kicker">FAQ</p>
+          <h2>
+            Les questions
+            <br />
+            <span>les plus courantes.</span>
+          </h2>
+          {questions.map(([question, answer]) => (
+            <details key={question}>
+              <summary>{question}</summary>
+              <p>{answer}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      <section className="sp-landing-cta">
+        <div>
+          <p className="sp-landing-kicker">PRÊT À STRUCTURER VOTRE CENTRE ?</p>
+          <h2>
+            Faites de SchoolPlans
+            <br />
+            <span>votre espace de gestion.</span>
+          </h2>
+        </div>
+        <div>
+          <p>Une plateforme claire pour votre équipe, vos formateurs et vos étudiants.</p>
+          <Link className="sp-landing-button sp-landing-button-light" to="/login">
+            Accéder à mon espace <span>→</span>
+          </Link>
+        </div>
+      </section>
+
+      <section className="sp-landing-section" id="lp-ct">
+        <div className="sp-landing-container sp-landing-contact">
+          <div>
+            <p className="sp-landing-kicker">CONTACT</p>
+            <h2>
+              Parlons de votre
+              <br />
+              <span>centre de formation.</span>
+            </h2>
+            <p className="sp-landing-muted">
+              Une question sur SchoolPlans, une demande de démonstration ou un besoin spécifique ?
+              Écrivez-nous.
+            </p>
+            <div className="sp-landing-contact-details">
+              <div>
+                <b>⌖</b>
+                <span>
+                  <small>Adresse</small>Votre adresse, Ville, Maroc
+                </span>
+              </div>
+              <div>
+                <b>☎</b>
+                <span>
+                  <small>Téléphone</small>
+                  <a href="tel:+212600000000">+212 6 00 00 00 00</a>
+                </span>
+              </div>
+              <div>
+                <b>@</b>
+                <span>
+                  <small>E-mail</small>
+                  <a href="mailto:contact@test-formation.ma">contact@test-formation.ma</a>
+                </span>
+              </div>
+              <div>
+                <b>◷</b>
+                <span>
+                  <small>Horaires</small>Lundi – Samedi : 9h – 19h
+                </span>
+              </div>
+            </div>
+            <a
+              className="sp-landing-whatsapp"
+              href="https://wa.me/212600000000"
+              rel="noreferrer"
+              target="_blank"
+            >
+              Écrire sur WhatsApp →
+            </a>
+          </div>
+          <form className="sp-landing-contact-form" onSubmit={submitContact}>
+            <div className="sp-landing-form-heading">
+              <b>Demande d’information</b>
+              <span>Réponse rapide</span>
+            </div>
+            <div className="sp-landing-form-row">
+              <label>
+                Nom complet
+                <input maxLength={60} name="name" placeholder="Votre nom" required />
+              </label>
+              <label>
+                Téléphone
+                <input maxLength={20} name="phone" placeholder="+212 ..." type="tel" />
+              </label>
+            </div>
+            <label>
+              Sujet
+              <select name="subject">
+                <option>Démonstration SchoolPlans</option>
+                <option>Informations générales</option>
+                <option>Offre pour mon centre</option>
+                <option>Autre</option>
+              </select>
+            </label>
+            <label>
+              Message
+              <textarea
+                maxLength={800}
+                name="message"
+                placeholder="Décrivez votre besoin..."
+                required
+                rows={5}
+              />
+            </label>
+            <button className="sp-landing-submit" type="submit">
+              Envoyer la demande →
+            </button>
+            <p>
+              {contactMessage ||
+                'Votre application de messagerie s’ouvrira avec le message prêt à envoyer.'}
+            </p>
+          </form>
+        </div>
+      </section>
+
+      <footer className="sp-landing-footer">
+        <Link aria-label="SchoolPlans, retour en haut" className="sp-landing-brand" to="/">
+          <span className="sp-landing-mark">
+            <i />
+            <i />
+            <i />
+          </span>
+          <span>
+            School<span>Plans</span>
+          </span>
+        </Link>
+        <p>La plateforme de gestion pensée pour les centres de formation.</p>
+        <nav aria-label="Liens de pied de page">
+          <a href="#lp-dom">Formations</a>
+          <a href="#lp-pricing">Offres</a>
+          <a href="#lp-faq">FAQ</a>
+          <a href="#lp-ct">Contact</a>
+          <Link to="/login">Connexion</Link>
+        </nav>
+        <small>© {new Date().getFullYear()} SchoolPlans. Tous droits réservés.</small>
+      </footer>
+    </main>
+  );
+}
