@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Link, NavLink, Navigate, Outlet, useParams } from 'react-router-dom';
 import {
   canAccessSection,
@@ -6,6 +7,7 @@ import {
   SECTION_LABELS,
 } from '../../business/permissions/permissions';
 import { useAuth } from './AuthProvider';
+import { getSupabaseClient } from '../../data/supabase/client';
 import { ForcedPasswordChange } from './ForcedPasswordChange';
 import { PendingAccess } from './PendingAccess';
 import { MyStudentsPage } from '../students/MyStudentsPage';
@@ -65,7 +67,57 @@ function AuthenticatedContent() {
 }
 
 function ApplicationShell() {
-  const { profile, session, permissions, permissionErrors, error: authError, signOut } = useAuth();
+  const {
+    profile,
+    session,
+    permissions,
+    permissionErrors,
+    error: authError,
+    signOut,
+    setActiveCentreId,
+  } = useAuth();
+  const [centres, setCentres] = useState<{ id: string; nom: string }[]>([]);
+  const [centresLoading, setCentresLoading] = useState(false);
+  const [centresError, setCentresError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!profile || profile.role !== 'super_admin') return;
+    let active = true;
+
+    async function loadCentres() {
+      setCentresLoading(true);
+      setCentresError(null);
+      const { data, error } = await getSupabaseClient()
+        .from('centres')
+        .select('id, nom, actif')
+        .eq('actif', true)
+        .order('nom');
+
+      if (!active) return;
+      if (error) {
+        setCentresError(error.message);
+        setCentres([]);
+        setCentresLoading(false);
+        return;
+      }
+
+      const available = (data ?? []).filter(
+        (centre) => typeof centre.id === 'string' && typeof centre.nom === 'string',
+      );
+      setCentres(available.map(({ id, nom }) => ({ id, nom })));
+      setCentresLoading(false);
+
+      if (!available.some((centre) => centre.id === profile.centreId)) {
+        setActiveCentreId(available[0]?.id ?? null);
+      }
+    }
+
+    void loadCentres();
+    return () => {
+      active = false;
+    };
+  }, [profile, setActiveCentreId]);
+
   if (!profile) return null;
 
   const visibleSections = getVisibleSections(profile.role, permissions);
@@ -77,6 +129,30 @@ function ApplicationShell() {
           <b className="sp-app-brand-mark">I</b>
           <span>SchoolPlans</span>
         </Link>
+        {profile.role === 'super_admin' && (
+          <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3 py-2">
+            <label className="whitespace-nowrap text-xs font-semibold text-white" htmlFor="sp-centre-select">
+              Centre actif
+            </label>
+            <select
+              className="min-h-9 max-w-[220px] min-w-[150px] rounded-lg border border-slate-300 bg-white px-2 text-sm font-semibold text-slate-900"
+              disabled={centresLoading || centres.length === 0}
+              id="sp-centre-select"
+              onChange={(event) => setActiveCentreId(event.target.value || null)}
+              value={profile.centreId ?? ''}
+            >
+              {centres.length === 0 && <option value="">Aucun centre actif</option>}
+              {centres.map((centre) => (
+                <option key={centre.id} value={centre.id}>
+                  {centre.nom}
+                </option>
+              ))}
+            </select>
+            {centresError && (
+              <small className="w-full text-xs text-red-200">{centresError}</small>
+            )}
+          </div>
+        )}
         <div aria-label="Utilisateur connecté" className="sp-user">
           <strong>{profile.fullName || session?.user.email}</strong>
           <small>{getRoleLabel(profile.role)}</small>
