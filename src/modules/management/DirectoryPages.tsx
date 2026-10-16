@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { Alert, Button, EmptyState, LoadingState, PageHeader, Panel } from '../../components/ui';
 import { getWeekOccurrences } from '../../business/planning/planningSchedule';
 import { getPlanningData } from '../../data/repositories/planningRepository';
@@ -26,7 +26,6 @@ import {
   type StudentRecordInput,
 } from '../../data/repositories/studentManagementRepository';
 import { assignStudentToGroup, getStudentCourseEnrollmentIds, setStudentCourseEnrollment } from '../../data/repositories/studentAssignmentRepository';
-import { setStudentCourseEnrollment } from '../../data/repositories/studentAssignmentRepository';
 import { createCentreRoom, updateCentreRoom, deleteCentreRoom, createCentreTeacher, updateCentreTeacher, deleteCentreTeacher, type RoomInput, type TeacherInput } from '../../data/repositories/directoryCrudRepository';
 import { getSupabaseClient } from '../../data/supabase/client';
 import type { PlanningData, PlanningOccurrence } from '../../types/planning';
@@ -169,7 +168,7 @@ export function RoomsPage() {
     setForm(room ? { name: room.name, type: room.type ?? '', capacity: room.capacity } : { name: '', type: '', capacity: 30 });
     setError(null); setMessage(null); setFormOpen(true);
   }
-  async function saveRoom(event: React.FormEvent<HTMLFormElement>) {
+  async function saveRoom(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!profile?.centreId || !canManage) return;
     setSaving(true); setError(null); setMessage(null);
@@ -242,7 +241,7 @@ export function TeachersPage() {
     setEditingId(teacher?.id ?? null); setForm(teacher ? { name: teacher.name, email: teacher.email ?? '' } : { name: '', email: '' });
     setError(null); setMessage(null); setFormOpen(true);
   }
-  async function saveTeacher(event: React.FormEvent<HTMLFormElement>) {
+  async function saveTeacher(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); if (!profile?.centreId || !canManage) return;
     setSaving(true); setError(null); setMessage(null);
     try {
@@ -403,7 +402,7 @@ export function FormationGroupsPage() {
     setFormOpen(true);
   }
 
-  async function submitFormation(event: React.FormEvent<HTMLFormElement>) {
+  async function submitFormation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!profile?.centreId || !canManage) return;
     setSaving(true);
@@ -454,7 +453,7 @@ export function FormationGroupsPage() {
     setGroupFormOpen(true);
   }
 
-  async function submitGroup(event: React.FormEvent<HTMLFormElement>) {
+  async function submitGroup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!profile?.centreId || !canManage) return;
     setSaving(true);
@@ -1131,7 +1130,7 @@ export function StudentsPage() {
     setFormOpen(true);
   }
 
-  async function submitStudent(event: React.FormEvent<HTMLFormElement>) {
+  async function submitStudent(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!profile?.centreId || !canManage) return;
     setSaving(true);
