@@ -197,16 +197,15 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
   }, [profile?.centreId, profile?.id, profile?.role, reloadKey]);
 
   const data = state.status === 'loaded' ? state.data : null;
-  const formationProgresses = useMemo(
-    () =>
-      data
-        ? data.filters.formations.flatMap((formation) => {
-            const progress = calculateFormationProgress(data, String(formation.id));
-            return progress ? [{ formation, progress }] : [];
-          })
-        : [],
-    [data],
-  );
+  const formationProgresses = useMemo(() => {
+    if (!data || !filters.formationId) return [];
+    const formation = data.filters.formations.find(
+      (item) => String(item.id) === filters.formationId,
+    );
+    if (!formation) return [];
+    const progress = calculateFormationProgress(data, filters.formationId);
+    return progress ? [{ formation, progress }] : [];
+  }, [data, filters.formationId]);
   const allOccurrences = useMemo(
     () =>
       data
@@ -860,13 +859,13 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
         <>
           {renderFilters()}
           {view === 'planning' && formationProgresses.length > 0 && (
-            <section aria-label="Progression de toutes les formations" className="space-y-3">
+            <section aria-label="Progression de la formation sélectionnée" className="space-y-3">
               <header className="planning-progress-section-heading">
                 <div>
                   <p className="planning-progress-eyebrow">Suivi pédagogique</p>
                   <h2>Progression de la formation</h2>
                 </div>
-                <span>{formationProgresses.length} formations</span>
+                <span>1 formation sélectionnée</span>
               </header>
               <div className="planning-progress-grid">
                 {formationProgresses.map(({ formation, progress }) => (
