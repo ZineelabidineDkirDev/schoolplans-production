@@ -10,10 +10,11 @@ type State =
   | { status: 'error'; message: string }
   | { status: 'loaded'; workspace: StudentWorkspace };
 
-const DAYS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
 function todayKey() {
-  return new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
 
 export function StudentPortalDashboardPage() {
@@ -62,7 +63,7 @@ export function StudentPortalDashboardPage() {
   const upcoming = useMemo(() => {
     if (state.status !== 'loaded') return [];
     const now = new Date();
-    const weekday = now.getDay();
+    const weekday = (now.getDay() + 6) % 7;
     return state.workspace.courses
       .filter((course) => {
         if (course.startsOn && course.startsOn > todayKey()) return true;
