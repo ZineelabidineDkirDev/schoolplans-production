@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Alert, Button, EmptyState, LoadingState, PageHeader, Panel, confirmAction, notify } from '../../components/ui';
+import { Alert, Button, EmptyState, LoadingState, PageHeader, Panel, notify } from '../../components/ui';
 import {
   approveEnrollmentRequest,
   getEnrollmentRequests,
