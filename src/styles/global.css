@@ -6626,3 +6626,22 @@ button:disabled {
     transition: none;
   }
 }
+
+
+/* Formations : quatre cartes par ligne sur grand écran, sans changer les cartes de groupes */
+.management-card-grid:has(.management-formation-card) {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+@media (max-width: 1200px) {
+  .management-card-grid:has(.management-formation-card) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .management-card-grid:has(.management-formation-card) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
