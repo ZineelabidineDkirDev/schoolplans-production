@@ -193,6 +193,7 @@ export function CentreManagementPage() {
   const [configCapabilities, setConfigCapabilities] = useState({ subscription: false, rights: false });
   const [configLoading, setConfigLoading] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [directors, setDirectors] = useState<CentreDirector[]>([]);
   const [directorLoading, setDirectorLoading] = useState(false);
   const [directorForm, setDirectorForm] = useState<DirectorForm>({
@@ -204,6 +205,16 @@ export function CentreManagementPage() {
   const [resetTarget, setResetTarget] = useState<CentreDirector | null>(null);
   const [resetPassword, setResetPassword] = useState('');
   const [resetConfirmation, setResetConfirmation] = useState('');
+
+  useEffect(() => {
+    if (!logoFile) {
+      setLogoPreview(null);
+      return;
+    }
+    const previewUrl = URL.createObjectURL(logoFile);
+    setLogoPreview(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [logoFile]);
 
   const refresh = useCallback(async () => {
     setState({ status: 'loading' });
@@ -806,8 +817,8 @@ export function CentreManagementPage() {
             <form className="space-y-5" onSubmit={(event) => void saveCentreConfig(event)}>
               <div className="centre-logo-editor md:col-span-2">
                 <div className="centre-logo-preview">
-                  {logoFile ? (
-                    <span aria-hidden="true">🖼️</span>
+                  {logoPreview ? (
+                    <img alt={`Aperçu du logo de ${configCentre.name}`} src={logoPreview} />
                   ) : configCentre.logoUrl ? (
                     <img alt={`Logo actuel de ${configCentre.name}`} src={configCentre.logoUrl} />
                   ) : (
