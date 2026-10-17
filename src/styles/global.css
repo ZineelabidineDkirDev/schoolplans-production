@@ -6429,3 +6429,200 @@ button:disabled {
     max-height: min(38dvh, calc(100dvh - 20px)) !important;
   }
 }
+
+
+/* Cartes Formation / Groupes — hiérarchie visuelle et interactions */
+.management-formation-card {
+  position: relative;
+  overflow: hidden;
+  gap: 17px;
+  padding: 20px;
+  box-shadow: var(--sh);
+}
+
+.management-formation-card::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: color-mix(in srgb, var(--data) 68%, var(--line));
+  content: '';
+  opacity: 0.7;
+  transition: opacity 160ms ease, width 160ms ease;
+}
+
+.management-formation-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--data) 35%, var(--line));
+  box-shadow: 0 12px 28px -16px color-mix(in srgb, var(--data) 38%, transparent);
+}
+
+.management-formation-card.is-selected::before {
+  width: 5px;
+  opacity: 1;
+}
+
+.management-card-heading {
+  align-items: center;
+}
+
+.management-formation-card .management-card-heading > div:last-child {
+  min-width: 0;
+}
+
+.management-formation-card .management-card-heading h2 {
+  overflow-wrap: anywhere;
+  line-height: 1.3;
+}
+
+.management-formation-select {
+  flex-basis: 46px;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--data) 12%, transparent);
+}
+
+.management-formation-card .management-metrics > div {
+  min-width: 0;
+  padding: 12px;
+  border-radius: 13px;
+}
+
+.management-formation-card .management-metrics strong {
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.management-formation-card .management-chip-list:empty {
+  display: none;
+}
+
+.management-formation-card .management-group-list {
+  gap: 8px;
+  padding-top: 14px;
+}
+
+.management-formation-card .management-group-row {
+  padding: 10px 11px;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.management-formation-card .management-group-row:hover {
+  border-color: color-mix(in srgb, var(--brand) 25%, var(--line));
+  background: color-mix(in srgb, var(--brand) 4%, var(--card));
+}
+
+.management-group-card {
+  position: relative;
+  overflow: hidden;
+  gap: 16px;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.management-group-card::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: var(--lang);
+  content: '';
+}
+
+.management-group-card:has(.management-group-progress.is-full)::before {
+  background: var(--math);
+}
+
+.management-group-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--brand) 28%, var(--line));
+  box-shadow: 0 12px 28px -16px color-mix(in srgb, var(--brand) 28%, transparent);
+}
+
+.management-group-card-heading {
+  align-items: center;
+  min-width: 0;
+}
+
+.management-group-card-heading > div {
+  min-width: 0;
+}
+
+.management-group-card-heading h3 {
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.management-group-enrollment {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--card) 78%, var(--bg));
+}
+
+.management-group-enrollment strong {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.management-group-progress {
+  height: 9px;
+}
+
+.management-group-details {
+  gap: 10px;
+}
+
+.management-group-details > span {
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--card) 90%, var(--bg));
+}
+
+.management-group-details b {
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+.management-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  padding-top: 13px;
+  border-top: 1px solid var(--line);
+}
+
+.management-card-actions > button {
+  flex: 1 1 auto;
+}
+
+@media (max-width: 720px) {
+  .management-formation-card,
+  .management-group-card {
+    padding: 15px;
+  }
+
+  .management-formation-card .management-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .management-formation-card .management-metrics > div:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .management-group-details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .management-card-actions > button {
+    flex-basis: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .management-formation-card,
+  .management-group-card,
+  .management-formation-select,
+  .management-formation-card .management-group-row {
+    transition: none;
+  }
+}
