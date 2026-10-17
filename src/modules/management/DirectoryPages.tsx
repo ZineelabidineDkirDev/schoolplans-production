@@ -10,6 +10,7 @@ import {
   deleteGroup,
   getFormationGroupData,
   saveFormation,
+  updateGroup,
   type FormationInput,
   type ModuleDomain,
   type ModuleOption,
@@ -306,7 +307,7 @@ export function FormationGroupsPage() {
     description: '',
     moduleIds: [],
   });
-  const [groupForm, setGroupForm] = useState({
+  const [groupForm, setGroupForm] = useState<{ id?: string | number; name: string; formationId: string; teacherId: string; startsOn: string; capacity: number }>({
     name: '',
     formationId: '',
     teacherId: '',
@@ -440,15 +441,19 @@ export function FormationGroupsPage() {
     }
   }
 
-  function startGroupForm(formationId = selectedFormationId) {
+  function startGroupForm(
+    formationId = selectedFormationId,
+    group?: PlanningData['filters']['groups'][number],
+  ) {
     setError(null);
     setMessage(null);
     setGroupForm({
-      name: '',
-      formationId,
-      teacherId: '',
-      startsOn: isoDate(new Date()),
-      capacity: 30,
+      ...(group ? { id: group.id } : {}),
+      name: group?.name ?? '',
+      formationId: String(group?.formationId ?? formationId),
+      teacherId: group?.teacherId == null ? '' : String(group.teacherId),
+      startsOn: group?.startsOn ?? isoDate(new Date()),
+      capacity: group?.capacity ?? 30,
     });
     setGroupFormOpen(true);
   }
@@ -460,15 +465,20 @@ export function FormationGroupsPage() {
     setError(null);
     setMessage(null);
     try {
-      await createGroup(getSupabaseClient(), profile.centreId, {
+      const input = {
         name: groupForm.name,
         formationId: groupForm.formationId,
         teacherId: groupForm.teacherId || null,
         startsOn: groupForm.startsOn,
         capacity: groupForm.capacity,
-      });
+      };
+      if (groupForm.id !== undefined) {
+        await updateGroup(getSupabaseClient(), profile.centreId, groupForm.id, input);
+      } else {
+        await createGroup(getSupabaseClient(), profile.centreId, input);
+      }
       setGroupFormOpen(false);
-      setMessage('Groupe enregistré avec succès.');
+      setMessage(groupForm.id !== undefined ? 'Groupe modifié avec succès.' : 'Groupe créé avec succès.');
       await refreshFormations();
     } catch (cause) {
       setError(errorMessage(cause));
@@ -705,7 +715,7 @@ export function FormationGroupsPage() {
           <div className="management-editor-heading">
             <div>
               <p className="planning-progress-eyebrow">Organisation des étudiants</p>
-              <h2>Nouveau groupe</h2>
+              <h2>{groupForm.id !== undefined ? 'Modifier le groupe' : 'Nouveau groupe'}</h2>
             </div>
             <button
               aria-label="Fermer le formulaire"
@@ -813,7 +823,7 @@ export function FormationGroupsPage() {
                 Annuler
               </Button>
               <Button disabled={saving} type="submit">
-                {saving ? 'Enregistrement…' : 'Enregistrer le groupe'}
+                {saving ? 'Enregistrement…' : groupForm.id !== undefined ? 'Enregistrer les modifications' : 'Créer le groupe'}
               </Button>
             </div>
           </form>
@@ -1007,6 +1017,13 @@ export function FormationGroupsPage() {
                         </div>
                         {canManage && (
                           <div className="management-card-actions">
+                            <Button
+                              onClick={() => startGroupForm(String(group.formationId), group)}
+                              type="button"
+                              variant="secondary"
+                            >
+                              Modifier
+                            </Button>
                             <Button
                               onClick={() => void handleDeleteGroup(group.id)}
                               type="button"
