@@ -371,6 +371,13 @@ export function SectionPlaceholder() {
   const { section } = useParams();
   const { profile, permissions } = useAuth();
 
+  // Les étudiants consultent leur emploi du temps personnel via « Mes cours ».
+  // Rediriger les anciens liens administratifs évite le message de rôle non autorisé,
+  // sans leur ouvrir le planning global ni la gestion des salles.
+  if (profile?.role === 'etudiant' && ['vcal', 'vr', 'vl'].includes(section ?? '')) {
+    return <Navigate replace to="/app/vm" />;
+  }
+
   if (!profile || !section || !canAccessSection(profile.role, section, permissions)) {
     return (
       <section className="sp-page">
