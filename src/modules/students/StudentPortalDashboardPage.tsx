@@ -68,7 +68,7 @@ export function StudentPortalDashboardPage() {
       .filter((course) => {
         if (course.startsOn && course.startsOn > todayKey()) return true;
         if (course.endsOn && course.endsOn < todayKey()) return false;
-        return course.weekday >= weekday;
+        return true;
       })
       .sort((a, b) => {
         const dayA = (a.weekday - weekday + 7) % 7;
