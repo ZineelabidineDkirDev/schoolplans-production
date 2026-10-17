@@ -46,7 +46,7 @@ function DomainDonut({ data }: { data: { name: string; count: number }[] }) {
   </div>;
 }
 
-function MoroccoMap({ students }: { students: number }) {
+function MoroccoMap({ students, isTeacher }: { students: number; isTeacher: boolean }) {
   return <div className="rc-map-layout">
     <svg viewBox="0 0 330 260" role="img" aria-label="Carte stylisée du Maroc" className="rc-morocco-map">
       <defs><linearGradient id="rc-map-fill" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stopColor="#dce5ed"/><stop offset="1" stopColor="#b8c9d8"/></linearGradient></defs>
@@ -59,7 +59,7 @@ function MoroccoMap({ students }: { students: number }) {
       <text x="111" y="54" className="rc-map-city">Rabat</text>
       <text x="153" y="118" textAnchor="middle" className="rc-map-label">MAROC</text>
     </svg>
-    <div className="rc-map-stat"><span className="rc-map-dot" /> <div><strong>{students}</strong><small>{students === 0 ? 'Étudiants inscrits à vos cours' : 'Étudiants suivis'}</small></div></div>
+    <div className="rc-map-stat"><span className="rc-map-dot" /> <div><strong>{students}</strong><small>{isTeacher ? 'Étudiants inscrits à vos cours' : 'Étudiants dans le centre'}</small></div></div>
   </div>;
 }
 
@@ -136,7 +136,7 @@ export function RapportCentrePage() {
     </div>
     <div className="rc-grid rc-grid-bottom">
       <Panel className="rc-panel"><div className="rc-panel-heading"><div><h2>{isTeacher ? 'Répartition de mes matières' : 'Répartition par domaine'}</h2><p>{isTeacher ? 'Matières de vos cours' : 'Basée sur les matières du centre'}</p></div></div>{domains.length ? <DomainDonut data={domains} /> : <p className="sp-muted">Aucune matière renseignée pour le moment.</p>}</Panel>
-      <Panel className="rc-panel"><div className="rc-panel-heading"><div><h2>{isTeacher ? 'Mes étudiants' : 'Présence du centre'}</h2><p>{isTeacher ? 'Effectif inscrit à vos cours' : 'Vue géographique illustrative'}</p></div><span className="rc-map-chip">Maroc</span></div><MoroccoMap students={totalStudents} /><p className="rc-map-note">Carte de présentation du Maroc — la répartition par ville sera affichée si les données géographiques sont disponibles.</p></Panel>
+      <Panel className="rc-panel"><div className="rc-panel-heading"><div><h2>{isTeacher ? 'Mes étudiants' : 'Présence du centre'}</h2><p>{isTeacher ? 'Effectif inscrit à vos cours' : 'Vue géographique illustrative'}</p></div><span className="rc-map-chip">Maroc</span></div><MoroccoMap students={totalStudents} isTeacher={isTeacher} /><p className="rc-map-note">Carte de présentation du Maroc — la répartition par ville sera affichée si les données géographiques sont disponibles.</p></Panel>
       <Panel className="rc-panel rc-channel-panel"><div className="rc-panel-heading"><div><h2>{isTeacher ? 'Mes cours' : 'Formations populaires'}</h2><p>{isTeacher ? 'Cours qui vous sont attribués' : 'Classement selon les effectifs disponibles'}</p></div></div>{isTeacher ? (data.courses.length ? <div className="rc-table-wrap"><table className="rc-table"><thead><tr><th>Jour</th><th>Horaire</th><th>Salle</th></tr></thead><tbody>{data.courses.slice(0, 8).map(course => <tr key={String(course.id)}><td>{['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'][course.weekday] ?? '—'}</td><td>{course.startsAt} – {course.endsAt}</td><td>{course.roomName ?? '—'}</td></tr>)}</tbody></table></div> : <p className="sp-muted">Aucun cours ne vous est attribué.</p>) : (data.popularFormations.length ? <div className="rc-table-wrap"><table className="rc-table"><thead><tr><th>Formation</th><th>Étudiants</th><th>Répartition</th></tr></thead><tbody>{data.popularFormations.slice(0, 5).map(item => <tr key={item.name}><td>{item.name}</td><td>{item.studentCount}</td><td><span className="rc-progress"><i style={{ width: `${Math.min(100, item.studentCount / Math.max(1, ...data.popularFormations.map(x => x.studentCount)) * 100)}%` }} /></span></td></tr>)}</tbody></table></div> : <p className="sp-muted">Pas encore de données de formation.</p>)}</Panel>
     </div>
     <p className="rc-footnote">Les indicateurs sont calculés à partir des données accessibles pour le centre connecté. La carte ne représente pas encore des effectifs réels par région.</p>
