@@ -6249,3 +6249,13 @@ button:disabled {
     transition: none;
   }
 }
+
+
+/* Keep the logo fully visible while the centre panel is collapsed */
+.sp-centre-banner { gap: 0; }
+.sp-centre-banner:hover,
+.sp-centre-banner:focus-within { gap: 12px; }
+@media (max-width: 760px) {
+  .sp-centre-banner:hover,
+  .sp-centre-banner:focus-within { gap: 10px; }
+}
