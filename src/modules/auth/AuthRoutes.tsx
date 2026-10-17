@@ -192,6 +192,30 @@ function ApplicationShell() {
           <b className="sp-app-brand-mark">I</b>
           <span>SchoolPlans</span>
         </Link>
+        <div aria-label="Utilisateur connecté" className="sp-user">
+          <strong>{profile.fullName || session?.user.email}</strong>
+          <small>{getRoleLabel(profile.role)}</small>
+        </div>
+        <Link
+          aria-label="Accueil (reste connecté)"
+          className="sp-icon-button"
+          title="Accueil"
+          to="/app"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="m4 11 8-7 8 7v9h-5v-6H9v6H4z" />
+          </svg>
+        </Link>
+        <ThemeToggle />
+        <Button
+          className="sp-header-logout"
+          onClick={() => void signOut()}
+          type="button"
+          variant="secondary"
+        >
+          Déconnexion
+        </Button>
+      </header>
         {['super_admin', 'admin', 'director'].includes(profile.role) && (
           <div aria-label="Informations du centre actif" className="sp-centre-banner" tabIndex={0}>
             <div className="sp-centre-banner-logo">
@@ -257,30 +281,7 @@ function ApplicationShell() {
             )}
           </div>
         )}
-        <div aria-label="Utilisateur connecté" className="sp-user">
-          <strong>{profile.fullName || session?.user.email}</strong>
-          <small>{getRoleLabel(profile.role)}</small>
-        </div>
-        <Link
-          aria-label="Accueil (reste connecté)"
-          className="sp-icon-button"
-          title="Accueil"
-          to="/app"
-        >
-          <svg aria-hidden="true" viewBox="0 0 24 24">
-            <path d="m4 11 8-7 8 7v9h-5v-6H9v6H4z" />
-          </svg>
-        </Link>
-        <ThemeToggle />
-        <Button
-          className="sp-header-logout"
-          onClick={() => void signOut()}
-          type="button"
-          variant="secondary"
-        >
-          Déconnexion
-        </Button>
-      </header>
+
 
       <div className="sp-app-wrap">
         <nav aria-label="Navigation principale" className="sp-app-nav">
