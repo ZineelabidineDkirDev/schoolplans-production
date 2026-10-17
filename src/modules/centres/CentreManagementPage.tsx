@@ -14,12 +14,17 @@ import {
 import { invokeCentreDirectorAccess } from '../../data/repositories/edgeFunctionRepository';
 import { getSupabaseClient } from '../../data/supabase/client';
 import type { CentreDirector } from '../../data/repositories/edgeFunctionRepository';
+import { uploadCentreLogo } from '../../data/repositories/centreProfileRepository';
 
 type Centre = {
   id: string;
   name: string;
   slug: string;
   active: boolean;
+  logoUrl: string | null;
+  pack: string | null;
+  subscriptionStatus: string | null;
+  expirationDate: string | null;
 };
 
 type CentreState =
@@ -113,18 +118,35 @@ function parseCentres(value: unknown): Centre[] {
     ) {
       throw new Error('Une fiche centre ne contient pas les champs attendus.');
     }
-    return { id: item.id, name: item.nom, slug: item.slug, active: item.actif };
+    return {
+      id: item.id,
+      name: item.nom,
+      slug: item.slug,
+      active: item.actif,
+      logoUrl: typeof item.logo_url === 'string' ? item.logo_url : null,
+      pack: typeof item.type_abonnement === 'string' ? item.type_abonnement : null,
+      subscriptionStatus: typeof item.statut_abonnement === 'string' ? item.statut_abonnement : null,
+      expirationDate: typeof item.date_expiration === 'string' ? item.date_expiration : null,
+    };
   });
 }
 
 async function loadCentres(client: SupabaseClient): Promise<CentreState> {
   const { data, error } = await client
     .from('centres')
-    .select('id, nom, slug, actif')
+    .select('id, nom, slug, actif, logo_url, type_abonnement, statut_abonnement, date_expiration')
     .order('created_at', { ascending: true });
-  if (error) throw error;
+  let centreRows = data;
+  if (error) {
+    const fallback = await client
+      .from('centres')
+      .select('id, nom, slug, actif, logo_url')
+      .order('created_at', { ascending: true });
+    if (fallback.error) throw fallback.error;
+    centreRows = fallback.data;
+  }
 
-  const centres = parseCentres(data);
+  const centres = parseCentres(centreRows);
   const userCounts = new Map<string, number>();
   let profileWarning: string | null = null;
   for (let offset = 0; ; offset += 1000) {
@@ -170,6 +192,7 @@ export function CentreManagementPage() {
   });
   const [configCapabilities, setConfigCapabilities] = useState({ subscription: false, rights: false });
   const [configLoading, setConfigLoading] = useState(false);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [directors, setDirectors] = useState<CentreDirector[]>([]);
   const [directorLoading, setDirectorLoading] = useState(false);
   const [directorForm, setDirectorForm] = useState<DirectorForm>({
@@ -311,6 +334,7 @@ export function CentreManagementPage() {
 
   async function openCentreConfig(centre: Centre) {
     setConfigCentre(centre);
+    setLogoFile(null);
     setConfigLoading(true);
     setMessage(null);
     const client = getSupabaseClient();
@@ -368,7 +392,7 @@ export function CentreManagementPage() {
       payload.date_expiration = configForm.expirationDate || null;
     }
     if (configCapabilities.rights) payload.droits = configForm.rights;
-    if (Object.keys(payload).length === 0) {
+    if (Object.keys(payload).length === 0 && !logoFile) {
       setMessage({
         tone: 'error',
         text: "Les colonnes d'abonnement et de droits ne sont pas disponibles dans Supabase. Vérifiez le schéma avant de continuer.",
@@ -379,14 +403,17 @@ export function CentreManagementPage() {
     setSaving(true);
     setMessage(null);
     try {
-      const { data, error } = await getSupabaseClient()
+      const client = getSupabaseClient();
+      if (logoFile) payload.logo_url = await uploadCentreLogo(client, configCentre.id, logoFile);
+      const { data, error } = await client
         .from('centres')
         .update(payload)
         .eq('id', configCentre.id)
         .select('id');
       if (error) throw error;
       if (!data?.length) throw new Error("Aucune modification n'a été enregistrée.");
-      setMessage({ tone: 'success', text: `Abonnement et droits de « ${configCentre.name} » enregistrés.` });
+      setMessage({ tone: 'success', text: `Configuration de « ${configCentre.name} » enregistrée.` });
+      setLogoFile(null);
       setConfigCentre(null);
       await refresh();
     } catch (cause) {
@@ -680,7 +707,10 @@ export function CentreManagementPage() {
                   <thead>
                     <tr className="border-b border-line bg-slate-50 text-xs tracking-wide text-slate-500 uppercase">
                       <th className="px-4 py-3 font-semibold">Centre</th>
-                      <th className="px-4 py-3 font-semibold">Statut</th>
+                      <th className="px-4 py-3 font-semibold">Statut du centre</th>
+                      <th className="px-4 py-3 font-semibold">Pack</th>
+                      <th className="px-4 py-3 font-semibold">Abonnement</th>
+                      <th className="px-4 py-3 font-semibold">Expiration</th>
                       <th className="px-4 py-3 font-semibold">Utilisateurs</th>
                       <th className="px-4 py-3 font-semibold">Actions</th>
                     </tr>
@@ -692,13 +722,34 @@ export function CentreManagementPage() {
                         key={centre.id}
                       >
                         <td data-label="Centre">
-                          <strong className="block text-slate-900">{centre.name}</strong>
-                          <span className="text-xs text-slate-500">{centre.slug}</span>
+                          <div className="centre-table-identity">
+                            <span className="centre-table-logo">
+                              {centre.logoUrl ? <img alt={`Logo de ${centre.name}`} src={centre.logoUrl} /> : <span aria-hidden="true">🏫</span>}
+                            </span>
+                            <span className="min-w-0">
+                              <strong className="block text-slate-900">{centre.name}</strong>
+                              <span className="text-xs text-slate-500">{centre.slug}</span>
+                            </span>
+                          </div>
                         </td>
                         <td data-label="Statut">
                           <StatusBadge tone={centre.active ? 'success' : 'danger'}>
                             {centre.active ? 'Actif' : 'Suspendu'}
                           </StatusBadge>
+                        </td>
+                        <td data-label="Pack"><span className="centre-pack-badge">{centre.pack || 'Non défini'}</span></td>
+                        <td data-label="Abonnement">
+                          <StatusBadge tone={centre.subscriptionStatus === 'ACTIF' ? 'success' : centre.subscriptionStatus === 'TRIAL' ? 'warning' : centre.subscriptionStatus === 'EXPIRE' || centre.subscriptionStatus === 'SUSPENDU' ? 'danger' : 'neutral'}>
+                            {centre.subscriptionStatus || 'Non défini'}
+                          </StatusBadge>
+                        </td>
+                        <td data-label="Expiration">
+                          {centre.expirationDate ? (() => {
+                            const today = new Date();
+                            const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                            const days = Math.ceil((new Date(`${centre.expirationDate}T00:00:00`).getTime() - new Date(`${todayKey}T00:00:00`).getTime()) / 86400000);
+                            return <span className={days < 0 ? 'centre-expiry is-expired' : days <= 30 ? 'centre-expiry is-soon' : 'centre-expiry'}>{new Date(`${centre.expirationDate}T12:00:00`).toLocaleDateString('fr-FR')}{days < 0 ? ' · Expiré' : days <= 30 ? ` · ${days} j` : ''}</span>;
+                          })() : <span className="text-slate-400">Non définie</span>}
                         </td>
                         <td data-label="Utilisateurs">{state.userCounts.get(centre.id) ?? '—'}</td>
                         <td data-label="Actions">
@@ -753,6 +804,28 @@ export function CentreManagementPage() {
             <LoadingState label="Chargement de l'abonnement et des droits…" />
           ) : (
             <form className="space-y-5" onSubmit={(event) => void saveCentreConfig(event)}>
+              <div className="centre-logo-editor md:col-span-2">
+                <div className="centre-logo-preview">
+                  {logoFile ? (
+                    <span aria-hidden="true">🖼️</span>
+                  ) : configCentre.logoUrl ? (
+                    <img alt={`Logo actuel de ${configCentre.name}`} src={configCentre.logoUrl} />
+                  ) : (
+                    <span aria-hidden="true">🏫</span>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <strong className="block text-sm text-brand-900">Identité visuelle du centre</strong>
+                  <p className="management-muted">Logo carré conseillé · PNG, JPG ou WebP.</p>
+                  <input
+                    accept="image/*"
+                    className="sp-field mt-2"
+                    onChange={(event) => setLogoFile(event.target.files?.[0] ?? null)}
+                    type="file"
+                  />
+                  {logoFile && <p className="management-muted mt-1">Nouveau fichier : {logoFile.name}</p>}
+                </div>
+              </div>
               {!configCapabilities.subscription && (
                 <Alert tone="warning">
                   Les colonnes d'abonnement ne sont pas disponibles ou lisibles. Le pack, le statut et les dates ne pourront pas être enregistrés tant que le schéma Supabase n'est pas vérifié.
