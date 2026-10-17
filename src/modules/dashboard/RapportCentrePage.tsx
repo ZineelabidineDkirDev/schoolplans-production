@@ -77,7 +77,7 @@ export function RapportCentrePage() {
       setError('');
       try {
         if (!profile) throw new Error('Profil utilisateur indisponible.');
-        if (profile.role === 'etudiant') throw new Error('Le rapport du centre est réservé aux administrateurs et formateurs.');
+        if (profile.role !== 'formateur') throw new Error('Le rapport pédagogique est réservé aux formateurs.');
         const result = await getDashboardData(getSupabaseClient(), profile.centreId ?? '', profile.id, profile.role);
         if (active) setData(result);
       } catch (cause) {
@@ -103,7 +103,8 @@ export function RapportCentrePage() {
   if (loading) return <section className="rc-page"><Panel><LoadingState label="Préparation du rapport du centre…" /></Panel></section>;
   if (error || !data) return <section className="rc-page"><PageHeader eyebrow="Analyse du centre" title="Rapport du centre" /><Alert tone="error">{error || 'Aucune donnée disponible.'}<div className="mt-3"><Button onClick={() => setRefresh(n => n + 1)} type="button" variant="secondary">Réessayer</Button></div></Alert></section>;
 
-  const totalStudents = data.studentIds.length;
+  const isTeacher = profile?.role === 'formateur';
+  const totalStudents = isTeacher ? new Set(data.enrollments.map(enrollment => String(enrollment.studentId))).size : data.studentIds.length;
   const present = data.presences.filter(p => p.status === 'present' || p.status === 'retard').length;
   const attendanceRate = data.presences.length ? Math.round(present / data.presences.length * 100) : 0;
   const enrollmentValues = Array.from({ length: 6 }, (_, index) => {
@@ -120,23 +121,23 @@ export function RapportCentrePage() {
 
   return <section className="rc-page" aria-labelledby="rc-title">
     <div className="rc-heading-row">
-      <PageHeader eyebrow="Pilotage & indicateurs" title="Rapport du centre" description="Une vue synthétique de l’activité, des inscriptions et de la présence." />
+      <PageHeader eyebrow="Pilotage & indicateurs" title="Mon rapport pédagogique" description="Vos cours, vos étudiants inscrits et le suivi de présence de vos groupes." />
       <Button onClick={() => setRefresh(n => n + 1)} type="button" variant="secondary">↻ Actualiser</Button>
     </div>
     <div className="rc-kpis">
-      <article className="rc-kpi"><span className="rc-kpi-icon violet">♙</span><small>Étudiants inscrits</small><strong>{totalStudents}</strong><span className="rc-kpi-foot">Effectif du centre</span></article>
-      <article className="rc-kpi"><span className="rc-kpi-icon mint">▦</span><small>Formations</small><strong>{data.formationCount ?? '—'}</strong><span className="rc-kpi-foot">Catalogue du centre</span></article>
-      <article className="rc-kpi"><span className="rc-kpi-icon blue">♧</span><small>Formateurs</small><strong>{data.teachers.length}</strong><span className="rc-kpi-foot">Équipe pédagogique</span></article>
+      <article className="rc-kpi"><span className="rc-kpi-icon violet">♙</span><small>Étudiants inscrits</small><strong>{totalStudents}</strong><span className="rc-kpi-foot">{isTeacher ? 'Étudiants inscrits à vos cours' : 'Effectif du centre'}</span></article>
+      <article className="rc-kpi"><span className="rc-kpi-icon mint">▦</span><small>{isTeacher ? 'Mes cours' : 'Formations'}</small><strong>{isTeacher ? data.courses.length : (data.formationCount ?? '—')}</strong><span className="rc-kpi-foot">{isTeacher ? 'Cours qui vous sont attribués' : 'Catalogue du centre'}</span></article>
+      <article className="rc-kpi"><span className="rc-kpi-icon blue">♧</span><small>{isTeacher ? 'Matières enseignées' : 'Formateurs'}</small><strong>{isTeacher ? new Set(data.courses.map(course => String(course.subjectId)).filter(id => id !== 'null')).size : data.teachers.length}</strong><span className="rc-kpi-foot">{isTeacher ? 'Dans vos cours' : 'Équipe pédagogique'}</span></article>
       <article className="rc-kpi"><span className="rc-kpi-icon amber">✓</span><small>Taux de présence</small><strong>{data.presences.length ? `${attendanceRate}%` : '—'}</strong><span className="rc-kpi-foot">{data.presences.length} pointages enregistrés</span></article>
     </div>
     <div className="rc-grid rc-grid-top">
-      <Panel className="rc-panel rc-wide"><div className="rc-panel-heading"><div><h2>Évolution des inscriptions</h2><p>Inscriptions enregistrées, six derniers mois</p></div><span className="rc-chart-key"><i /> Inscriptions</span></div><ReportLineChart values={enrollmentValues} /></Panel>
-      <Panel className="rc-panel"><div className="rc-panel-heading"><div><h2>Activité hebdomadaire</h2><p>Cours programmés par jour</p></div></div><div className="rc-bars">{weekly.map(day => <div className="rc-bar-col" key={day.label}><span>{day.count || ''}</span><div className="rc-bar-track"><i style={{ height: `${Math.max(day.count ? 8 : 2, day.count / weeklyMax * 100)}%` }} /></div><small>{day.label}</small></div>)}</div></Panel>
+      <Panel className="rc-panel rc-wide"><div className="rc-panel-heading"><div><h2>{isTeacher ? 'Évolution de vos inscriptions' : 'Évolution des inscriptions'}</h2><p>{isTeacher ? 'Étudiants inscrits à vos cours, six derniers mois' : 'Inscriptions enregistrées, six derniers mois'}</p></div><span className="rc-chart-key"><i /> Inscriptions</span></div><ReportLineChart values={enrollmentValues} /></Panel>
+      <Panel className="rc-panel"><div className="rc-panel-heading"><div><h2>{isTeacher ? 'Mon activité hebdomadaire' : 'Activité hebdomadaire'}</h2><p>{isTeacher ? 'Vos cours programmés par jour' : 'Cours programmés par jour'}</p></div></div><div className="rc-bars">{weekly.map(day => <div className="rc-bar-col" key={day.label}><span>{day.count || ''}</span><div className="rc-bar-track"><i style={{ height: `${Math.max(day.count ? 8 : 2, day.count / weeklyMax * 100)}%` }} /></div><small>{day.label}</small></div>)}</div></Panel>
     </div>
     <div className="rc-grid rc-grid-bottom">
-      <Panel className="rc-panel"><div className="rc-panel-heading"><div><h2>Répartition par domaine</h2><p>Basée sur les matières du centre</p></div></div>{domains.length ? <DomainDonut data={domains} /> : <p className="sp-muted">Aucune matière renseignée pour le moment.</p>}</Panel>
-      <Panel className="rc-panel"><div className="rc-panel-heading"><div><h2>Présence du centre</h2><p>Vue géographique illustrative</p></div><span className="rc-map-chip">Maroc</span></div><MoroccoMap students={totalStudents} /><p className="rc-map-note">Carte de présentation du Maroc — la répartition par ville sera affichée si les données géographiques sont disponibles.</p></Panel>
-      <Panel className="rc-panel rc-channel-panel"><div className="rc-panel-heading"><div><h2>Formations populaires</h2><p>Classement selon les effectifs disponibles</p></div></div>{data.popularFormations.length ? <div className="rc-table-wrap"><table className="rc-table"><thead><tr><th>Formation</th><th>Étudiants</th><th>Répartition</th></tr></thead><tbody>{data.popularFormations.slice(0, 5).map(item => <tr key={item.name}><td>{item.name}</td><td>{item.studentCount}</td><td><span className="rc-progress"><i style={{ width: `${Math.min(100, item.studentCount / Math.max(1, ...data.popularFormations.map(x => x.studentCount)) * 100)}%` }} /></span></td></tr>)}</tbody></table></div> : <p className="sp-muted">Pas encore de données de formation.</p>}</Panel>
+      <Panel className="rc-panel"><div className="rc-panel-heading"><div><h2>{isTeacher ? 'Répartition de mes matières' : 'Répartition par domaine'}</h2><p>{isTeacher ? 'Matières de vos cours' : 'Basée sur les matières du centre'}</p></div></div>{domains.length ? <DomainDonut data={domains} /> : <p className="sp-muted">Aucune matière renseignée pour le moment.</p>}</Panel>
+      <Panel className="rc-panel"><div className="rc-panel-heading"><div><h2>{isTeacher ? 'Mes étudiants' : 'Présence du centre'}</h2><p>{isTeacher ? 'Effectif inscrit à vos cours' : 'Vue géographique illustrative'}</p></div><span className="rc-map-chip">Maroc</span></div><MoroccoMap students={totalStudents} /><p className="rc-map-note">Carte de présentation du Maroc — la répartition par ville sera affichée si les données géographiques sont disponibles.</p></Panel>
+      <Panel className="rc-panel rc-channel-panel"><div className="rc-panel-heading"><div><h2>{isTeacher ? 'Mes cours' : 'Formations populaires'}</h2><p>{isTeacher ? 'Cours qui vous sont attribués' : 'Classement selon les effectifs disponibles'}</p></div></div>{data.popularFormations.length ? <div className="rc-table-wrap"><table className="rc-table"><thead><tr><th>Formation</th><th>Étudiants</th><th>Répartition</th></tr></thead><tbody>{data.popularFormations.slice(0, 5).map(item => <tr key={item.name}><td>{item.name}</td><td>{item.studentCount}</td><td><span className="rc-progress"><i style={{ width: `${Math.min(100, item.studentCount / Math.max(1, ...data.popularFormations.map(x => x.studentCount)) * 100)}%` }} /></span></td></tr>)}</tbody></table></div> : <p className="sp-muted">Pas encore de données de formation.</p>}</Panel>
     </div>
     <p className="rc-footnote">Les indicateurs sont calculés à partir des données accessibles pour le centre connecté. La carte ne représente pas encore des effectifs réels par région.</p>
   </section>;
