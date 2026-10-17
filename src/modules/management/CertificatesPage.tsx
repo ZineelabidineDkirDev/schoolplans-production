@@ -7,7 +7,7 @@ import {
 import { getCentreStudents } from '../../data/repositories/managementRepository';
 import { getSupabaseClient } from '../../data/supabase/client';
 import type { ManagedStudent } from '../../types/management';
-import { Alert, Button, EmptyState, LoadingState, PageHeader, Panel, confirmAction, notify } from '../../components/ui';
+import { Alert, Button, EmptyState, LoadingState, PageHeader, Panel, notify } from '../../components/ui';
 import { useAuth } from '../auth/AuthProvider';
 
 type PageState =
