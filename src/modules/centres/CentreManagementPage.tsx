@@ -136,7 +136,7 @@ async function loadCentres(client: SupabaseClient): Promise<CentreState> {
     .from('centres')
     .select('id, nom, slug, actif, logo_url, type_abonnement, statut_abonnement, date_expiration')
     .order('created_at', { ascending: true });
-  let centreRows = data;
+  let centreRows: unknown = data;
   if (error) {
     const fallback = await client
       .from('centres')
