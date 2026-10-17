@@ -890,7 +890,10 @@ export function FormationGroupsPage() {
                       </div>
                     </div>
                     {formation.description && (
-                      <p className="management-description">{formation.description}</p>
+                      <p className="management-description">
+                        {formation.description.trim().split(/\\s+/).filter(Boolean).slice(0, 50).join(' ')}
+                        {formation.description.trim().split(/\\s+/).filter(Boolean).length > 50 ? '…' : ''}
+                      </p>
                     )}
                     <div className="management-metrics">
                       <div>
