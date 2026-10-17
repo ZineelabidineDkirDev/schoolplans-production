@@ -372,6 +372,7 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
     try {
       await action();
       setActionMessage(success);
+      notify(success, 'success');
       setReloadKey((key) => key + 1);
       if (close) setEditor(null);
     } catch (error) {
@@ -469,6 +470,7 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
       setClosureDate('');
       setClosureLabel('');
       setClosureMessage('Jour fermé ajouté.');
+      notify('Jour fermé ajouté.', 'success');
       setReloadKey((key) => key + 1);
     } catch (error) {
       setClosureError(errorMessage(error));
@@ -479,12 +481,14 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
 
   async function removeClosure(date: string) {
     if (!profile || !canManageClosures) return;
+    if (!await confirmAction(`Retirer la fermeture du ${date.split('-').reverse().join('/')} ?`)) return;
     setSaving(true);
     setClosureError(null);
     setClosureMessage(null);
     try {
       await deletePlanningClosure(getSupabaseClient(), actor, date);
       setClosureMessage('Jour fermé retiré.');
+      notify('Jour fermé retiré.', 'success');
       setReloadKey((key) => key + 1);
     } catch (error) {
       setClosureError(errorMessage(error));
