@@ -377,6 +377,7 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
       if (close) setEditor(null);
     } catch (error) {
       setActionError(errorMessage(error));
+      notify(errorMessage(error), 'error');
     } finally {
       setSaving(false);
     }
@@ -474,6 +475,7 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
       setReloadKey((key) => key + 1);
     } catch (error) {
       setClosureError(errorMessage(error));
+      notify(errorMessage(error), 'error');
     } finally {
       setSaving(false);
     }
