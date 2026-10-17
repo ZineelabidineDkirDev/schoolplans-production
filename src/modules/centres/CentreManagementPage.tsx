@@ -6,6 +6,7 @@ import {
   EmptyState,
   Field,
   LoadingState,
+  Modal,
   PageHeader,
   Panel,
   StatusBadge,
@@ -517,6 +518,7 @@ export function CentreManagementPage() {
       {state.status === 'loaded' && state.warning && <Alert tone="warning">{state.warning}</Alert>}
 
       {formOpen && (
+        <Modal label="Nouveau centre et directeur" onClose={() => setFormOpen(false)}>
         <Panel>
           <h2 className="m-0 mb-4 text-lg font-bold text-brand-900">Nouveau centre et directeur</h2>
           <form className="grid gap-4 md:grid-cols-2" onSubmit={createCentre}>
@@ -636,6 +638,7 @@ export function CentreManagementPage() {
             </div>
           </form>
         </Panel>
+        </Modal>
       )}
 
       {state.status === 'loading' && (
@@ -737,6 +740,7 @@ export function CentreManagementPage() {
       )}
 
       {configCentre && (
+        <Modal label={`Configuration de ${configCentre.name}`} onClose={() => setConfigCentre(null)}>
         <Panel>
           <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -841,9 +845,11 @@ export function CentreManagementPage() {
             </form>
           )}
         </Panel>
+        </Modal>
       )}
 
       {selectedCentre && (
+        <Modal label={`Accès du directeur — ${selectedCentre.name}`} onClose={() => { setSelectedCentre(null); setResetTarget(null); setDirectorFormOpen(false); }}>
         <Panel>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -995,6 +1001,7 @@ export function CentreManagementPage() {
             </form>
           )}
         </Panel>
+        </Modal>
       )}
     </section>
   );
