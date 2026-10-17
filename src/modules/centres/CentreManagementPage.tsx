@@ -10,6 +10,8 @@ import {
   PageHeader,
   Panel,
   StatusBadge,
+  confirmAction,
+  notify,
 } from '../../components/ui';
 import { invokeCentreDirectorAccess } from '../../data/repositories/edgeFunctionRepository';
 import { getSupabaseClient } from '../../data/supabase/client';
@@ -321,7 +323,7 @@ export function CentreManagementPage() {
   async function toggleCentre(centre: Centre) {
     const action = centre.active ? 'suspendre' : 'réactiver';
     if (
-      !window.confirm(`${action === 'suspendre' ? 'Suspendre' : 'Réactiver'} « ${centre.name} » ?`)
+      !await confirmAction(`${action === 'suspendre' ? 'Suspendre' : 'Réactiver'} « ${centre.name} » ?`)
     ) {
       return;
     }
