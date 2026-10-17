@@ -6645,3 +6645,109 @@ button:disabled {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+
+/* Portail étudiant — tableau de bord personnel */
+.student-portal { --student-accent: var(--brand, #4659d9); }
+.student-portal .sp-page-title { letter-spacing: -.035em; }
+.student-portal-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.student-portal-metric {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 20px;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+.student-portal-metric::after {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: var(--student-accent);
+  content: '';
+  opacity: .8;
+}
+.student-portal-metric:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--student-accent) 30%, var(--line));
+  box-shadow: 0 12px 28px -18px color-mix(in srgb, var(--student-accent) 40%, transparent);
+}
+.student-portal-metric-icon, .student-portal-resource-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--student-accent) 10%, var(--card));
+  color: var(--student-accent);
+  font-size: 22px;
+  font-weight: 800;
+}
+.student-portal-metric > strong { font-size: clamp(1.8rem, 3vw, 2.3rem); line-height: 1.1; }
+.student-portal-metric > a, .student-portal-section-heading > a, .student-portal-resource-link {
+  color: var(--student-accent);
+  font-size: .86rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.student-portal-content-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+.student-portal-next, .student-portal-resources { min-width: 0; border-radius: 18px; }
+.student-portal-section-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 16px; }
+.student-portal-section-heading h2, .student-portal-resources h2 { margin: 4px 0 0; font-size: 1.15rem; font-weight: 800; letter-spacing: -.02em; }
+.student-portal-session-list { display:grid; gap: 10px; }
+.student-portal-session {
+  display:flex;
+  align-items:center;
+  gap:14px;
+  min-width:0;
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:12px;
+  background: color-mix(in srgb, var(--card) 88%, var(--bg));
+}
+.student-portal-session-date {
+  display:flex;
+  flex:0 0 76px;
+  flex-direction:column;
+  gap:4px;
+  border-radius:11px;
+  background: color-mix(in srgb, var(--student-accent) 9%, var(--card));
+  padding:10px 8px;
+  text-align:center;
+}
+.student-portal-session-date strong { font-size:.78rem; color:var(--student-accent); }
+.student-portal-session-date span { font-size:1.05rem; font-weight:800; }
+.student-portal-session-info { display:grid; gap:4px; min-width:0; flex:1; }
+.student-portal-session-info strong { overflow-wrap:anywhere; }
+.student-portal-session-info span { color:var(--muted, #7a8494); font-size:.83rem; }
+.student-portal-session-time { white-space:nowrap; color:var(--muted, #7a8494); font-size:.82rem; font-weight:700; }
+.student-portal-resources { display:flex; flex-direction:column; align-items:flex-start; gap:12px; }
+.student-portal-resources p { margin:0; line-height:1.6; }
+.student-portal-resource-link { display:flex; width:100%; justify-content:space-between; align-items:center; border:1px solid color-mix(in srgb, var(--student-accent) 22%, var(--line)); border-radius:12px; padding:12px 14px; }
+.student-portal-resource-note { margin-top:auto; border-radius:12px; padding:12px; background:color-mix(in srgb, var(--student-accent) 6%, var(--card)); color:var(--muted, #7a8494); font-size:.78rem; line-height:1.5; }
+@media (max-width: 900px) {
+  .student-portal-content-grid { grid-template-columns:minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  .student-portal-metrics { grid-template-columns:minmax(0, 1fr); gap:12px; }
+  .student-portal-metric { padding:16px; }
+  .student-portal-session { flex-wrap:wrap; gap:10px; }
+  .student-portal-session-time { margin-left:90px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .student-portal-metric { transition:none; }
+}
