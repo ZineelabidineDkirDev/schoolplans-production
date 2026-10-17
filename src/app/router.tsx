@@ -2,6 +2,14 @@
 import { App } from './App';
 import { AuthenticatedRoutes, SectionPlaceholder } from '../modules/auth/AuthRoutes';
 import { DashboardPage } from '../modules/dashboard/DashboardPage';
+import { StudentPortalDashboardPage } from '../modules/students/StudentPortalDashboardPage';
+import { useAuth } from '../modules/auth/AuthProvider';
+import type { ReactNode } from 'react';
+
+function HomeByRole() {
+  const { profile } = useAuth();
+  return profile?.role === 'etudiant' ? <StudentPortalDashboardPage /> : <DashboardPage />;
+}
 import { LandingPage } from '../modules/public/LandingPage';
 
 export const router = createBrowserRouter(
@@ -20,7 +28,7 @@ export const router = createBrowserRouter(
       children: [
         {
           index: true,
-          element: <DashboardPage />,
+          element: <HomeByRole />,
         },
         {
           path: ':section',
