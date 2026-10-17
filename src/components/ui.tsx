@@ -5,6 +5,7 @@ import type {
   PropsWithChildren,
   SelectHTMLAttributes,
 } from 'react';
+import { useEffect } from 'react';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'quiet';
 
