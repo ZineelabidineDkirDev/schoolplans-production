@@ -160,7 +160,11 @@ export function RoomsPage() {
   const [editingId, setEditingId] = useState<string | number | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setErrorState] = useState<string | null>(null);
+  const setError = (value: string | null) => {
+    setErrorState(value);
+    if (value) notify(value, 'error');
+  };
   const [message, setMessageState] = useState<string | null>(null);
   const setMessage = (value: string | null) => {
     setMessageState(value);
@@ -238,7 +242,11 @@ export function TeachersPage() {
   const [editingId, setEditingId] = useState<string | number | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setErrorState] = useState<string | null>(null);
+  const setError = (value: string | null) => {
+    setErrorState(value);
+    if (value) notify(value, 'error');
+  };
   const [message, setMessageState] = useState<string | null>(null);
   const setMessage = (value: string | null) => {
     setMessageState(value);
@@ -303,7 +311,11 @@ export function FormationGroupsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [groupFormOpen, setGroupFormOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setErrorState] = useState<string | null>(null);
+  const setError = (value: string | null) => {
+    setErrorState(value);
+    if (value) notify(value, 'error');
+  };
   const [message, setMessageState] = useState<string | null>(null);
   const setMessage = (value: string | null) => {
     setMessageState(value);
@@ -1081,7 +1093,11 @@ export function StudentsPage() {
   const [editingId, setEditingId] = useState<string | number | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setErrorState] = useState<string | null>(null);
+  const setError = (value: string | null) => {
+    setErrorState(value);
+    if (value) notify(value, 'error');
+  };
   const [message, setMessageState] = useState<string | null>(null);
   const setMessage = (value: string | null) => {
     setMessageState(value);
@@ -1370,7 +1386,11 @@ export function AttendancePage() {
   const [date, setDate] = useState(() => isoDate(new Date()));
   const [sheet, setSheet] = useState<AttendanceSheet | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setErrorState] = useState<string | null>(null);
+  const setError = (value: string | null) => {
+    setErrorState(value);
+    if (value) notify(value, 'error');
+  };
   const [message, setMessageState] = useState<string | null>(null);
   const setMessage = (value: string | null) => {
     setMessageState(value);
