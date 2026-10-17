@@ -167,7 +167,7 @@ function ApplicationShell() {
       } else if (data) {
         const base = data as CentreHeaderInfo;
         setActiveCentre(await loadSubscription(base.id, base));
-      } else {
+      } else {  
         setActiveCentre(null);
       }
       setCentresLoading(false);
@@ -305,6 +305,11 @@ function ApplicationShell() {
         </nav>
 
         <main className="sp-app-content">
+          {profile.role === 'super_admin' && !activeCentreId && (
+            <Alert tone="warning">
+              Aucun centre actif n’est disponible. Créez ou réactivez un centre dans « Gestion des centres ».
+            </Alert>
+          )}
           {authError && <Alert tone="error">{authError}</Alert>}
           {permissionErrors.length > 0 && (
             <Alert tone="warning">

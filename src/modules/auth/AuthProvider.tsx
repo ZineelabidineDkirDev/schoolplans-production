@@ -16,6 +16,8 @@ import { isPendingStudent } from '../../business/permissions/permissions';
 import type { AuthProfile, CentrePermissions } from '../../types/auth';
 import { hasPasswordAuthMethod } from './authSession';
 
+export type ActiveCentre = { id: string; name: string };
+
 export type AuthStatus =
   'loading' | 'anonymous' | 'authenticated' | 'pending' | 'error' | 'configuration_error';
 
@@ -23,6 +25,9 @@ type AuthContextValue = {
   status: AuthStatus;
   session: Session | null;
   profile: AuthProfile | null;
+  activeCentres: ActiveCentre[];
+  activeCentreId: string;
+  setActiveCentreId: (centreId: string) => void;
   permissions: CentrePermissions;
   permissionErrors: string[];
   mustChangePassword: boolean;
@@ -48,6 +53,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<AuthProfile | null>(null);
+  const [activeCentres, setActiveCentres] = useState<ActiveCentre[]>([]);
+  const [activeCentreId, setActiveCentreIdState] = useState('');
   const [permissions, setPermissions] = useState<CentrePermissions>({});
   const [permissionErrors, setPermissionErrors] = useState<string[]>([]);
   const [mustChangePassword, setMustChangePassword] = useState(false);
@@ -63,6 +70,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
         setError(pendingMessage);
         setSession(null);
         setProfile(null);
+        setActiveCentres([]);
+        setActiveCentreIdState('');
         setPermissions({});
         setPermissionErrors([]);
         setMustChangePassword(false);
@@ -107,6 +116,29 @@ export function AuthProvider({ children }: PropsWithChildren) {
         }
 
         setError(null);
+        let nextActiveCentres: ActiveCentre[] = [];
+        let nextActiveCentreId = '';
+        if (nextProfile.role === 'super_admin') {
+          const { data: centreRows, error: centresError } = await client
+            .from('centres')
+            .select('id, nom')
+            .eq('actif', true)
+            .order('nom', { ascending: true });
+          if (centresError) throw centresError;
+          nextActiveCentres = (centreRows ?? []).flatMap((row) =>
+            typeof row.id === 'string' && typeof row.nom === 'string'
+              ? [{ id: row.id, name: row.nom }]
+              : [],
+          );
+          const savedCentreId = window.localStorage.getItem('schoolplans_current_centre') ?? '';
+          nextActiveCentreId = nextActiveCentres.some((centre) => centre.id === savedCentreId)
+            ? savedCentreId
+            : (nextActiveCentres[0]?.id ?? '');
+          if (nextActiveCentreId) {
+            window.localStorage.setItem('schoolplans_current_centre', nextActiveCentreId);
+          }
+        }
+
         const permissionLoad = await getCentrePermissions(
           client,
           nextProfile.role === 'super_admin',
@@ -115,6 +147,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
         setSession(nextSession);
         setProfile(nextProfile);
+        setActiveCentres(nextActiveCentres);
+        setActiveCentreIdState(nextActiveCentreId);
         setPermissions(permissionLoad.permissions);
         setPermissionErrors(permissionLoad.failedKeys);
         setMustChangePassword(nextSession.user.user_metadata?.must_change === true);
@@ -166,6 +200,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
     return clientRef.current;
   }, []);
+
+  const setActiveCentreId = useCallback((centreId: string) => {
+    if (!activeCentres.some((centre) => centre.id === centreId)) return;
+    window.localStorage.setItem('schoolplans_current_centre', centreId);
+    setActiveCentreIdState(centreId);
+  }, [activeCentres]);
 
   const signIn = useCallback(
     async (email: string, password: string) => {
@@ -238,11 +278,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [requireClient],
   );
 
+  const exposedProfile = profile && profile.role === 'super_admin'
+    ? { ...profile, centreId: activeCentreId || null }
+    : profile;
+
   const value = useMemo<AuthContextValue>(
     () => ({
       status,
       session,
-      profile,
+      profile: exposedProfile,
+      activeCentres,
+      activeCentreId,
+      setActiveCentreId,
       permissions,
       permissionErrors,
       mustChangePassword,
@@ -257,7 +304,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [
       status,
       session,
-      profile,
+      exposedProfile,
+      activeCentres,
+      activeCentreId,
+      setActiveCentreId,
       permissions,
       permissionErrors,
       mustChangePassword,
