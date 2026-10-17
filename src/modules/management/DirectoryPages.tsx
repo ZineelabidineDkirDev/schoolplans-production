@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
-import { Alert, Button, EmptyState, LoadingState, PageHeader, Panel } from '../../components/ui';
+import { Alert, Button, EmptyState, LoadingState, Modal, PageHeader, Panel } from '../../components/ui';
 import { getWeekOccurrences } from '../../business/planning/planningSchedule';
 import { getPlanningData } from '../../data/repositories/planningRepository';
 import {
