@@ -29,6 +29,7 @@ const ROLE_SECTIONS: Record<SourceRole, readonly AppSection[]> = {
     ...COMMON_SECTIONS,
     'vf',
     'vd',
+    'vrapport',
     'vh',
     'vl',
     'vk',
