@@ -12,6 +12,7 @@ import { ForcedPasswordChange } from './ForcedPasswordChange';
 import { PendingAccess } from './PendingAccess';
 import { MyStudentsPage } from '../students/MyStudentsPage';
 import { DashboardPage } from '../dashboard/DashboardPage';
+import { RapportCentrePage } from '../dashboard/RapportCentrePage';
 import { PlanningPage } from '../planning/PlanningPage';
 import { Alert, Button, LoadingState, ThemeToggle } from '../../components/ui';
 import { CentreManagementPage } from '../centres/CentreManagementPage';
@@ -340,6 +341,7 @@ function NavIcon({ section }: { section: AppSection | 'home' }) {
     home: 'm4 11 8-7 8 7v9h-5v-6H9v6H4z',
     vcal: 'M4 5h16v15H4zM8 3v4m8-4v4M4 10h16',
     vd: 'M4 20V4m0 16h16M8 16v-5m4 5V8m4 8v-3',
+    vrapport: 'M4 19V5m0 14h16M8 15l3-4 3 2 5-7',
     vl: 'M5 4h14v16H5zM8 8h8m-8 4h8m-8 4h5',
     vr: 'M4 20h16M6 20V5h12v15M9 9h2m2 0h2m-6 4h2m2 0h2m-4 7v-4h3v4',
     vk: 'M5 4h14v16H5zM8 8h8m-8 4h8m-8 4h5',
@@ -381,6 +383,7 @@ export function SectionPlaceholder() {
 
   if (section === 'vn') return <MyStudentsPage />;
   if (section === 'vd') return <DashboardPage />;
+  if (section === 'vrapport') return <RapportCentrePage />;
   if (section === 'vcal') return <PlanningPage />;
   if (section === 'vl') return <PlanningPage view="sessions" />;
   if (section === 'vi') return <EnrollmentRequestsPage />;
