@@ -192,7 +192,7 @@ function ApplicationShell() {
           <span>SchoolPlans</span>
         </Link>
         {['super_admin', 'admin', 'director'].includes(profile.role) && (
-          <div className="sp-centre-banner">
+          <div aria-label="Informations du centre actif" className="sp-centre-banner" tabIndex={0}>
             <div className="sp-centre-banner-logo">
               {activeCentre?.logo_url ? (
                 <img alt={`Logo de ${activeCentre.nom}`} src={activeCentre.logo_url} />
