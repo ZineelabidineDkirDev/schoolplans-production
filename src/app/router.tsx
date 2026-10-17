@@ -4,7 +4,6 @@ import { AuthenticatedRoutes, SectionPlaceholder } from '../modules/auth/AuthRou
 import { DashboardPage } from '../modules/dashboard/DashboardPage';
 import { StudentPortalDashboardPage } from '../modules/students/StudentPortalDashboardPage';
 import { useAuth } from '../modules/auth/AuthProvider';
-import type { ReactNode } from 'react';
 
 function HomeByRole() {
   const { profile } = useAuth();
