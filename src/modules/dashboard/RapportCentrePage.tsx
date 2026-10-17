@@ -59,7 +59,7 @@ function MoroccoMap({ students }: { students: number }) {
       <text x="111" y="54" className="rc-map-city">Rabat</text>
       <text x="153" y="118" textAnchor="middle" className="rc-map-label">MAROC</text>
     </svg>
-    <div className="rc-map-stat"><span className="rc-map-dot" /> <div><strong>{students}</strong><small>Étudiants dans le centre</small></div></div>
+    <div className="rc-map-stat"><span className="rc-map-dot" /> <div><strong>{students}</strong><small>{students === 0 ? 'Étudiants inscrits à vos cours' : 'Étudiants suivis'}</small></div></div>
   </div>;
 }
 
@@ -93,7 +93,7 @@ export function RapportCentrePage() {
   const domains = useMemo(() => {
     if (!data) return [];
     const counts = new Map<string, number>();
-    data.subjects.forEach(subject => {
+    data.subjects.filter(subject => data.courses.some(course => String(course.subjectId) === String(subject.id))).forEach(subject => {
       const name = subject.domain || 'Autres';
       counts.set(name, (counts.get(name) ?? 0) + 1);
     });
