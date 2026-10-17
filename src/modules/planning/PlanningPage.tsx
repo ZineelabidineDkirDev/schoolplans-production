@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent, type MouseEvent } from 'react';
-import { Alert, Button, EmptyState, LoadingState, PageHeader, Panel } from '../../components/ui';
+import { Alert, Button, EmptyState, LoadingState, PageHeader, Panel, confirmAction, notify } from '../../components/ui';
 import {
   addDays,
   formatTime,
@@ -402,7 +402,7 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
   }
 
   async function deleteCourse() {
-    if (!editor?.courseId || !window.confirm('Supprimer ce cours ?')) return;
+    if (!editor?.courseId || !await confirmAction('Supprimer ce cours ?')) return;
     await performAction(
       () => deletePlanningCourse(getSupabaseClient(), actor, editor.courseId!),
       'Cours supprimé.',
@@ -414,7 +414,7 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
     const cancelling = !editor.cancelled;
     const dateLabel = editor.occurrenceDate.split('-').reverse().join('/');
     if (
-      !window.confirm(
+      !await confirmAction(
         cancelling ? `Annuler la séance du ${dateLabel} ?` : `Rétablir la séance du ${dateLabel} ?`,
       )
     ) {
@@ -436,7 +436,7 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
   async function completeOccurrence() {
     if (!editor?.courseId) return;
     const dateLabel = editor.occurrenceDate.split('-').reverse().join('/');
-    if (!window.confirm(`Confirmer que la séance du ${dateLabel} est terminée ?`)) return;
+    if (!await confirmAction(`Confirmer que la séance du ${dateLabel} est terminée ?`)) return;
     await performAction(
       () =>
         markPlanningOccurrenceCompleted(
