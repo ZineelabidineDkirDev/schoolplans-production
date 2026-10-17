@@ -14,7 +14,6 @@ const ROLE_SECTIONS: Record<SourceRole, readonly AppSection[]> = {
     ...COMMON_SECTIONS,
     'vf',
     'vd',
-    'vrapport',
     'vh',
     'vl',
     'vk',
@@ -40,8 +39,8 @@ const ROLE_SECTIONS: Record<SourceRole, readonly AppSection[]> = {
     'vfg',
     'vc',
   ],
-  super_admin: [...COMMON_SECTIONS, 'vz', 'vd', 'vrapport'],
-  formateur: [...COMMON_SECTIONS, 'vl', 'vn', 'vp', 'vk'],
+  super_admin: [...COMMON_SECTIONS, 'vz', 'vd'],
+  formateur: [...COMMON_SECTIONS, 'vl', 'vn', 'vp', 'vk', 'vrapport'],
   etudiant: [...COMMON_SECTIONS, 'vm', 'vq', 'vk'],
 };
 
