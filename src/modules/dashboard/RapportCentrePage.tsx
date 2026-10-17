@@ -77,6 +77,7 @@ export function RapportCentrePage() {
       setError('');
       try {
         if (!profile) throw new Error('Profil utilisateur indisponible.');
+        if (profile.role === 'etudiant') throw new Error('Le rapport du centre est réservé aux administrateurs et formateurs.');
         const result = await getDashboardData(getSupabaseClient(), profile.centreId ?? '', profile.id, profile.role);
         if (active) setData(result);
       } catch (cause) {
