@@ -6398,3 +6398,34 @@ button:disabled {
 @media (prefers-reduced-motion: reduce) {
   .sp-centre-banner { transition: none; will-change: auto; }
 }
+
+
+/* Bandeau centre ancré en bas pour ne jamais masquer les actions CRUD */
+.sp-centre-banner {
+  position: fixed !important;
+  top: auto !important;
+  right: 16px !important;
+  bottom: max(16px, env(safe-area-inset-bottom, 0px)) !important;
+  left: auto !important;
+  z-index: 40 !important;
+  max-height: min(70px, calc(100dvh - 32px)) !important;
+}
+.sp-centre-banner:hover,
+.sp-centre-banner:focus-within {
+  top: auto !important;
+  bottom: max(16px, env(safe-area-inset-bottom, 0px)) !important;
+  max-height: min(42dvh, calc(100dvh - 32px)) !important;
+  overflow-y: auto !important;
+}
+@media (max-width: 760px) {
+  .sp-centre-banner {
+    right: 10px !important;
+    bottom: max(10px, env(safe-area-inset-bottom, 0px)) !important;
+    max-width: calc(100vw - 20px) !important;
+    max-height: min(64px, calc(100dvh - 20px)) !important;
+  }
+  .sp-centre-banner:hover,
+  .sp-centre-banner:focus-within {
+    max-height: min(38dvh, calc(100dvh - 20px)) !important;
+  }
+}
