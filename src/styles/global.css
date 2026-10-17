@@ -6351,3 +6351,50 @@ button:disabled {
 .rc-footnote { font-size:11px;color:var(--muted,#8a96a7);margin:0 2px; }
 @media (max-width: 1000px) { .rc-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }.rc-grid-top,.rc-grid-bottom { grid-template-columns:minmax(0,1fr); }.rc-grid-bottom .rc-channel-panel { grid-column:auto; } }
 @media (max-width: 560px) { .rc-kpis { grid-template-columns:1fr;gap:12px; }.rc-kpi { padding:16px; }.rc-panel { padding:16px!important; }.rc-grid .rc-panel .rc-donut-layout { grid-template-columns:1fr; }.rc-grid .rc-panel .rc-donut-layout svg { max-width:150px; }.rc-grid .rc-panel .rc-legend { grid-template-columns:1fr 1fr; }.rc-heading-row { align-items:flex-start; } }
+
+
+/* Stabilisation du bandeau fixe : hauteur stable au repos, hauteur libre au déploiement */
+.sp-centre-banner {
+  box-sizing: border-box;
+  height: 70px;
+  min-height: 70px;
+  max-height: calc(100dvh - 100px);
+  overflow: hidden;
+  align-items: center;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: width;
+  transition: width 180ms ease-out, max-width 180ms ease-out, box-shadow 180ms ease-out;
+}
+.sp-centre-banner:hover,
+.sp-centre-banner:focus-within {
+  height: auto;
+  min-height: 70px;
+  max-height: calc(100dvh - 100px);
+  overflow-y: auto;
+  align-items: flex-start;
+  gap: 12px;
+}
+.sp-centre-banner-logo { flex-shrink: 0; }
+.sp-centre-banner-content,
+.sp-centre-switcher { flex-shrink: 0; }
+@media (max-width: 760px) {
+  .sp-centre-banner {
+    top: calc(env(safe-area-inset-top, 0px) + 76px);
+    height: 64px;
+    min-height: 64px;
+    max-height: calc(100dvh - 88px);
+    border-radius: 16px 0 0 16px;
+    transition: width 160ms ease-out, max-width 160ms ease-out, box-shadow 160ms ease-out;
+  }
+  .sp-centre-banner:hover,
+  .sp-centre-banner:focus-within {
+    height: auto;
+    min-height: 64px;
+    max-height: calc(100dvh - 88px);
+    overflow-y: auto;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sp-centre-banner { transition: none; will-change: auto; }
+}
