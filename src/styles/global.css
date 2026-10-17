@@ -5617,3 +5617,84 @@ button:disabled {
 @media (prefers-reduced-motion: reduce) {
   .sp-modal-backdrop, .sp-modal { animation: none; }
 }
+
+
+/* Centre identity and subscription overview */
+.centre-table-identity {
+  display: flex;
+  min-width: 190px;
+  align-items: center;
+  gap: 12px;
+}
+.centre-table-logo,
+.centre-logo-preview {
+  display: grid;
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--lang) 12%, var(--card)), var(--card));
+  color: var(--brand);
+  font-size: 1.35rem;
+}
+.centre-table-logo img,
+.centre-logo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: white;
+}
+.centre-pack-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--data) 22%, var(--line));
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: color-mix(in srgb, var(--data) 8%, var(--card));
+  color: var(--data);
+  font-size: .72rem;
+  font-weight: 850;
+  letter-spacing: .035em;
+  white-space: nowrap;
+}
+.centre-expiry {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: color-mix(in srgb, var(--lang) 10%, var(--card));
+  color: var(--lang);
+  font-size: .76rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.centre-expiry.is-soon {
+  background: color-mix(in srgb, #d97706 12%, var(--card));
+  color: #b45309;
+}
+.centre-expiry.is-expired {
+  background: color-mix(in srgb, #dc2626 10%, var(--card));
+  color: #dc2626;
+}
+.centre-logo-editor {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--lang) 4%, var(--card));
+}
+.centre-logo-preview {
+  width: 76px;
+  height: 76px;
+  border-radius: 20px;
+  font-size: 1.8rem;
+}
+@media (max-width: 720px) {
+  .centre-logo-editor { align-items: flex-start; }
+  .centre-table-identity { min-width: 0; }
+}
