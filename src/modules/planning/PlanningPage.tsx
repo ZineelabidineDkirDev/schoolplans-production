@@ -183,6 +183,7 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
           profile?.centreId ?? '',
           profile?.id ?? '',
           role,
+          session?.user.email ?? '',
         );
         if (active) setState({ status: 'loaded', data });
       } catch (error) {
