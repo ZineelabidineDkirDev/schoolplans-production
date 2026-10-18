@@ -141,9 +141,17 @@ begin
   end loop;
 end $$;
 
-grant select, insert, update, delete on public.finance_student_charges to authenticated;
-grant select, insert, update, delete on public.finance_payments to authenticated;
-grant select, insert, update, delete on public.finance_expenses to authenticated;
-grant select, insert, update, delete on public.finance_accounts to authenticated;
-grant select, insert, update, delete on public.finance_account_movements to authenticated;
-grant select, insert, update, delete on public.finance_teacher_payroll to authenticated;
+grant select, insert, update on public.finance_student_charges to authenticated;
+grant select, insert, update on public.finance_payments to authenticated;
+grant select, insert, update on public.finance_expenses to authenticated;
+grant select, insert, update on public.finance_accounts to authenticated;
+grant select, insert, update on public.finance_account_movements to authenticated;
+grant select, insert, update on public.finance_teacher_payroll to authenticated;
+
+-- Financial transactions are cancelled/reversed, not silently deleted.
+revoke delete on public.finance_student_charges from authenticated;
+revoke delete on public.finance_payments from authenticated;
+revoke delete on public.finance_expenses from authenticated;
+revoke delete on public.finance_accounts from authenticated;
+revoke delete on public.finance_account_movements from authenticated;
+revoke delete on public.finance_teacher_payroll from authenticated;
