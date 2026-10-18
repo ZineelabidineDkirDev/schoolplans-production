@@ -102,7 +102,12 @@ export function SupportsPage() {
           throw new Error('Votre rôle ne permet pas de consulter les supports du centre.');
         }
         const planning = await getPlanningData(client, profile.centreId, profile.id, profile.role);
-        const documents = await getCourseSupports(client, profile.centreId);
+        // Les formateurs ne consultent que les supports des cours qui leur sont affectés.
+        // Les administrateurs/directeurs gardent la vue complète du centre.
+        const courseIds = profile.role === 'formateur'
+          ? planning.courses.map((course) => course.id)
+          : undefined;
+        const documents = await getCourseSupports(client, profile.centreId, courseIds);
         if (active) {
           setState({
             status: 'loaded',
