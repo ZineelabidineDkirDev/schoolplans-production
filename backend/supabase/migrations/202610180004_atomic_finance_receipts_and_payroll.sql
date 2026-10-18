@@ -146,8 +146,8 @@ begin
   if v_status <> 'approved' then
     raise exception 'Seule une rémunération validée et non payée peut être réglée.';
   end if;
-  if v_amount is null or v_amount <= 0 then
-    raise exception 'Le montant net de la rémunération doit être supérieur à zéro pour effectuer le règlement.';
+  if v_amount is null or v_amount < 0 then
+    raise exception 'Le montant net de la rémunération ne peut pas être négatif.';
   end if;
 
   select a.id into v_account_id
@@ -172,7 +172,7 @@ begin
   where a.id = v_account_id and a.centre_id = v_centre_id
   group by a.id, a.opening_balance;
 
-  if v_balance < v_amount then
+  if v_amount > 0 and v_balance < v_amount then
     raise exception 'Solde insuffisant : disponible % DH, rémunération % DH.', round(v_balance, 2), round(v_amount, 2);
   end if;
 
@@ -180,14 +180,16 @@ begin
   from public.formateurs f
   where f.id = v_teacher_id and f.centre_id = v_centre_id;
 
-  insert into public.finance_account_movements (
-    centre_id, account_id, movement_type, amount, movement_date,
-    description, source_type, source_id, created_by
-  ) values (
-    v_centre_id, v_account_id, 'outflow', v_amount, now(),
-    'Rémunération formateur : ' || coalesce(v_teacher_name, 'Formateur') || ' (' || p_payroll_id::text || ')',
-    'teacher_payroll', p_payroll_id, auth.uid()
-  );
+  if v_amount > 0 then
+    insert into public.finance_account_movements (
+      centre_id, account_id, movement_type, amount, movement_date,
+      description, source_type, source_id, created_by
+    ) values (
+      v_centre_id, v_account_id, 'outflow', v_amount, now(),
+      'Rémunération formateur : ' || coalesce(v_teacher_name, 'Formateur') || ' (' || p_payroll_id::text || ')',
+      'teacher_payroll', p_payroll_id, auth.uid()
+    );
+  end if;
 
   update public.finance_teacher_payroll
   set status = 'paid', paid_at = now()
