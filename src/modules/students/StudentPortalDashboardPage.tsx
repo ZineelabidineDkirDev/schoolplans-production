@@ -4,6 +4,7 @@ import { Alert, Button, EmptyState, LoadingState, PageHeader, Panel } from '../.
 import { getStudentWorkspace, type StudentWorkspace } from '../../data/repositories/studentWorkspaceRepository';
 import { getSupabaseClient } from '../../data/supabase/client';
 import { useAuth } from '../auth/AuthProvider';
+import { StudentWorkspacePage } from './StudentWorkspacePage';
 
 type State =
   | { status: 'loading' }
@@ -120,6 +121,9 @@ export function StudentPortalDashboardPage() {
               <Link to="/app/vq">Voir l’historique →</Link>
             </Panel>
           </div>
+          <section aria-label="Rapport de formation étudiant" className="student-portal-report">
+            <StudentWorkspacePage view="report" />
+          </section>
           <div className="student-portal-content-grid">
             <Panel className="student-portal-next">
               <div className="student-portal-section-heading">
