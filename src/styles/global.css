@@ -2992,6 +2992,36 @@ button:disabled {
   fill: url(#dashboard-chart-fill);
 }
 
+/* Shared dashboard styling reused by the student report. */
+.sp-report-kpi {
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.sp-report-kpi:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sh);
+}
+
+.dashboard-chart-bar-track,
+.dashboard-progress-track {
+  background: color-mix(in srgb, var(--line) 72%, var(--card));
+}
+
+.dashboard-course-planned,
+.dashboard-progress-value {
+  background: var(--brand);
+}
+
+.dashboard-course-realized {
+  background: var(--lang);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sp-report-kpi {
+    transition: none;
+  }
+}
+
 .dashboard-chart-point,
 .dashboard-chart-bar {
   fill: var(--brand);
