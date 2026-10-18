@@ -16,6 +16,16 @@ const money = (value: number) => new Intl.NumberFormat('fr-MA', { style: 'curren
 const numeric = (value: number | string | null | undefined) => { const n = Number(value ?? 0); return Number.isFinite(n) ? n : 0; };
 const today = () => new Date().toISOString().slice(0, 10);
 
+function readableFinanceError(cause: unknown, fallback: string): string {
+  if (cause && typeof cause === 'object' && 'message' in cause && typeof cause.message === 'string') {
+    const details = 'details' in cause && typeof cause.details === 'string' ? cause.details : '';
+    const code = 'code' in cause && typeof cause.code === 'string' ? ' [' + cause.code + ']' : '';
+    return cause.message + code + (details ? ' — ' + details : '');
+  }
+  return cause instanceof Error ? cause.message : fallback;
+}
+
+
 function Popup({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   return <div className="finance-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <section aria-modal="true" className="finance-modal" role="dialog" aria-labelledby="finance-modal-title">
@@ -82,7 +92,7 @@ export function FinanceDashboardPage() {
           setCharges(nextCharges); setPayments(nextPayments); setPayroll(nextPayroll); setSummary(nextSummary);
           setPaymentForm((current) => ({ ...current, chargeId: nextCharges.find((charge) => ['open', 'partial'].includes(charge.status))?.id ?? current.chargeId }));
         }
-      } catch (cause) { if (active) setError(cause instanceof Error ? cause.message : 'Impossible de charger les données financières.'); }
+      } catch (cause) { if (active) setError(readableFinanceError(cause, 'Impossible de charger les données financières.')); }
       finally { if (active) setLoading(false); }
     }
     void load();
@@ -122,7 +132,7 @@ export function FinanceDashboardPage() {
       if (result.error) throw result.error;
       setNotice(editingChargeId ? 'Frais modifié.' : 'Frais enregistré.');
       setModal(null); reload();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Impossible d’enregistrer les frais.'); }
+    } catch (cause) { setError(readableFinanceError(cause, 'Impossible d’enregistrer les frais.')); }
     finally { setSaving(false); }
   }
 
@@ -133,7 +143,7 @@ export function FinanceDashboardPage() {
       const { error } = await getSupabaseClient().from('finance_student_charges').update({ status: 'cancelled', updated_at: new Date().toISOString() }).eq('id', charge.id).eq('centre_id', profile.centreId);
       if (error) throw error;
       setNotice('Frais annulé. L’historique des paiements est conservé.'); reload();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Impossible d’annuler les frais.'); }
+    } catch (cause) { setError(readableFinanceError(cause, 'Impossible d’annuler les frais.')); }
     finally { setSaving(false); }
   }
 
@@ -155,7 +165,7 @@ export function FinanceDashboardPage() {
       const { error: statusError } = await client.from('finance_student_charges').update({ status: newTotal >= numeric(charge.amount_due) ? 'paid' : 'partial', updated_at: new Date().toISOString() }).eq('id', charge.id).eq('centre_id', profile.centreId);
       if (statusError) throw new Error('Paiement enregistré (reçu ' + receipt + '), mais le statut du frais n’a pas été actualisé : ' + statusError.message);
       setNotice('Paiement enregistré. Reçu n° ' + receipt + '.'); setPaymentForm({ chargeId: '', amount: '', method: 'cash', reference: '', notes: '' }); setModal(null); setView('receipts'); reload();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Impossible d’enregistrer le paiement.'); }
+    } catch (cause) { setError(readableFinanceError(cause, 'Impossible d’enregistrer le paiement.')); }
     finally { setSaving(false); }
   }
 
@@ -172,7 +182,7 @@ export function FinanceDashboardPage() {
         : await client.from('finance_teacher_payroll').insert({ ...payload, centre_id: profile.centreId, status: 'draft', created_by: profile.id });
       if (result.error) throw result.error;
       setNotice(editingPayrollId ? 'Rémunération modifiée.' : 'Rémunération préparée en brouillon.'); setModal(null); reload();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Impossible d’enregistrer la rémunération.'); }
+    } catch (cause) { setError(readableFinanceError(cause, 'Impossible d’enregistrer la rémunération.')); }
     finally { setSaving(false); }
   }
 
@@ -196,7 +206,7 @@ export function FinanceDashboardPage() {
       const { error } = await getSupabaseClient().from('finance_teacher_payroll').update({ status: 'paid', paid_at: new Date().toISOString() }).eq('id', item.id).eq('centre_id', profile.centreId).eq('status', 'approved');
       if (error) throw error;
       setNotice('Rémunération marquée comme payée. Pensez à enregistrer la sortie correspondante dans la trésorerie.'); reload();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Impossible de confirmer le paiement.'); }
+    } catch (cause) { setError(readableFinanceError(cause, 'Impossible de confirmer le paiement.')); }
     finally { setSaving(false); }
   }
 
