@@ -199,3 +199,99 @@ revoke all on function public.finance_record_student_payment(uuid, numeric, text
 revoke all on function public.finance_pay_teacher_payroll(uuid, uuid) from public;
 grant execute on function public.finance_record_student_payment(uuid, numeric, text, text, uuid, text, text) to authenticated;
 grant execute on function public.finance_pay_teacher_payroll(uuid, uuid) to authenticated;
+
+
+create or replace function public.finance_record_teacher_advance(
+  p_teacher_id bigint,
+  p_amount numeric,
+  p_advance_date date,
+  p_account_id uuid,
+  p_notes text default null
+)
+returns uuid
+language plpgsql
+security invoker
+set search_path = public, pg_temp
+as $$
+declare
+  v_centre_id uuid;
+  v_profile_centre_id uuid;
+  v_role text;
+  v_teacher_name text;
+  v_account_name text;
+  v_account_id uuid;
+  v_balance numeric(12,2);
+  v_advance_id uuid := gen_random_uuid();
+begin
+  select p.centre_id, p.role
+    into v_profile_centre_id, v_role
+  from public.profiles p
+  where p.id = auth.uid();
+
+  if auth.uid() is null or coalesce(v_role, '') not in ('admin', 'director') or v_profile_centre_id is null then
+    raise exception 'Accès refusé : directeur ou administrateur du centre requis.';
+  end if;
+  if p_amount is null or p_amount <= 0 then
+    raise exception 'Le montant de l’avance doit être supérieur à zéro.';
+  end if;
+  if p_advance_date is null then
+    raise exception 'La date de l’avance est obligatoire.';
+  end if;
+
+  select f.nom into v_teacher_name
+  from public.formateurs f
+  where f.id = p_teacher_id and f.centre_id = v_profile_centre_id;
+
+  if not found then
+    raise exception 'Formateur introuvable pour ce centre.';
+  end if;
+
+  select a.id, a.name into v_account_id, v_account_name
+  from public.finance_accounts a
+  where a.id = p_account_id and a.centre_id = v_profile_centre_id and a.active = true
+  for update;
+
+  if not found then
+    raise exception 'La caisse ou le compte bancaire est introuvable ou inactif.';
+  end if;
+
+  select a.opening_balance + coalesce(sum(
+    case
+      when m.movement_type in ('inflow', 'transfer_in', 'adjustment') then m.amount
+      else -m.amount
+    end
+  ), 0)
+  into v_balance
+  from public.finance_accounts a
+  left join public.finance_account_movements m
+    on m.account_id = a.id and m.centre_id = a.centre_id
+  where a.id = v_account_id and a.centre_id = v_profile_centre_id
+  group by a.id, a.opening_balance;
+
+  if v_balance < p_amount then
+    raise exception 'Solde insuffisant dans « % » : disponible % DH.', v_account_name, round(v_balance, 2);
+  end if;
+
+  insert into public.finance_teacher_advances (
+    id, centre_id, teacher_id, amount, advance_date, notes, status, created_by
+  ) values (
+    v_advance_id, v_profile_centre_id, p_teacher_id, round(p_amount, 2),
+    p_advance_date, nullif(trim(p_notes), ''), 'active', auth.uid()
+  );
+
+  insert into public.finance_account_movements (
+    centre_id, account_id, movement_type, amount, movement_date,
+    description, source_type, source_id, created_by
+  ) values (
+    v_profile_centre_id, v_account_id, 'outflow', round(p_amount, 2),
+    p_advance_date::timestamptz,
+    'Avance formateur : ' || coalesce(v_teacher_name, 'Formateur'),
+    'teacher_advance', v_advance_id, auth.uid()
+  );
+
+  return v_advance_id;
+end;
+$$;
+
+revoke all on function public.finance_record_teacher_advance(bigint, numeric, date, uuid, text) from public;
+grant execute on function public.finance_record_teacher_advance(bigint, numeric, date, uuid, text) to authenticated;
