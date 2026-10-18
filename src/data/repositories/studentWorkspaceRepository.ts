@@ -130,8 +130,7 @@ export async function getStudentWorkspace(
   const realizedResult = courseIds.length
     ? await client.from('seances_realisees').select('cours_id,date').in('cours_id', courseIds)
     : { data: [], error: null };
-  if (realizedResult.error) throw realizedResult.error;
-  const realizedSessions = parseRows(realizedResult.data, 'séances réalisées')
+  const realizedSessions = parseRows(realizedResult.error ? [] : realizedResult.data, 'séances réalisées')
     .filter(row => typeof row.date === 'string')
     .map(row => ({ courseId: identifier(row.cours_id, 'cours de séance réalisée'), date: row.date as string }));
   const attendanceCourseIds = [
