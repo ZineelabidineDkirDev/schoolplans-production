@@ -371,10 +371,8 @@ export function SectionPlaceholder() {
   const { section } = useParams();
   const { profile, permissions } = useAuth();
 
-  // Les étudiants consultent leur emploi du temps personnel via « Mes cours ».
-  // Rediriger les anciens liens administratifs évite le message de rôle non autorisé,
-  // sans leur ouvrir le planning global ni la gestion des salles.
-  if (profile?.role === 'etudiant' && ['vcal', 'vr', 'vl'].includes(section ?? '')) {
+  // Les étudiants ont des vues personnelles en lecture seule pour le planning et les salles.
+  if (profile?.role === 'etudiant' && section === 'vl') {
     return <Navigate replace to="/app/vm" />;
   }
 
@@ -392,11 +390,11 @@ export function SectionPlaceholder() {
   if (section === 'vn') return <MyStudentsPage />;
   if (section === 'vd') return <DashboardPage />;
   if (section === 'vrapport') return <RapportCentrePage />;
-  if (section === 'vcal') return <PlanningPage />;
+  if (section === 'vcal') return profile?.role === 'etudiant' ? <StudentWorkspacePage view="planning" /> : <PlanningPage />;
   if (section === 'vl') return <PlanningPage view="sessions" />;
   if (section === 'vi') return <EnrollmentRequestsPage />;
   if (section === 'vz') return <CentreManagementPage />;
-  if (section === 'vr') return <RoomsPage />;
+  if (section === 'vr') return profile?.role === 'etudiant' ? <StudentWorkspacePage view="rooms" /> : <RoomsPage />;
   if (section === 'vf') return <TeachersPage />;
   if (section === 'vp') return <AttendancePage />;
   if (section === 'vs') return <StudentsPage />;
