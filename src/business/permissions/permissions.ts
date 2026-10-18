@@ -97,8 +97,9 @@ export function canAccessSection(
   const appSection = section as AppSection;
   if (!ROLE_SECTIONS[role].includes(appSection)) return false;
   if (role === 'super_admin') return true;
+  // Planning et salles côté étudiant sont des vues personnelles en lecture seule.
+  if (role === 'etudiant' && (appSection === 'vcal' || appSection === 'vr' || appSection === 'vk')) return true;
   if (role === 'formateur' && appSection === 'vp') return true;
-  if (role === 'etudiant' && appSection === 'vk') return true;
 
   return (SECTION_REQUIREMENTS[appSection] ?? []).every((key) => permissions[key] === true);
 }
