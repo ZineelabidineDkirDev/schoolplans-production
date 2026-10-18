@@ -26,6 +26,7 @@ export type StudentWorkspace = {
   studentFound: boolean;
   courses: StudentCourse[];
   attendance: StudentAttendance[];
+  formation: { name: string; durationMonths: number | null; hoursPerWeek: number | null } | null;
 };
 
 type Row = Record<string, unknown>;
@@ -60,13 +61,47 @@ export async function getStudentWorkspace(
   if (!email.trim()) throw new Error('Votre compte ne contient pas d’adresse e-mail vérifiable.');
   const { data: student, error: studentError } = await client
     .from('etudiants')
-    .select('id')
+    .select('id,groupe_id')
     .eq('centre_id', centreId)
     .ilike('email', email.trim())
     .maybeSingle();
   if (studentError) throw studentError;
-  if (!student) return { studentFound: false, courses: [], attendance: [] };
+  if (!student) return { studentFound: false, courses: [], attendance: [], formation: null };
   const studentId = identifier(student.id, 'étudiant');
+  let formation: StudentWorkspace['formation'] = null;
+  if (student.groupe_id !== null && student.groupe_id !== undefined) {
+    const { data: group, error: groupError } = await client
+      .from('groupes')
+      .select('id,formation_id')
+      .eq('centre_id', centreId)
+      .eq('id', student.groupe_id)
+      .maybeSingle();
+    if (groupError) throw groupError;
+    if (group?.formation_id !== null && group?.formation_id !== undefined) {
+      const { data: formationRow, error: formationError } = await client
+        .from('formations')
+        .select('id,nom,duree,heures_par_semaine')
+        .eq('centre_id', centreId)
+        .eq('id', group.formation_id)
+        .maybeSingle();
+      if (formationError) throw formationError;
+      if (formationRow) {
+        const durationText = String(formationRow.duree ?? '');
+        const durationMatch = durationText.match(/[0-9]+(?:[.,][0-9]+)?/);
+        const durationMonths = durationMatch ? Number(durationMatch[0].replace(',', '.')) : null;
+        const hoursPerWeek = typeof formationRow.heures_par_semaine === 'number'
+          ? formationRow.heures_par_semaine
+          : Number.isFinite(Number(formationRow.heures_par_semaine)) && formationRow.heures_par_semaine !== null
+            ? Number(formationRow.heures_par_semaine)
+            : null;
+        formation = {
+          name: text(formationRow.nom, 'Ma formation'),
+          durationMonths: durationMonths !== null && Number.isFinite(durationMonths) ? durationMonths : null,
+          hoursPerWeek: hoursPerWeek !== null && Number.isFinite(hoursPerWeek) ? hoursPerWeek : null,
+        };
+      }
+    }
+  }
 
   const [enrollmentsResult, attendanceResult] = await Promise.all([
     client
@@ -227,5 +262,6 @@ export async function getStudentWorkspace(
     studentFound: true,
     courses,
     attendance,
+    formation,
   };
 }
