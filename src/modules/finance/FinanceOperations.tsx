@@ -35,6 +35,7 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
   const [section, setSection] = useState<'expenses' | 'treasury'>('expenses');
   const [modal, setModal] = useState<'expense' | 'account' | 'movement' | 'transfer' | null>(null);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+  const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
   const [expenseForm, setExpenseForm] = useState({ label: '', category: 'Loyer', supplier: '', amount: '', expenseDate: today(), dueDate: '', notes: '' });
   const [accountForm, setAccountForm] = useState({ name: '', accountType: 'cash' as 'cash' | 'bank', openingBalance: '0' });
   const [movementForm, setMovementForm] = useState({ accountId: '', movementType: 'inflow' as 'inflow' | 'outflow', amount: '', date: today(), description: '', destinationId: '' });
@@ -129,10 +130,25 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
     if (!accountForm.name.trim() || !Number.isFinite(opening) || opening < 0) { setError('Saisissez un nom et un solde initial positif ou nul.'); return; }
     setSaving(true); setError(null); setNotice(null);
     try {
-      const { error } = await getSupabaseClient().from('finance_accounts').insert({ centre_id: profile.centreId, name: accountForm.name.trim(), account_type: accountForm.accountType, opening_balance: opening, currency: 'MAD', created_by: profile.id });
-      if (error) throw error;
-      setAccountForm({ name: '', accountType: 'cash', openingBalance: '0' }); setNotice('Caisse/compte créé avec succès.'); reload(); onChange();
+      const client = getSupabaseClient();
+      const result = editingAccountId
+        ? await client.from('finance_accounts').update({ name: accountForm.name.trim() }).eq('id', editingAccountId).eq('centre_id', profile.centreId).eq('active', true)
+        : await client.from('finance_accounts').insert({ centre_id: profile.centreId, name: accountForm.name.trim(), account_type: accountForm.accountType, opening_balance: opening, currency: 'MAD', created_by: profile.id });
+      if (result.error) throw result.error;
+      setAccountForm({ name: '', accountType: 'cash', openingBalance: '0' }); setEditingAccountId(null); setModal(null);
+      setNotice(editingAccountId ? 'Nom du compte modifié.' : 'Caisse/compte créé avec succès.'); reload(); onChange();
     } catch (e) { setError(e instanceof Error ? e.message : 'Impossible de créer le compte.'); }
+    finally { setSaving(false); }
+  }
+
+  async function deactivateAccount(account: Account) {
+    if (!profile?.centreId || !window.confirm('Désactiver « ' + account.name + ' » ? Son historique sera conservé.')) return;
+    setSaving(true); setError(null); setNotice(null);
+    try {
+      const { error } = await getSupabaseClient().from('finance_accounts').update({ active: false }).eq('id', account.id).eq('centre_id', profile.centreId).eq('active', true);
+      if (error) throw error;
+      setNotice('Compte désactivé. Les mouvements existants restent consultables.'); reload(); onChange();
+    } catch (e) { setError(e instanceof Error ? e.message : 'Impossible de désactiver le compte.'); }
     finally { setSaving(false); }
   }
 
@@ -212,14 +228,14 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
     {section === 'treasury' && <>
       <div className="finance-quick-metrics"><article><span>Solde des caisses</span><strong>{money(cashTotal)}</strong></article><article><span>Solde bancaire</span><strong>{money(bankTotal)}</strong></article><article><span>Trésorerie disponible</span><strong>{money(cashTotal + bankTotal)}</strong></article></div>
       <div className="finance-operation-layout">
-        {modal === 'account' && <OperationsModal title="Créer une caisse ou un compte" onClose={() => setModal(null)}><form className="finance-modal-form" onSubmit={(e) => void createAccount(e)}>
-          <h3>Créer une caisse / un compte</h3>
+        {modal === 'account' && <OperationsModal title={editingAccountId ? 'Modifier le compte' : 'Créer une caisse ou un compte'} onClose={() => setModal(null)}><form className="finance-modal-form" onSubmit={(e) => void createAccount(e)}>
+          <h3>{editingAccountId ? 'Modifier le nom du compte' : 'Créer une caisse / un compte'}</h3>
           <label className="sp-form-field">Nom du compte<input className="sp-field" required maxLength={100} value={accountForm.name} onChange={(e) => setAccountForm((v) => ({ ...v, name: e.target.value }))} placeholder="Ex. Caisse principale" /></label>
-          <label className="sp-form-field">Type<select className="sp-field" value={accountForm.accountType} onChange={(e) => setAccountForm((v) => ({ ...v, accountType: e.target.value as 'cash' | 'bank' }))}><option value="cash">Caisse (espèces)</option><option value="bank">Compte bancaire</option></select></label>
-          <label className="sp-form-field">Solde initial (DH)<input className="sp-field" required min="0" step="0.01" type="number" value={accountForm.openingBalance} onChange={(e) => setAccountForm((v) => ({ ...v, openingBalance: e.target.value }))} /></label>
-          <Button type="submit" disabled={saving}>{saving ? 'Enregistrement…' : 'Créer le compte'}</Button>
+          {!editingAccountId && <><label className="sp-form-field">Type<select className="sp-field" value={accountForm.accountType} onChange={(e) => setAccountForm((v) => ({ ...v, accountType: e.target.value as 'cash' | 'bank' }))}><option value="cash">Caisse (espèces)</option><option value="bank">Compte bancaire</option></select></label>
+          <label className="sp-form-field">Solde initial (DH)<input className="sp-field" required min="0" step="0.01" type="number" value={accountForm.openingBalance} onChange={(e) => setAccountForm((v) => ({ ...v, openingBalance: e.target.value }))} /></label></>}
+          <div className="finance-modal-actions"><Button type="button" variant="secondary" onClick={() => setModal(null)}>Annuler</Button><Button type="submit" disabled={saving}>{saving ? 'Enregistrement…' : editingAccountId ? 'Enregistrer les modifications' : 'Créer le compte'}</Button></div>
         </form></OperationsModal>}
-        <div className="finance-operation-card"><div className="finance-content-heading"><div><h3>Caisses et comptes actifs</h3><p>Soldes calculés à partir des mouvements.</p></div><Button type="button" onClick={() => setModal('account')}>+ Ajouter un compte</Button></div>{activeAccounts.length === 0 ? <p className="management-muted">Créez d’abord une caisse ou un compte bancaire.</p> : <div className="finance-account-grid">{activeAccounts.map((a) => <article className="finance-account-card" key={a.id}><span>{a.account_type === 'cash' ? 'Caisse' : 'Banque'}</span><strong>{a.name}</strong><b>{money(balanceFor(a))}</b><small>Solde initial : {money(num(a.opening_balance))}</small></article>)}</div>}</div>
+        <div className="finance-operation-card"><div className="finance-content-heading"><div><h3>Caisses et comptes actifs</h3><p>Soldes calculés à partir des mouvements.</p></div><Button type="button" onClick={() => setModal('account')}>+ Ajouter un compte</Button></div>{activeAccounts.length === 0 ? <p className="management-muted">Créez d’abord une caisse ou un compte bancaire.</p> : <div className="finance-account-grid">{activeAccounts.map((a) => <article className="finance-account-card" key={a.id}><span>{a.account_type === 'cash' ? 'Caisse' : 'Banque'}</span><strong>{a.name}</strong><b>{money(balanceFor(a))}</b><small>Solde initial : {money(num(a.opening_balance))}</small><div className="finance-row-actions"><Button type="button" variant="secondary" disabled={saving} onClick={() => { setEditingAccountId(a.id); setAccountForm({ name: a.name, accountType: a.account_type, openingBalance: String(a.opening_balance) }); setModal('account'); }}>Modifier</Button><Button type="button" variant="danger" disabled={saving} onClick={() => void deactivateAccount(a)}>Supprimer</Button></div></article>)}</div>}</div>
       </div>
       <div className="finance-operation-layout">
         <div className="finance-operation-card"><div className="finance-content-heading"><div><h3>Mouvements</h3><p>Enregistrez une entrée ou une sortie manuelle.</p></div><Button type="button" onClick={() => setModal('movement')}>+ Nouveau mouvement</Button></div></div>
