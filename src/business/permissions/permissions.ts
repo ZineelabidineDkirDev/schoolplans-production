@@ -40,7 +40,7 @@ const ROLE_SECTIONS: Record<SourceRole, readonly AppSection[]> = {
   ],
   super_admin: [...COMMON_SECTIONS, 'vz', 'vd'],
   formateur: [...COMMON_SECTIONS, 'vl', 'vn', 'vp', 'vk', 'vrapport'],
-  etudiant: [...COMMON_SECTIONS, 'vm', 'vq', 'vk'],
+  etudiant: ['vcal', 'vr', 'vm', 'vq', 'vk'],
 };
 
 const SECTION_REQUIREMENTS: Partial<Record<AppSection, readonly CentrePermissionKey[]>> = {
@@ -95,10 +95,14 @@ export function canAccessSection(
 ): section is AppSection {
   if (!APP_SECTIONS.includes(section as AppSection)) return false;
   const appSection = section as AppSection;
-  if (!ROLE_SECTIONS[role].includes(appSection)) return false;
   if (role === 'super_admin') return true;
-  // Planning et salles côté étudiant sont des vues personnelles en lecture seule.
-  if (role === 'etudiant' && (appSection === 'vcal' || appSection === 'vr' || appSection === 'vk')) return true;
+
+  // Les étudiants peuvent toujours consulter leur planning et leurs salles.
+  // Ces deux rubriques restent en lecture seule et ne dépendent pas des droits administratifs du centre.
+  if (role === 'etudiant' && (appSection === 'vcal' || appSection === 'vr')) return true;
+
+  if (!ROLE_SECTIONS[role].includes(appSection)) return false;
+  if (role === 'etudiant' && appSection === 'vk') return true;
   if (role === 'formateur' && appSection === 'vp') return true;
 
   return (SECTION_REQUIREMENTS[appSection] ?? []).every((key) => permissions[key] === true);
