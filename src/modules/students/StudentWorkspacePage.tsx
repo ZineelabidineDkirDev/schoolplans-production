@@ -23,6 +23,29 @@ function displayDate(value: string) {
   return new Date(`${value}T00:00:00`).toLocaleDateString('fr-FR');
 }
 
+type ReportIconName = 'courses' | 'hours' | 'completed' | 'attendance';
+
+function ReportIcon({ name }: { name: ReportIconName }) {
+  const common = {
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.8,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    viewBox: '0 0 24 24',
+    'aria-hidden': true as const,
+    className: 'h-6 w-6',
+  };
+  return (
+    <svg {...common}>
+      {name === 'courses' && <><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z" /><path d="M4 5.5v16M8 7h8M8 11h7" /></>}
+      {name === 'hours' && <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.5 2" /></>}
+      {name === 'completed' && <><circle cx="12" cy="12" r="9" /><path d="m8 12 2.5 2.5L16.5 8" /></>}
+      {name === 'attendance' && <><path d="M4 19V5M4 19h17" /><path d="m7 15 4-4 3 2 5-7" /><path d="M16 6h3v3" /></>}
+    </svg>
+  );
+}
+
 export function StudentWorkspacePage({ view }: { view: 'courses' | 'attendance' | 'planning' | 'rooms' | 'report' }) {
   const { profile, session } = useAuth();
   const [reload, setReload] = useState(0);
@@ -194,23 +217,42 @@ export function StudentWorkspacePage({ view }: { view: 'courses' | 'attendance' 
               <EmptyState title="Aucune formation à analyser" description="Les statistiques apparaîtront lorsque vos cours seront associés à votre inscription." />
             ) : (
               <>
-                <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-                  <Panel><p className="sp-muted text-sm">Cours inscrits</p><strong className="mt-2 block text-3xl">{courses.length}</strong></Panel>
-                  <Panel><p className="sp-muted text-sm">Heures prévues au total</p><strong className="mt-2 block text-3xl">{plannedTotalHours === null ? '—' : `${plannedTotalHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h`}</strong><p className="sp-muted mt-1 text-xs">{weeklyHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h par semaine</p></Panel>
-                  <Panel><p className="sp-muted text-sm">Heures réalisées</p><strong className="mt-2 block text-3xl">{realizedHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h</strong><p className="sp-muted mt-1 text-xs">Calculées à partir des séances avec un séance marquée comme réalisée.</p></Panel>
-                  <Panel><p className="sp-muted text-sm">Taux d’assiduité</p><strong className="mt-2 block text-3xl">{attendanceRate === null ? '—' : `${attendanceRate}%`}</strong></Panel>
+                <style>{`
+                  @keyframes sp-report-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+                  @media (prefers-reduced-motion: no-preference) { .sp-report-kpi { animation: sp-report-rise .45s ease-out both; } }
+                `}</style>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  {([
+                    { label: 'Cours inscrits', value: String(courses.length), note: 'Cours associés à votre dossier', icon: 'courses' as const, tone: 'bg-indigo-500/10 text-indigo-600' },
+                    { label: 'Heures prévues', value: plannedTotalHours === null ? '—' : `${plannedTotalHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h`, note: `${weeklyHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h par semaine`, icon: 'hours' as const, tone: 'bg-sky-500/10 text-sky-600' },
+                    { label: 'Heures réalisées', value: `${realizedHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h`, note: 'Séances marquées comme réalisées', icon: 'completed' as const, tone: 'bg-emerald-500/10 text-emerald-600' },
+                    { label: 'Taux d’assiduité', value: attendanceRate === null ? '—' : `${attendanceRate}%`, note: `${attendedCount} présence(s) ou retard(s) sur ${attendance.length} pointage(s)`, icon: 'attendance' as const, tone: 'bg-amber-500/10 text-amber-600' },
+                  ]).map((item, index) => (
+                    <Panel key={item.label} className="sp-report-kpi group transition-all duration-300 hover:-translate-y-1 hover:shadow-lg motion-reduce:transition-none" >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0"><p className="sp-muted text-sm">{item.label}</p><strong className="mt-2 block text-2xl font-bold tracking-tight sm:text-3xl">{item.value}</strong></div>
+                        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-110 motion-reduce:transition-none ${item.tone}`} style={{ animationDelay: `${index * 70}ms` }}><ReportIcon name={item.icon} /></div>
+                      </div>
+                      <p className="sp-muted mt-3 text-xs leading-relaxed">{item.note}</p>
+                    </Panel>
+                  ))}
                 </div>
                 <div className="grid gap-4 lg:grid-cols-2">
                   <Panel className="space-y-4">
                     <div><h2 className="font-semibold">Présence et absences</h2><p className="sp-muted text-sm">Répartition des pointages enregistrés</p></div>
                     {attendance.length === 0 ? <p className="sp-muted">Aucun pointage enregistré pour le moment.</p> : (
-                      <div className="space-y-4">
-                        {statusCounts.map(item => (
-                          <div key={item.label}>
-                            <div className="mb-1 flex justify-between gap-2 text-sm"><span>{item.label}</span><strong>{item.count}</strong></div>
-                            <div className="h-3 overflow-hidden rounded-full bg-gray-200/70"><div className="h-full rounded-full" style={{ width: `${item.count / maxStatus * 100}%`, backgroundColor: item.color }} /></div>
-                          </div>
-                        ))}
+                      <div className="grid items-center gap-5 sm:grid-cols-[minmax(120px, .8fr)_1.2fr]">
+                        <div className="mx-auto grid h-36 w-36 place-items-center rounded-full transition-transform duration-500 hover:rotate-3 motion-reduce:transition-none" style={{ background: `conic-gradient(#16a34a 0 ${presentCount / attendance.length * 100}%, #d97706 ${presentCount / attendance.length * 100}% ${attendedCount / attendance.length * 100}%, #dc2626 ${attendedCount / attendance.length * 100}% 100%)` }} role="img" aria-label={`Répartition des pointages : ${presentCount} présences, ${lateCount} retards, ${absentCount} absences`}>
+                          <div className="grid h-24 w-24 place-content-center rounded-full bg-white text-center dark:bg-slate-900"><strong className="text-2xl">{attendanceRate ?? 0}%</strong><span className="sp-muted text-xs">assiduité</span></div>
+                        </div>
+                        <div className="space-y-4">
+                          {statusCounts.map(item => (
+                            <div key={item.label}>
+                              <div className="mb-1 flex justify-between gap-2 text-sm"><span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />{item.label}</span><strong>{item.count} <span className="sp-muted font-normal">({Math.round(item.count / attendance.length * 100)}%)</span></strong></div>
+                              <div className="h-2.5 overflow-hidden rounded-full bg-gray-200/70"><div className="h-full rounded-full transition-all duration-700 motion-reduce:transition-none" style={{ width: `${item.count / maxStatus * 100}%`, backgroundColor: item.color }} /></div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </Panel>
