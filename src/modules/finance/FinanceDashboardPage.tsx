@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Alert, Button, LoadingState } from '../../components/ui';
 import { getSupabaseClient } from '../../data/supabase/client';
 import { useAuth } from '../auth/AuthProvider';
+import { FinanceOperations } from './FinanceOperations';
 
 type Student = { id: number; prenom: string; nom: string };
 type Charge = { id: string; student_id: number; label: string; amount_due: number | string; due_date: string | null; status: string; notes: string | null };
@@ -200,6 +201,7 @@ export function FinanceDashboardPage() {
         </form>
         <div className="finance-operation-card"><h3>Historique des paiements</h3>{payments.length === 0 ? <p className="management-muted">Aucun paiement enregistré pour le moment.</p> : <div className="finance-table-wrap"><table className="finance-table"><thead><tr><th>Reçu</th><th>Étudiant</th><th>Montant</th><th>Mode</th><th>Date</th></tr></thead><tbody>{payments.map((payment) => { const charge = charges.find((item) => item.id === payment.charge_id); return <tr key={payment.id}><td>{payment.receipt_number}</td><td>{charge ? studentName(charge.student_id) : '—'}</td><td>{money(numeric(payment.amount))}</td><td>{METHODS.find((method) => method.value === payment.payment_method)?.label ?? payment.payment_method}</td><td>{new Date(payment.paid_at).toLocaleString('fr-MA')}</td></tr>; })}</tbody></table></div>}</div>
       </div>}
+      <FinanceOperations onChange={reload} />
       <p className="finance-security-note">Accès réservé au directeur et à l’administrateur du centre. Les opérations financières sont conservées dans Supabase.</p>
     </section>
   );
