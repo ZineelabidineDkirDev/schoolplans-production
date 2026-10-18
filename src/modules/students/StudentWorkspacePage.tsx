@@ -174,8 +174,9 @@ export function StudentWorkspacePage({ view }: { view: 'courses' | 'attendance' 
         const attendedCount = presentCount + lateCount;
         const attendanceRate = attendance.length ? Math.round(attendedCount / attendance.length * 100) : null;
         const weeklyHours = state.workspace.formation?.hoursPerWeek ?? courses.reduce((sum, course) => sum + hoursFor(course), 0);
-        const plannedTotalHours = state.workspace.formation?.durationMonths !== null && state.workspace.formation?.durationMonths !== undefined && weeklyHours > 0
-          ? state.workspace.formation.durationMonths * 4.345 * weeklyHours
+        const formation = state.workspace.formation;
+        const plannedTotalHours = formation && formation.durationMonths !== null && formation.durationMonths !== undefined && weeklyHours > 0
+          ? formation.durationMonths * 4.345 * weeklyHours
           : null;
         const progress = plannedTotalHours && plannedTotalHours > 0
           ? Math.min(100, Math.round(realizedHours / plannedTotalHours * 100))
@@ -288,7 +289,7 @@ export function StudentWorkspacePage({ view }: { view: 'courses' | 'attendance' 
             </div>
           </Panel>
         ))}
-      {state.status === 'loaded' && state.workspace.studentFound && !isCourses && !isRooms && (
+      {state.status === 'loaded' && state.workspace.studentFound && !isCourses && !isRooms && !isReport && (
         <>
           {state.workspace.attendance.length > 0 && (
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
