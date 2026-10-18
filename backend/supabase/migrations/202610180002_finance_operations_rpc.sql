@@ -38,26 +38,29 @@ begin
     raise exception 'Cette dépense a déjà été traitée ou ne peut pas être payée.';
   end if;
 
-  select a.account_type,
-         a.opening_balance + coalesce(sum(
+  select a.account_type into v_account_type
+  from public.finance_accounts a
+  where a.id = p_account_id
+    and a.centre_id = v_centre_id
+    and a.active = true
+  for update;
+
+  if not found then
+    raise exception 'Caisse ou compte bancaire introuvable ou inactif.';
+  end if;
+
+  select a.opening_balance + coalesce(sum(
            case
              when m.movement_type in ('inflow', 'transfer_in', 'adjustment') then m.amount
              else -m.amount
            end
          ), 0)
-    into v_account_type, v_balance
+    into v_balance
   from public.finance_accounts a
   left join public.finance_account_movements m
     on m.account_id = a.id and m.centre_id = a.centre_id
-  where a.id = p_account_id
-    and a.centre_id = v_centre_id
-    and a.active = true
-  group by a.id, a.account_type, a.opening_balance
-  for update of a;
-
-  if not found then
-    raise exception 'Caisse ou compte bancaire introuvable ou inactif.';
-  end if;
+  where a.id = p_account_id and a.centre_id = v_centre_id
+  group by a.id, a.opening_balance;
   if v_balance < v_amount then
     raise exception 'Solde insuffisant pour payer cette dépense.';
   end if;
