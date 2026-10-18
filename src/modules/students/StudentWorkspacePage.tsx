@@ -37,7 +37,7 @@ function ReportIcon({ name }: { name: ReportIconName }) {
     className: 'h-6 w-6',
   };
   return (
-    <svg {...common}>
+    <svg {...common} className="dashboard-icon">
       {name === 'courses' && <><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z" /><path d="M4 5.5v16M8 7h8M8 11h7" /></>}
       {name === 'hours' && <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.5 2" /></>}
       {name === 'completed' && <><circle cx="12" cy="12" r="9" /><path d="m8 12 2.5 2.5L16.5 8" /></>}
@@ -212,7 +212,7 @@ export function StudentWorkspacePage({ view }: { view: 'courses' | 'attendance' 
         const maxStatus = Math.max(1, ...statusCounts.map(item => item.count));
         return (
           <div className="space-y-5">
-            {state.workspace.formation && <Panel className="space-y-3"><div><p className="sp-muted text-sm">Formation</p><h2 className="text-xl font-semibold">{state.workspace.formation.name}</h2></div><div className="flex flex-wrap justify-between gap-2 text-sm"><span>Progression calculée</span><strong>{progress === null ? 'Durée totale non renseignée' : `${progress}%`}</strong></div><div className="h-3 overflow-hidden rounded-full bg-gray-200/70"><div className="h-full rounded-full bg-indigo-500" style={{ width: `${progress ?? 0}%` }} /></div>{plannedTotalHours !== null && <p className="sp-muted text-xs">{realizedHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h réalisées sur {plannedTotalHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h estimées.</p>}</Panel>}
+            {state.workspace.formation && <Panel className="dashboard-panel space-y-3"><div><p className="sp-muted text-sm">Formation</p><h2 className="text-xl font-semibold">{state.workspace.formation.name}</h2></div><div className="flex flex-wrap justify-between gap-2 text-sm"><span>Progression calculée</span><strong>{progress === null ? 'Durée totale non renseignée' : `${progress}%`}</strong></div><div className="h-3 overflow-hidden rounded-full bg-gray-200/70"><div className="h-full rounded-full bg-indigo-500" style={{ width: `${progress ?? 0}%` }} /></div>{plannedTotalHours !== null && <p className="sp-muted text-xs">{realizedHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h réalisées sur {plannedTotalHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h estimées.</p>}</Panel>}
             {courses.length === 0 ? (
               <EmptyState title="Aucune formation à analyser" description="Les statistiques apparaîtront lorsque vos cours seront associés à votre inscription." />
             ) : (
@@ -221,29 +221,29 @@ export function StudentWorkspacePage({ view }: { view: 'courses' | 'attendance' 
                   @keyframes sp-report-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
                   @media (prefers-reduced-motion: no-preference) { .sp-report-kpi { animation: sp-report-rise .45s ease-out both; } }
                 `}</style>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="dashboard-kpis">
                   {([
                     { label: 'Cours inscrits', value: String(courses.length), note: 'Cours associés à votre dossier', icon: 'courses' as const, tone: 'bg-indigo-500/10 text-indigo-600' },
                     { label: 'Heures prévues', value: plannedTotalHours === null ? '—' : `${plannedTotalHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h`, note: `${weeklyHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h par semaine`, icon: 'hours' as const, tone: 'bg-sky-500/10 text-sky-600' },
                     { label: 'Heures réalisées', value: `${realizedHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h`, note: 'Séances marquées comme réalisées', icon: 'completed' as const, tone: 'bg-emerald-500/10 text-emerald-600' },
                     { label: 'Taux d’assiduité', value: attendanceRate === null ? '—' : `${attendanceRate}%`, note: `${attendedCount} présence(s) ou retard(s) sur ${attendance.length} pointage(s)`, icon: 'attendance' as const, tone: 'bg-amber-500/10 text-amber-600' },
                   ]).map((item, index) => (
-                    <Panel key={item.label} className="sp-report-kpi group transition-all duration-300 hover:-translate-y-1 hover:shadow-lg motion-reduce:transition-none" >
+                    <article key={item.label} className="dashboard-card dashboard-metric sp-report-kpi">
                       <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0"><p className="sp-muted text-sm">{item.label}</p><strong className="mt-2 block text-2xl font-bold tracking-tight sm:text-3xl">{item.value}</strong></div>
-                        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-110 motion-reduce:transition-none ${item.tone}`} style={{ animationDelay: `${index * 70}ms` }}><ReportIcon name={item.icon} /></div>
+                        <div><b>{item.label}</b><small>{item.note}</small><strong>{item.value}</strong></div>
+                        <span className="dashboard-metric-icon"><ReportIcon name={item.icon} /></span>
                       </div>
-                      <p className="sp-muted mt-3 text-xs leading-relaxed">{item.note}</p>
-                    </Panel>
+                      <span className="dashboard-metric-detail"><ReportIcon name={item.icon} /></span>
+                    </article>
                   ))}
                 </div>
-                <div className="grid gap-4 lg:grid-cols-2">
-                  <Panel className="space-y-4">
+                <div className="dashboard-columns dashboard-main-grid">
+                  <Panel className="dashboard-panel">
                     <div><h2 className="font-semibold">Présence et absences</h2><p className="sp-muted text-sm">Répartition des pointages enregistrés</p></div>
                     {attendance.length === 0 ? <p className="sp-muted">Aucun pointage enregistré pour le moment.</p> : (
                       <div className="grid items-center gap-5 sm:grid-cols-[minmax(120px, .8fr)_1.2fr]">
-                        <div className="mx-auto grid h-36 w-36 place-items-center rounded-full transition-transform duration-500 hover:rotate-3 motion-reduce:transition-none" style={{ background: `conic-gradient(#16a34a 0 ${presentCount / attendance.length * 100}%, #d97706 ${presentCount / attendance.length * 100}% ${attendedCount / attendance.length * 100}%, #dc2626 ${attendedCount / attendance.length * 100}% 100%)` }} role="img" aria-label={`Répartition des pointages : ${presentCount} présences, ${lateCount} retards, ${absentCount} absences`}>
-                          <div className="grid h-24 w-24 place-content-center rounded-full bg-white text-center dark:bg-slate-900"><strong className="text-2xl">{attendanceRate ?? 0}%</strong><span className="sp-muted text-xs">assiduité</span></div>
+                        <div className="mx-auto grid h-36 w-36 place-items-center rounded-full" style={{ background: `conic-gradient(#16a34a 0 ${presentCount / attendance.length * 100}%, #d97706 ${presentCount / attendance.length * 100}% ${attendedCount / attendance.length * 100}%, #dc2626 ${attendedCount / attendance.length * 100}% 100%)` }} role="img" aria-label={`Répartition des pointages : ${presentCount} présences, ${lateCount} retards, ${absentCount} absences`}>
+                          <div className="grid h-24 w-24 place-content-center rounded-full text-center" style={{ background: "var(--card)" }}><strong className="text-2xl">{attendanceRate ?? 0}%</strong><span className="sp-muted text-xs">assiduité</span></div>
                         </div>
                         <div className="space-y-4">
                           {statusCounts.map(item => (
@@ -256,7 +256,7 @@ export function StudentWorkspacePage({ view }: { view: 'courses' | 'attendance' 
                       </div>
                     )}
                   </Panel>
-                  <Panel className="space-y-4">
+                  <Panel className="dashboard-panel">
                     <div>
                       <h2 className="font-semibold">Graphique des heures par cours</h2>
                       <p className="sp-muted text-sm">Comparaison visuelle de la durée prévue par séance et du cumul des heures réalisées</p>
@@ -266,7 +266,7 @@ export function StudentWorkspacePage({ view }: { view: 'courses' | 'attendance' 
                       <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-sm bg-emerald-500" />Heures réalisées cumulées</span>
                     </div>
                     {courses.length === 0 ? <p className="sp-muted text-sm">Aucun cours à afficher.</p> : (
-                      <div className="space-y-5" role="img" aria-label="Graphique en barres comparant les heures prévues par séance et les heures réalisées pour chaque cours">
+                      <div className="dashboard-chart-bars space-y-5" role="img" aria-label="Graphique en barres comparant les heures prévues par séance et les heures réalisées pour chaque cours">
                         {(() => {
                           const chartCourses = courses.slice(0, 8).map(course => ({
                             course,
@@ -285,15 +285,15 @@ export function StudentWorkspacePage({ view }: { view: 'courses' | 'attendance' 
                               <div className="space-y-2">
                                 <div className="grid grid-cols-[5.5rem_minmax(0,1fr)_3.5rem] items-center gap-2">
                                   <span className="sp-muted text-xs">Prévu</span>
-                                  <div className="h-4 overflow-hidden rounded-full bg-gray-200/70">
-                                    <div className="h-full rounded-full bg-indigo-500 transition-[width] duration-700 motion-reduce:transition-none" style={{ width: `${planned / maxHours * 100}%` }} />
+                                  <div className="dashboard-chart-bar-track h-4 overflow-hidden rounded-full">
+                                    <div className="dashboard-chart-bar dashboard-course-planned h-full rounded-full transition-[width] duration-700 motion-reduce:transition-none" style={{ width: `${planned / maxHours * 100}%` }} />
                                   </div>
                                   <strong className="text-right text-xs tabular-nums">{planned.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h</strong>
                                 </div>
                                 <div className="grid grid-cols-[5.5rem_minmax(0,1fr)_3.5rem] items-center gap-2">
                                   <span className="sp-muted text-xs">Réalisé</span>
                                   <div className="h-4 overflow-hidden rounded-full bg-gray-200/70">
-                                    <div className="h-full rounded-full bg-emerald-500 transition-[width] duration-700 motion-reduce:transition-none" style={{ width: `${realized / maxHours * 100}%` }} />
+                                    <div className="dashboard-chart-bar dashboard-course-realized h-full rounded-full transition-[width] duration-700 motion-reduce:transition-none" style={{ width: `${realized / maxHours * 100}%` }} />
                                   </div>
                                   <strong className="text-right text-xs tabular-nums">{realized.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h</strong>
                                 </div>
@@ -306,8 +306,8 @@ export function StudentWorkspacePage({ view }: { view: 'courses' | 'attendance' 
                     <p className="sp-muted text-xs">Le prévu correspond à la durée d’une séance du cours ; le réalisé cumule les séances marquées comme terminées. Les deux valeurs sont exprimées en heures.</p>
                   </Panel>
                 </div>
-                <Panel className="space-y-3">
-                  <h2 className="font-semibold">Historique récent des présences</h2>
+                <Panel className="dashboard-panel">
+                  <h2>Historique récent des présences</h2>
                   {attendance.length === 0 ? <p className="sp-muted">Aucun historique disponible.</p> : (
                     <div className="sp-table-wrap"><table className="sp-table"><thead><tr><th>Date</th><th>Cours</th><th>Statut</th><th>Durée</th></tr></thead><tbody>{attendance.slice(0, 12).map((item, index) => <tr key={`${item.courseId}-${item.date}-${index}`}><td>{displayDate(item.date)}</td><td>{item.subject}</td><td>{ATTENDANCE_LABELS[item.status]}</td><td>{(courseHours.get(String(item.courseId)) ?? 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h</td></tr>)}</tbody></table></div>
                   )}
