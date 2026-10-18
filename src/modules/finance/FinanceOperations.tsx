@@ -6,6 +6,16 @@ import { useAuth } from '../auth/AuthProvider';
 type Expense = { id: string; label: string; category: string; supplier: string | null; amount: number | string; expense_date: string; due_date: string | null; status: 'pending' | 'approved' | 'paid' | 'rejected'; payment_method: string | null; notes: string | null; paid_at: string | null };
 type Account = { id: string; name: string; account_type: 'cash' | 'bank'; opening_balance: number | string; active: boolean };
 type Movement = { id: string; account_id: string; movement_type: 'inflow' | 'outflow' | 'transfer_in' | 'transfer_out' | 'adjustment'; amount: number | string; movement_date: string; description: string; transfer_group_id: string | null };
+
+function OperationsModal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  return <div className="finance-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <section aria-modal="true" className="finance-modal" role="dialog">
+      <header className="finance-modal-header"><div><p className="sp-page-eyebrow">Dépenses et trésorerie</p><h2>{title}</h2></div><button type="button" className="finance-modal-close" aria-label="Fermer" onClick={onClose}>×</button></header>
+      {children}
+    </section>
+  </div>;
+}
+
 const CATEGORIES = ['Loyer', 'Eau et électricité', 'Internet et téléphone', 'Achats et fournitures', 'Maintenance et réparation', 'Salaires et rémunérations', 'Transport', 'Impôts et taxes', 'Autre'];
 const money = (n: number) => new Intl.NumberFormat('fr-MA', { style: 'currency', currency: 'MAD', maximumFractionDigits: 2 }).format(n);
 const num = (v: number | string | null | undefined) => { const n = Number(v ?? 0); return Number.isFinite(n) ? n : 0; };
@@ -23,6 +33,8 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [section, setSection] = useState<'expenses' | 'treasury'>('expenses');
+  const [modal, setModal] = useState<'expense' | 'account' | 'movement' | 'transfer' | null>(null);
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [expenseForm, setExpenseForm] = useState({ label: '', category: 'Loyer', supplier: '', amount: '', expenseDate: today(), dueDate: '', notes: '' });
   const [accountForm, setAccountForm] = useState({ name: '', accountType: 'cash' as 'cash' | 'bank', openingBalance: '0' });
   const [movementForm, setMovementForm] = useState({ accountId: '', movementType: 'inflow' as 'inflow' | 'outflow', amount: '', date: today(), description: '', destinationId: '' });
@@ -73,10 +85,15 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
     if (!expenseForm.label.trim() || !Number.isFinite(amount) || amount <= 0) { setError('Saisissez un libellé et un montant supérieur à 0 DH.'); return; }
     setSaving(true); setError(null); setNotice(null);
     try {
-      const { error } = await getSupabaseClient().from('finance_expenses').insert({ centre_id: profile.centreId, label: expenseForm.label.trim(), category: expenseForm.category, supplier: expenseForm.supplier.trim() || null, amount, expense_date: expenseForm.expenseDate || today(), due_date: expenseForm.dueDate || null, status: 'pending', notes: expenseForm.notes.trim() || null, created_by: profile.id });
-      if (error) throw error;
+      const client = getSupabaseClient();
+      const payload = { label: expenseForm.label.trim(), category: expenseForm.category, supplier: expenseForm.supplier.trim() || null, amount, expense_date: expenseForm.expenseDate || today(), due_date: expenseForm.dueDate || null, notes: expenseForm.notes.trim() || null };
+      const result = editingExpenseId
+        ? await client.from('finance_expenses').update(payload).eq('id', editingExpenseId).eq('centre_id', profile.centreId).eq('status', 'pending')
+        : await client.from('finance_expenses').insert({ ...payload, centre_id: profile.centreId, status: 'pending', created_by: profile.id });
+      if (result.error) throw result.error;
       setExpenseForm({ label: '', category: 'Loyer', supplier: '', amount: '', expenseDate: today(), dueDate: '', notes: '' });
-      setNotice('Dépense enregistrée comme « à valider ». La trésorerie reste inchangée.'); reload(); onChange();
+      setEditingExpenseId(null); setModal(null);
+      setNotice(editingExpenseId ? 'Dépense modifiée.' : 'Dépense enregistrée comme « à valider ». La trésorerie reste inchangée.'); reload(); onChange();
     } catch (e) { setError(e instanceof Error ? e.message : 'Impossible d’enregistrer la dépense.'); }
     finally { setSaving(false); }
   }
@@ -168,7 +185,8 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
     {section === 'expenses' && <>
       <div className="finance-quick-metrics"><article><span>Dépenses en attente/à valider</span><strong>{money(pendingTotal)}</strong></article><article><span>Dépenses payées</span><strong>{money(paidTotal)}</strong></article></div>
       <div className="finance-operation-layout">
-        <form className="finance-operation-card" onSubmit={(e) => void createExpense(e)}>
+        <div className="finance-operation-card"><div className="finance-content-heading"><div><h3>Nouvelle dépense</h3><p>Ajoutez une dépense à valider avant paiement.</p></div><Button type="button" onClick={() => { setEditingExpenseId(null); setExpenseForm({ label: '', category: 'Loyer', supplier: '', amount: '', expenseDate: today(), dueDate: '', notes: '' }); setModal('expense'); }}>+ Ajouter une dépense</Button></div></div>
+        {modal === 'expense' && <OperationsModal title={editingExpenseId ? 'Modifier une dépense' : 'Enregistrer une dépense'} onClose={() => setModal(null)}><form className="finance-modal-form" onSubmit={(e) => void createExpense(e)}>
           <h3>Enregistrer une dépense</h3>
           <label className="sp-form-field">Libellé<input className="sp-field" required maxLength={140} value={expenseForm.label} onChange={(e) => setExpenseForm((v) => ({ ...v, label: e.target.value }))} placeholder="Ex. Loyer du mois" /></label>
           <label className="sp-form-field">Catégorie<select className="sp-field" value={expenseForm.category} onChange={(e) => setExpenseForm((v) => ({ ...v, category: e.target.value }))}>{CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}</select></label>
@@ -178,14 +196,14 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
           <label className="sp-form-field">Échéance (facultative)<input className="sp-field" type="date" value={expenseForm.dueDate} onChange={(e) => setExpenseForm((v) => ({ ...v, dueDate: e.target.value }))} /></label>
           <label className="sp-form-field">Notes / justificatif<textarea className="sp-field" rows={2} value={expenseForm.notes} onChange={(e) => setExpenseForm((v) => ({ ...v, notes: e.target.value }))} /></label>
           <Button type="submit" disabled={saving}>{saving ? 'Enregistrement…' : 'Enregistrer la dépense'}</Button>
-        </form>
+        </form></OperationsModal>}
         <div className="finance-operation-card"><h3>Suivi des dépenses</h3>
           {expenses.length === 0 ? <p className="management-muted">Aucune dépense enregistrée.</p> : <>
             <label className="sp-form-field">Compte utilisé pour payer<select className="sp-field" value={paymentAccountId} onChange={(e) => setPaymentAccountId(e.target.value)}><option value="">Sélectionner un compte</option>{activeAccounts.map((a) => <option key={a.id} value={a.id}>{a.name} — {money(balanceFor(a))}</option>)}</select></label>
             <div className="finance-table-wrap"><table className="finance-table"><thead><tr><th>Dépense</th><th>Montant</th><th>Date</th><th>Statut</th><th>Actions</th></tr></thead><tbody>{expenses.map((expense) => <tr key={expense.id}>
               <td>{expense.label}<small>{expense.category}{expense.supplier ? ' · ' + expense.supplier : ''}</small></td><td>{money(num(expense.amount))}</td><td>{expense.expense_date}</td>
               <td><span className={'finance-status finance-status-' + expense.status}>{expense.status === 'pending' ? 'À valider' : expense.status === 'approved' ? 'Validée' : expense.status === 'paid' ? 'Payée' : 'Refusée'}</span></td>
-              <td><div className="finance-row-actions">{expense.status === 'pending' && <><Button type="button" variant="secondary" disabled={saving} onClick={() => void changeExpenseStatus(expense, 'approved')}>Valider</Button><Button type="button" variant="secondary" disabled={saving} onClick={() => void changeExpenseStatus(expense, 'rejected')}>Refuser</Button></>}{expense.status === 'approved' && <Button type="button" disabled={saving || !paymentAccountId} onClick={() => void payExpense(expense)}>Marquer payée</Button>}</div></td>
+              <td><div className="finance-row-actions">{expense.status === 'pending' && <><Button type="button" variant="secondary" disabled={saving} onClick={() => { setEditingExpenseId(expense.id); setExpenseForm({ label: expense.label, category: expense.category, supplier: expense.supplier ?? '', amount: String(expense.amount), expenseDate: expense.expense_date, dueDate: expense.due_date ?? '', notes: expense.notes ?? '' }); setModal('expense'); }}>Modifier</Button><Button type="button" variant="danger" disabled={saving} onClick={() => void changeExpenseStatus(expense, 'rejected')}>Supprimer</Button><Button type="button" variant="secondary" disabled={saving} onClick={() => void changeExpenseStatus(expense, 'approved')}>Valider</Button></>}{expense.status === 'approved' && <Button type="button" disabled={saving || !paymentAccountId} onClick={() => void payExpense(expense)}>Marquer payée</Button>}</div></td>
             </tr>)}</tbody></table></div>
           </>}
         </div>
@@ -194,17 +212,19 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
     {section === 'treasury' && <>
       <div className="finance-quick-metrics"><article><span>Solde des caisses</span><strong>{money(cashTotal)}</strong></article><article><span>Solde bancaire</span><strong>{money(bankTotal)}</strong></article><article><span>Trésorerie disponible</span><strong>{money(cashTotal + bankTotal)}</strong></article></div>
       <div className="finance-operation-layout">
-        <form className="finance-operation-card" onSubmit={(e) => void createAccount(e)}>
+        {modal === 'account' && <OperationsModal title="Créer une caisse ou un compte" onClose={() => setModal(null)}><form className="finance-modal-form" onSubmit={(e) => void createAccount(e)}>
           <h3>Créer une caisse / un compte</h3>
           <label className="sp-form-field">Nom du compte<input className="sp-field" required maxLength={100} value={accountForm.name} onChange={(e) => setAccountForm((v) => ({ ...v, name: e.target.value }))} placeholder="Ex. Caisse principale" /></label>
           <label className="sp-form-field">Type<select className="sp-field" value={accountForm.accountType} onChange={(e) => setAccountForm((v) => ({ ...v, accountType: e.target.value as 'cash' | 'bank' }))}><option value="cash">Caisse (espèces)</option><option value="bank">Compte bancaire</option></select></label>
           <label className="sp-form-field">Solde initial (DH)<input className="sp-field" required min="0" step="0.01" type="number" value={accountForm.openingBalance} onChange={(e) => setAccountForm((v) => ({ ...v, openingBalance: e.target.value }))} /></label>
           <Button type="submit" disabled={saving}>{saving ? 'Enregistrement…' : 'Créer le compte'}</Button>
-        </form>
-        <div className="finance-operation-card"><h3>Caisses et comptes actifs</h3>{activeAccounts.length === 0 ? <p className="management-muted">Créez d’abord une caisse ou un compte bancaire.</p> : <div className="finance-account-grid">{activeAccounts.map((a) => <article className="finance-account-card" key={a.id}><span>{a.account_type === 'cash' ? 'Caisse' : 'Banque'}</span><strong>{a.name}</strong><b>{money(balanceFor(a))}</b><small>Solde initial : {money(num(a.opening_balance))}</small></article>)}</div>}</div>
+        </form></OperationsModal>}
+        <div className="finance-operation-card"><div className="finance-content-heading"><div><h3>Caisses et comptes actifs</h3><p>Soldes calculés à partir des mouvements.</p></div><Button type="button" onClick={() => setModal('account')}>+ Ajouter un compte</Button></div>{activeAccounts.length === 0 ? <p className="management-muted">Créez d’abord une caisse ou un compte bancaire.</p> : <div className="finance-account-grid">{activeAccounts.map((a) => <article className="finance-account-card" key={a.id}><span>{a.account_type === 'cash' ? 'Caisse' : 'Banque'}</span><strong>{a.name}</strong><b>{money(balanceFor(a))}</b><small>Solde initial : {money(num(a.opening_balance))}</small></article>)}</div>}</div>
       </div>
       <div className="finance-operation-layout">
-        <form className="finance-operation-card" onSubmit={(e) => void createMovement(e)}>
+        <div className="finance-operation-card"><div className="finance-content-heading"><div><h3>Mouvements</h3><p>Enregistrez une entrée ou une sortie manuelle.</p></div><Button type="button" onClick={() => setModal('movement')}>+ Nouveau mouvement</Button></div></div>
+        <div className="finance-operation-card"><div className="finance-content-heading"><div><h3>Transfert</h3><p>Déplacez des fonds entre deux comptes.</p></div><Button type="button" disabled={activeAccounts.length < 2} onClick={() => setModal('transfer')}>+ Nouveau transfert</Button></div></div>
+        {modal === 'movement' && <OperationsModal title="Entrée / sortie manuelle" onClose={() => setModal(null)}><form className="finance-modal-form" onSubmit={(e) => void createMovement(e)}>
           <h3>Entrée / sortie manuelle</h3>
           <label className="sp-form-field">Compte<select className="sp-field" required value={movementForm.accountId} onChange={(e) => setMovementForm((v) => ({ ...v, accountId: e.target.value }))}><option value="">Sélectionner un compte</option>{activeAccounts.map((a) => <option key={a.id} value={a.id}>{a.name} — {money(balanceFor(a))}</option>)}</select></label>
           <label className="sp-form-field">Opération<select className="sp-field" value={movementForm.movementType} onChange={(e) => setMovementForm((v) => ({ ...v, movementType: e.target.value as 'inflow' | 'outflow' }))}><option value="inflow">Entrée de fonds</option><option value="outflow">Sortie de fonds</option></select></label>
@@ -212,15 +232,15 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
           <label className="sp-form-field">Date<input className="sp-field" required type="date" value={movementForm.date} onChange={(e) => setMovementForm((v) => ({ ...v, date: e.target.value }))} /></label>
           <label className="sp-form-field">Description<input className="sp-field" required maxLength={180} value={movementForm.description} onChange={(e) => setMovementForm((v) => ({ ...v, description: e.target.value }))} /></label>
           <Button type="submit" disabled={saving || activeAccounts.length === 0}>{saving ? 'Enregistrement…' : 'Enregistrer le mouvement'}</Button>
-        </form>
-        <form className="finance-operation-card" onSubmit={(e) => void transfer(e)}>
+        </form></OperationsModal>}
+        {modal === 'transfer' && <OperationsModal title="Transfert entre comptes" onClose={() => setModal(null)}><form className="finance-modal-form" onSubmit={(e) => void transfer(e)}>
           <h3>Transfert entre comptes</h3><p className="management-muted">Le transfert crée une sortie et une entrée liées : le total de trésorerie ne change pas.</p>
           <label className="sp-form-field">Compte source<select className="sp-field" required value={movementForm.accountId} onChange={(e) => setMovementForm((v) => ({ ...v, accountId: e.target.value }))}><option value="">Compte à débiter</option>{activeAccounts.map((a) => <option key={a.id} value={a.id}>{a.name} — {money(balanceFor(a))}</option>)}</select></label>
           <label className="sp-form-field">Compte destinataire<select className="sp-field" required value={movementForm.destinationId} onChange={(e) => setMovementForm((v) => ({ ...v, destinationId: e.target.value }))}><option value="">Compte à créditer</option>{activeAccounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
           <label className="sp-form-field">Montant (DH)<input className="sp-field" required min="0.01" step="0.01" type="number" value={movementForm.amount} onChange={(e) => setMovementForm((v) => ({ ...v, amount: e.target.value }))} /></label>
           <label className="sp-form-field">Date<input className="sp-field" required type="date" value={movementForm.date} onChange={(e) => setMovementForm((v) => ({ ...v, date: e.target.value }))} /></label>
           <Button type="submit" disabled={saving || activeAccounts.length < 2}>{saving ? 'Enregistrement…' : 'Effectuer le transfert'}</Button>
-        </form>
+        </form></OperationsModal>}
       </div>
       <div className="finance-operation-card"><h3>Historique de trésorerie</h3>{movements.length === 0 ? <p className="management-muted">Aucun mouvement enregistré.</p> : <div className="finance-table-wrap"><table className="finance-table"><thead><tr><th>Date</th><th>Compte</th><th>Opération</th><th>Description</th><th>Montant</th></tr></thead><tbody>{movements.map((m) => { const a = accounts.find((item) => item.id === m.account_id); const outgoing = m.movement_type === 'outflow' || m.movement_type === 'transfer_out'; return <tr key={m.id}><td>{new Date(m.movement_date).toLocaleDateString('fr-MA')}</td><td>{a?.name ?? 'Compte inconnu'}</td><td>{movementLabel(m.movement_type)}</td><td>{m.description}{m.transfer_group_id && <small>Transfert lié</small>}</td><td className={outgoing ? 'finance-amount-out' : 'finance-amount-in'}>{outgoing ? '−' : '+'}{money(num(m.amount))}</td></tr>; })}</tbody></table></div>}</div>
     </>}
