@@ -23,6 +23,7 @@ const ROLE_SECTIONS: Record<SourceRole, readonly AppSection[]> = {
     'vs',
     'vfg',
     'vc',
+    'vfinance',
   ],
   director: [
     ...COMMON_SECTIONS,
@@ -37,6 +38,7 @@ const ROLE_SECTIONS: Record<SourceRole, readonly AppSection[]> = {
     'vs',
     'vfg',
     'vc',
+    'vfinance',
   ],
   super_admin: [...COMMON_SECTIONS, 'vz', 'vd'],
   formateur: [...COMMON_SECTIONS, 'vl', 'vn', 'vp', 'vk', 'vrapport'],
@@ -60,6 +62,7 @@ export const SECTION_LABELS: Record<AppSection, string> = {
   vcal: 'Planning',
   vd: 'Tableau de bord',
   vrapport: 'Mon rapport',
+  vfinance: 'Gestion financière',
   vl: 'Séances',
   vr: 'Salles',
   vk: 'Supports',
