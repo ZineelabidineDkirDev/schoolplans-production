@@ -223,7 +223,7 @@ export function StudentWorkspacePage({ view }: { view: 'courses' | 'attendance' 
                 `}</style>
                 <div className="dashboard-kpis">
                   {([
-                    { label: 'Cours inscrits', value: String(courses.length), note: 'Cours associés à votre dossier', icon: 'courses' as const, tone: 'bg-indigo-500/10 text-indigo-600' },
+                    { label: 'Formations inscrites', value: String(formation ? 1 : 0), note: formation?.name ?? 'Aucune formation associée', icon: 'courses' as const, tone: 'bg-indigo-500/10 text-indigo-600' },
                     { label: 'Heures prévues', value: plannedTotalHours === null ? '—' : `${plannedTotalHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h`, note: `${weeklyHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h par semaine`, icon: 'hours' as const, tone: 'bg-sky-500/10 text-sky-600' },
                     { label: 'Heures réalisées', value: `${realizedHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h`, note: 'Séances marquées comme réalisées', icon: 'completed' as const, tone: 'bg-emerald-500/10 text-emerald-600' },
                     { label: 'Taux d’assiduité', value: attendanceRate === null ? '—' : `${attendanceRate}%`, note: `${attendedCount} présence(s) ou retard(s) sur ${attendance.length} pointage(s)`, icon: 'attendance' as const, tone: 'bg-amber-500/10 text-amber-600' },
@@ -239,18 +239,20 @@ export function StudentWorkspacePage({ view }: { view: 'courses' | 'attendance' 
                   <Panel className="dashboard-panel">
                     <div><h2 className="font-semibold">Présence et absences</h2><p className="sp-muted text-sm">Répartition des pointages enregistrés</p></div>
                     {attendance.length === 0 ? <p className="sp-muted">Aucun pointage enregistré pour le moment.</p> : (
-                      <div className="grid items-center gap-5 sm:grid-cols-[minmax(120px, .8fr)_1.2fr]">
-                        <div className="mx-auto grid h-36 w-36 place-items-center rounded-full" style={{ background: `conic-gradient(#16a34a 0 ${presentCount / attendance.length * 100}%, #d97706 ${presentCount / attendance.length * 100}% ${attendedCount / attendance.length * 100}%, #dc2626 ${attendedCount / attendance.length * 100}% 100%)` }} role="img" aria-label={`Répartition des pointages : ${presentCount} présences, ${lateCount} retards, ${absentCount} absences`}>
-                          <div className="grid h-24 w-24 place-content-center rounded-full text-center" style={{ background: "var(--card)" }}><strong className="text-2xl">{attendanceRate ?? 0}%</strong><span className="sp-muted text-xs">assiduité</span></div>
-                        </div>
-                        <div className="space-y-4">
-                          {statusCounts.map(item => (
-                            <div key={item.label}>
-                              <div className="mb-1 flex justify-between gap-2 text-sm"><span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />{item.label}</span><strong>{item.count} <span className="sp-muted font-normal">({Math.round(item.count / attendance.length * 100)}%)</span></strong></div>
-                              <div className="h-2.5 overflow-hidden rounded-full bg-gray-200/70"><div className="h-full rounded-full transition-all duration-700 motion-reduce:transition-none" style={{ width: `${item.count / maxStatus * 100}%`, backgroundColor: item.color }} /></div>
+                      <div className="student-attendance-histogram" role="img" aria-label={`Histogramme des présences : ${presentCount} présences, ${lateCount} retards, ${absentCount} absences`}>
+                        {statusCounts.map(item => {
+                          const height = Math.max(item.count > 0 ? 6 : 0, item.count / maxStatus * 100);
+                          return (
+                            <div className="student-attendance-bar-column" key={item.label}>
+                              <strong>{item.count}</strong>
+                              <div className="student-attendance-bar-track">
+                                <div className="student-attendance-bar" style={{ height: `${height}%`, background: item.color }} />
+                              </div>
+                              <span>{item.label}</span>
+                              <small>{Math.round(item.count / attendance.length * 100)}%</small>
                             </div>
-                          ))}
-                        </div>
+                          );
+                        })}
                       </div>
                     )}
                   </Panel>
