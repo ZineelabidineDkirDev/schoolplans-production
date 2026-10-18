@@ -7078,3 +7078,28 @@ button:disabled {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+
+/* SchoolPlans Finance — dépenses et trésorerie */
+.finance-operations-module { display: grid; gap: 18px; min-width: 0; }
+.finance-quick-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.finance-quick-metrics > article { display: grid; gap: 7px; min-width: 0; padding: 16px 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+.finance-quick-metrics > article > span { color: var(--mute); font-size: .8rem; }
+.finance-quick-metrics > article > strong { color: var(--ink); font-size: clamp(1.05rem, 2vw, 1.5rem); overflow-wrap: anywhere; }
+.finance-account-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.finance-account-card { display: grid; gap: 8px; min-width: 0; padding: 15px; border: 1px solid var(--line); border-radius: 13px; background: color-mix(in srgb, var(--lang) 4%, var(--card)); }
+.finance-account-card > span { color: var(--mute); font-size: .72rem; font-weight: 800; text-transform: uppercase; }
+.finance-account-card > strong { overflow-wrap: anywhere; }
+.finance-account-card > b { color: var(--lang); font-size: 1.25rem; }
+.finance-account-card > small { color: var(--mute); }
+.finance-row-actions { display: flex; flex-wrap: wrap; gap: 6px; min-width: 150px; }
+.finance-row-actions button { padding: 6px 9px; font-size: .75rem; }
+.finance-status-approved { background: color-mix(in srgb, var(--lang) 14%, var(--card)); color: var(--lang); }
+.finance-status-rejected { background: color-mix(in srgb, #dc2626 12%, var(--card)); color: #dc2626; }
+.finance-status-pending { background: color-mix(in srgb, var(--bur) 14%, var(--card)); color: var(--bur); }
+.finance-amount-out { color: #dc2626; font-weight: 800; }
+.finance-amount-in { color: var(--lang); font-weight: 800; }
+@media (max-width: 760px) {
+  .finance-quick-metrics { grid-template-columns: 1fr; }
+  .finance-account-grid { grid-template-columns: 1fr; }
+}
