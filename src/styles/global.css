@@ -6677,6 +6677,64 @@ button:disabled {
 }
 
 
+/* Histogramme vertical des présences du rapport étudiant */
+.student-attendance-histogram {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: 18px;
+  min-height: 230px;
+  padding: 18px 10px 4px;
+}
+.student-attendance-bar-column {
+  display: flex;
+  min-width: 0;
+  height: 210px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  text-align: center;
+}
+.student-attendance-bar-column > strong {
+  font-size: 14px;
+  color: var(--ink);
+}
+.student-attendance-bar-track {
+  display: flex;
+  width: min(54px, 70%);
+  height: 132px;
+  align-items: flex-end;
+  overflow: hidden;
+  border-radius: 8px 8px 3px 3px;
+  background: color-mix(in srgb, var(--line) 70%, var(--card));
+}
+.student-attendance-bar {
+  width: 100%;
+  min-height: 0;
+  border-radius: 7px 7px 2px 2px;
+  transition: height 650ms ease;
+}
+.student-attendance-bar-column > span {
+  font-size: 12px;
+  font-weight: 700;
+}
+.student-attendance-bar-column > small {
+  color: var(--mute);
+  font-size: 11px;
+}
+.student-portal-report > section {
+  max-width: none;
+}
+@media (max-width: 560px) {
+  .student-attendance-histogram { gap: 8px; padding-inline: 0; }
+  .student-attendance-bar-track { width: min(44px, 65%); }
+  .student-attendance-bar-column > span { font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .student-attendance-bar { transition: none; }
+}
+
 /* Portail étudiant — tableau de bord personnel */
 .student-portal { --student-accent: var(--brand, #4659d9); }
 .student-portal .sp-page-title { letter-spacing: -.035em; }
