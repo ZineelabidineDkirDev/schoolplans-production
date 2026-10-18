@@ -13,7 +13,6 @@ const EMPTY: Summary = { charges: 0, collected: 0, expenses: 0, payrollDue: 0, c
 const METHODS = [{ value: 'cash', label: 'Espèces' }, { value: 'bank_transfer', label: 'Virement bancaire' }, { value: 'card', label: 'Carte bancaire' }, { value: 'cheque', label: 'Chèque' }, { value: 'other', label: 'Autre' }];
 const money = (value: number) => new Intl.NumberFormat('fr-MA', { style: 'currency', currency: 'MAD', maximumFractionDigits: 2 }).format(value);
 const numeric = (value: number | string | null | undefined) => { const n = Number(value ?? 0); return Number.isFinite(n) ? n : 0; };
-const today = () => new Date().toISOString().slice(0, 10);
 
 export function FinanceDashboardPage() {
   const { profile } = useAuth();
