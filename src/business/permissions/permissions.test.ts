@@ -51,7 +51,15 @@ describe('centralized section permissions', () => {
     expect(canAccessSection('formateur', 'vpcentre', {})).toBe(false);
   });
 
-  it('reserves financial management for centre administrators and directors', () => {\n    expect(canAccessSection('admin', 'vfinance', {})).toBe(true);\n    expect(canAccessSection('director', 'vfinance', {})).toBe(true);\n    expect(canAccessSection('super_admin', 'vfinance', {})).toBe(false);\n    expect(canAccessSection('formateur', 'vfinance', {})).toBe(false);\n    expect(canAccessSection('etudiant', 'vfinance', {})).toBe(false);\n  });\n\n  it('allows super-admin sections without centre feature flags', () => {
+  it('reserves financial management for centre administrators and directors', () => {
+    expect(canAccessSection('admin', 'vfinance', {})).toBe(true);
+    expect(canAccessSection('director', 'vfinance', {})).toBe(true);
+    expect(canAccessSection('super_admin', 'vfinance', {})).toBe(false);
+    expect(canAccessSection('formateur', 'vfinance', {})).toBe(false);
+    expect(canAccessSection('etudiant', 'vfinance', {})).toBe(false);
+  });
+
+  it('allows super-admin sections without centre feature flags', () => {
     expect(getVisibleSections('super_admin', {})).toEqual(['vcal', 'vr', 'vz', 'vd']);
   });
 
