@@ -163,11 +163,11 @@ export function FinanceDashboardPage() {
       {notice && <Alert tone="success"><p>{notice}</p></Alert>}
       <div className="finance-metrics-grid">{metrics.map((metric) => <article className={`finance-metric-card finance-tone-${metric.tone}`} key={metric.label}><p>{metric.label}</p><strong>{metric.value}</strong><span>{metric.note}</span></article>)}</div>
 
-      <div className="finance-section-heading"><div><h2>Frais et paiements</h2><p>Créez les frais des étudiants et enregistrez les paiements complets ou partiels.</p></div></div>
+      <div className="finance-section-heading"><div><h2>Frais, dépenses et trésorerie</h2><p>Suivez les frais étudiants, les dépenses et les mouvements de trésorerie de votre établissement.</p></div></div>
       <div className="finance-feature-grid">
         <article className="finance-feature-card"><span aria-hidden="true">↘</span><div><h3>Frais et paiements</h3><p>Création des frais, paiements partiels et reçus numérotés.</p><small>Disponible</small></div></article>
-        <article className="finance-feature-card"><span aria-hidden="true">↗</span><div><h3>Dépenses</h3><p>Fournisseurs, justificatifs et validation des dépenses.</p><small>À développer</small></div></article>
-        <article className="finance-feature-card"><span aria-hidden="true">▤</span><div><h3>Trésorerie</h3><p>Caisses, comptes bancaires, mouvements et transferts.</p><small>À développer</small></div></article>
+        <article className="finance-feature-card"><span aria-hidden="true">↗</span><div><h3>Dépenses</h3><p>Enregistrement, validation et paiement depuis un compte.</p><small>Disponible</small></div></article>
+        <article className="finance-feature-card"><span aria-hidden="true">▤</span><div><h3>Trésorerie</h3><p>Soldes, entrées, sorties et transferts entre comptes.</p><small>Disponible</small></div></article>
         <article className="finance-feature-card"><span aria-hidden="true">◎</span><div><h3>Rémunérations</h3><p>Calcul depuis les séances réalisées et historique des paiements.</p><small>À développer</small></div></article>
       </div>
 
