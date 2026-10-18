@@ -21,7 +21,7 @@ begin
   from public.profiles p
   where p.id = auth.uid();
 
-  if auth.uid() is null or v_role not in ('admin', 'director') or v_profile_centre_id is null then
+  if auth.uid() is null or coalesce(v_role, '') not in ('admin', 'director') or v_profile_centre_id is null then
     raise exception 'Accès refusé : directeur ou administrateur du centre requis.';
   end if;
 
@@ -105,7 +105,7 @@ begin
   from public.profiles p
   where p.id = auth.uid();
 
-  if auth.uid() is null or v_role not in ('admin', 'director') or v_profile_centre_id is null then
+  if auth.uid() is null or coalesce(v_role, '') not in ('admin', 'director') or v_profile_centre_id is null then
     raise exception 'Accès refusé : directeur ou administrateur du centre requis.';
   end if;
   if p_amount is null or p_amount <= 0 then
