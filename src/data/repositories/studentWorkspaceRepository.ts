@@ -26,6 +26,7 @@ export type StudentWorkspace = {
   studentFound: boolean;
   courses: StudentCourse[];
   attendance: StudentAttendance[];
+  realizedSessions: { courseId: StudentIdentifier; date: string }[];
   formation: { name: string; durationMonths: number | null; hoursPerWeek: number | null } | null;
 };
 
@@ -66,7 +67,7 @@ export async function getStudentWorkspace(
     .ilike('email', email.trim())
     .maybeSingle();
   if (studentError) throw studentError;
-  if (!student) return { studentFound: false, courses: [], attendance: [], formation: null };
+  if (!student) return { studentFound: false, courses: [], attendance: [], realizedSessions: [], formation: null };
   const studentId = identifier(student.id, 'étudiant');
   let formation: StudentWorkspace['formation'] = null;
   if (student.groupe_id !== null && student.groupe_id !== undefined) {
@@ -126,6 +127,13 @@ export async function getStudentWorkspace(
     ),
   ];
   const attendanceRows = parseRows(attendanceResult.data, 'présences');
+  const realizedResult = courseIds.length
+    ? await client.from('seances_realisees').select('cours_id,date').in('cours_id', courseIds)
+    : { data: [], error: null };
+  if (realizedResult.error) throw realizedResult.error;
+  const realizedSessions = parseRows(realizedResult.data, 'séances réalisées')
+    .filter(row => typeof row.date === 'string')
+    .map(row => ({ courseId: identifier(row.cours_id, 'cours de séance réalisée'), date: row.date as string }));
   const attendanceCourseIds = [
     ...new Set(attendanceRows.map((row) => identifier(row.cours_id, 'cours de présence'))),
   ];
@@ -262,6 +270,7 @@ export async function getStudentWorkspace(
     studentFound: true,
     courses,
     attendance,
+    realizedSessions,
     formation,
   };
 }
