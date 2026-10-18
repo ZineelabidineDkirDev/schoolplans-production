@@ -99,12 +99,9 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
     if (num(expense.amount) > balanceFor(account) + 0.001) { setError('Solde insuffisant dans « ' + account.name + ' » (' + money(balanceFor(account)) + ').'); return; }
     setSaving(true); setError(null); setNotice(null);
     try {
-      const client = getSupabaseClient();
-      const { error: movementError } = await client.from('finance_account_movements').insert({ centre_id: profile.centreId, account_id: account.id, movement_type: 'outflow', amount: num(expense.amount), movement_date: new Date().toISOString(), description: 'Paiement dépense : ' + expense.label, source_type: 'expense', source_id: expense.id, created_by: profile.id });
-      if (movementError) throw movementError;
-      const { error: updateError } = await client.from('finance_expenses').update({ status: 'paid', payment_method: account.account_type === 'cash' ? 'cash' : 'bank_transfer', paid_at: new Date().toISOString() }).eq('id', expense.id).eq('centre_id', profile.centreId).in('status', ['approved', 'pending']);
-      if (updateError) throw new Error('Mouvement enregistré mais statut non actualisé : ' + updateError.message + '. Vérifiez l’historique avant de réessayer.');
-      setNotice('Dépense payée depuis « ' + account.name + ' ».'); reload(); onChange();
+      const { error: payError } = await getSupabaseClient().rpc('finance_pay_expense', { p_expense_id: expense.id, p_account_id: account.id });
+      if (payError) throw payError;
+      setNotice('Dépense payée depuis « ' + account.name + ' ». Le statut et le mouvement de trésorerie ont été enregistrés ensemble.'); reload(); onChange();
     } catch (e) { setError(e instanceof Error ? e.message : 'Impossible de payer la dépense.'); }
     finally { setSaving(false); }
   }
@@ -146,15 +143,15 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
     if (amount > balanceFor(source) + 0.001) { setError('Solde insuffisant dans « ' + source.name + ' ».'); return; }
     setSaving(true); setError(null); setNotice(null);
     try {
-      const client = getSupabaseClient();
-      const groupId = crypto.randomUUID();
       const date = new Date((movementForm.date || today()) + 'T12:00:00').toISOString();
-      const { error } = await client.from('finance_account_movements').insert([
-        { centre_id: profile.centreId, account_id: source.id, movement_type: 'transfer_out', amount, movement_date: date, description: 'Transfert vers ' + destination.name, transfer_group_id: groupId, source_type: 'transfer', created_by: profile.id },
-        { centre_id: profile.centreId, account_id: destination.id, movement_type: 'transfer_in', amount, movement_date: date, description: 'Transfert depuis ' + source.name, transfer_group_id: groupId, source_type: 'transfer', created_by: profile.id },
-      ]);
+      const { error } = await getSupabaseClient().rpc('finance_transfer_accounts', {
+        p_source_account_id: source.id,
+        p_destination_account_id: destination.id,
+        p_amount: amount,
+        p_movement_date: date,
+      });
       if (error) throw error;
-      setMovementForm((v) => ({ ...v, amount: '', description: '' })); setNotice('Transfert de ' + money(amount) + ' effectué.'); reload(); onChange();
+      setMovementForm((v) => ({ ...v, amount: '', description: '' })); setNotice('Transfert de ' + money(amount) + ' effectué ; les deux mouvements sont liés et atomiques.'); reload(); onChange();
     } catch (e) { setError(e instanceof Error ? e.message : 'Impossible d’effectuer le transfert.'); }
     finally { setSaving(false); }
   }
@@ -188,7 +185,7 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
             <div className="finance-table-wrap"><table className="finance-table"><thead><tr><th>Dépense</th><th>Montant</th><th>Date</th><th>Statut</th><th>Actions</th></tr></thead><tbody>{expenses.map((expense) => <tr key={expense.id}>
               <td>{expense.label}<small>{expense.category}{expense.supplier ? ' · ' + expense.supplier : ''}</small></td><td>{money(num(expense.amount))}</td><td>{expense.expense_date}</td>
               <td><span className={'finance-status finance-status-' + expense.status}>{expense.status === 'pending' ? 'À valider' : expense.status === 'approved' ? 'Validée' : expense.status === 'paid' ? 'Payée' : 'Refusée'}</span></td>
-              <td><div className="finance-row-actions">{expense.status === 'pending' && <><Button type="button" variant="secondary" disabled={saving} onClick={() => void changeExpenseStatus(expense, 'approved')}>Valider</Button><Button type="button" variant="secondary" disabled={saving} onClick={() => void changeExpenseStatus(expense, 'rejected')}>Refuser</Button></>}{(expense.status === 'approved' || expense.status === 'pending') && <Button type="button" disabled={saving || !paymentAccountId} onClick={() => void payExpense(expense)}>Marquer payée</Button>}</div></td>
+              <td><div className="finance-row-actions">{expense.status === 'pending' && <><Button type="button" variant="secondary" disabled={saving} onClick={() => void changeExpenseStatus(expense, 'approved')}>Valider</Button><Button type="button" variant="secondary" disabled={saving} onClick={() => void changeExpenseStatus(expense, 'rejected')}>Refuser</Button></>}{expense.status === 'approved' && <Button type="button" disabled={saving || !paymentAccountId} onClick={() => void payExpense(expense)}>Marquer payée</Button>}</div></td>
             </tr>)}</tbody></table></div>
           </>}
         </div>
