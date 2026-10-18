@@ -148,6 +148,7 @@ function isCourseFilterMatch(
 
 export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessions' }) {
   const { profile, permissions, session } = useAuth();
+  const isStudent = profile?.role === 'etudiant';
   const [reloadKey, setReloadKey] = useState(0);
   const [state, setState] = useState<PageState>({ status: 'loading' });
   const [week, setWeek] = useState(() => getMonday(new Date()));
