@@ -62,7 +62,7 @@ export const SECTION_LABELS: Record<AppSection, string> = {
   vcal: 'Planning',
   vd: 'Tableau de bord',
   vrapport: 'Mon rapport',
-  vfinance: 'Gestion financière',
+  vfinance: 'Tableau de bord financier',
   vl: 'Séances',
   vr: 'Salles',
   vk: 'Supports',
