@@ -7432,3 +7432,457 @@ textarea.sp-field,
     transition: none !important;
   }
 }
+
+/* SchoolPlans component-level visual refresh — real dashboard, management, form and modal selectors. */
+/* Dashboard: clearer hierarchy, stronger metric cards and cleaner analytics panels. */
+.dashboard-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+.dashboard-heading h1,
+.dashboard-heading h2 {
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+}
+.dashboard-heading p {
+  max-width: 68ch;
+  margin-top: 8px;
+  color: var(--mute);
+  line-height: 1.65;
+}
+.dashboard-kpis {
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.dashboard-metric {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card);
+  box-shadow: var(--sh);
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+.dashboard-metric::after {
+  position: absolute;
+  z-index: -1;
+  top: -34px;
+  right: -34px;
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--brand) 5%, transparent);
+  content: "";
+}
+.dashboard-metric:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--brand) 24%, var(--line));
+  box-shadow: 0 12px 28px -18px color-mix(in srgb, var(--brand) 32%, transparent);
+}
+.dashboard-metric > div {
+  gap: 12px;
+}
+.dashboard-metric small {
+  color: var(--mute);
+  font-size: .78rem;
+  font-weight: 650;
+  letter-spacing: .025em;
+}
+.dashboard-metric strong,
+.dashboard-big-number {
+  letter-spacing: -.045em;
+  font-variant-numeric: tabular-nums;
+}
+.dashboard-side-cards {
+  gap: 14px;
+}
+.dashboard-panel,
+.dashboard-side-metric {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card);
+  box-shadow: var(--sh);
+}
+.dashboard-panel {
+  padding: clamp(17px, 2vw, 24px);
+}
+.dashboard-panel > h2,
+.dashboard-panel h3 {
+  letter-spacing: -.025em;
+}
+.dashboard-toolbar {
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.dashboard-filters select,
+.dashboard-date-range input {
+  min-height: 42px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--card);
+  color: var(--ink);
+}
+.dashboard-period,
+.dashboard-action-button,
+.dashboard-chart-mode {
+  min-height: 36px;
+  border-radius: 10px;
+  transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+.dashboard-period:hover,
+.dashboard-action-button:hover,
+.dashboard-chart-mode:hover {
+  transform: translateY(-1px);
+}
+.dashboard-upcoming li {
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line);
+}
+.dashboard-upcoming li:last-child {
+  border-bottom: 0;
+}
+
+/* Management pages: make each real data card read as a distinct, actionable unit. */
+.management-card-grid {
+  gap: 18px;
+}
+.management-card,
+.management-room-card,
+.management-student-card,
+.management-formation-card,
+.management-group-card,
+.management-profile-panel {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card);
+  box-shadow: var(--sh);
+  transition: border-color 170ms ease, box-shadow 170ms ease, transform 170ms ease;
+}
+.management-card,
+.management-room-card,
+.management-student-card,
+.management-profile-panel {
+  padding: 20px;
+}
+.management-card:hover,
+.management-room-card:hover,
+.management-student-card:hover,
+.management-group-card:hover {
+  border-color: color-mix(in srgb, var(--brand) 25%, var(--line));
+  box-shadow: 0 14px 30px -22px color-mix(in srgb, var(--brand) 40%, transparent);
+}
+.management-card-heading,
+.management-student-heading,
+.management-group-card-heading {
+  gap: 14px;
+}
+.management-card-heading h2,
+.management-student-heading h2,
+.management-group-card-heading h3 {
+  letter-spacing: -.025em;
+  line-height: 1.25;
+}
+.management-description,
+.management-room-description,
+.management-student-heading p {
+  color: var(--mute);
+  line-height: 1.6;
+}
+.management-metrics > div,
+.management-formation-card .management-metrics > div {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg) 72%, var(--card));
+}
+.management-metrics strong,
+.management-formation-card .management-metrics strong {
+  font-size: 1.2rem;
+  letter-spacing: -.035em;
+  font-variant-numeric: tabular-nums;
+}
+.management-chip,
+.management-room-status,
+.management-status-active,
+.management-status-inactive {
+  border-radius: 999px;
+  font-weight: 650;
+}
+.management-toolbar {
+  align-items: flex-end;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: var(--sh);
+}
+.management-toolbar .sp-form-field {
+  min-width: 170px;
+}
+.management-group-row {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+.management-group-row:hover {
+  border-color: color-mix(in srgb, var(--brand) 22%, var(--line));
+  background: color-mix(in srgb, var(--brand) 3%, var(--card));
+}
+.management-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.management-card-actions > button {
+  min-height: 38px;
+  border-radius: 10px;
+}
+
+/* Forms: real form controls, with consistent labels, spacing and validation focus. */
+.sp-form-field {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-width: 0;
+  color: var(--ink);
+  font-size: .88rem;
+  font-weight: 650;
+}
+.sp-form-field > :is(input, select, textarea),
+.sp-field,
+.management-editor-form textarea,
+.enrollment-reject-form textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 13px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 450;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+}
+.sp-form-field > :is(input, select, textarea):hover,
+.sp-field:hover {
+  border-color: color-mix(in srgb, var(--brand) 28%, var(--line));
+}
+.sp-form-field > :is(input, select, textarea):focus,
+.sp-field:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 12%, transparent);
+}
+.sp-form-field textarea,
+.sp-field:is(textarea),
+.management-editor-form textarea {
+  min-height: 112px;
+  resize: vertical;
+}
+.sp-form-grid,
+.management-editor-form {
+  gap: 16px;
+}
+.management-editor-heading {
+  gap: 12px;
+  padding-bottom: 16px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+.management-editor-heading h2 {
+  letter-spacing: -.03em;
+}
+.management-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 9px;
+  padding-top: 16px;
+  margin-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+/* Dialogs and popups: clear title, comfortable body and actions that stay reachable. */
+.sp-modal-backdrop,
+.planning-dialog-backdrop {
+  padding: clamp(12px, 3vw, 28px);
+  background: rgb(8 15 30 / 58%);
+  backdrop-filter: blur(5px);
+}
+.sp-modal,
+.planning-dialog,
+.enrollment-reject-dialog {
+  width: min(720px, 100%);
+  max-height: min(90dvh, 940px);
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: 0 30px 90px rgb(0 0 0 / 28%);
+}
+.sp-modal {
+  padding: clamp(18px, 3vw, 28px);
+}
+.planning-dialog,
+.enrollment-reject-dialog {
+  padding: clamp(18px, 3vw, 26px);
+}
+.sp-modal > .sp-panel {
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+.sp-modal .management-editor-heading,
+.planning-dialog-heading {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 17px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.sp-modal .management-editor-heading h2,
+.planning-dialog-heading h2 {
+  margin: 0;
+  font-size: clamp(1.15rem, 2vw, 1.45rem);
+  line-height: 1.25;
+  letter-spacing: -.035em;
+}
+.sp-modal-close,
+.planning-dialog-close {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--bg);
+  color: var(--ink);
+  transition: transform 150ms ease, border-color 150ms ease;
+}
+.sp-modal-close:hover,
+.planning-dialog-close:hover {
+  transform: rotate(3deg);
+  border-color: color-mix(in srgb, var(--brand) 30%, var(--line));
+}
+.sp-modal .management-toolbar {
+  box-shadow: none;
+}
+.sp-modal .management-editor-actions,
+.sp-modal .finance-modal-actions {
+  position: sticky;
+  bottom: calc(-1 * clamp(18px, 3vw, 28px));
+  z-index: 3;
+  margin: 6px calc(-1 * clamp(18px, 3vw, 28px)) calc(-1 * clamp(18px, 3vw, 28px));
+  padding: 14px clamp(18px, 3vw, 28px);
+  border-top: 1px solid var(--line);
+  background: var(--card);
+}
+.sp-confirm-modal {
+  padding: 26px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card);
+  box-shadow: 0 24px 70px rgb(0 0 0 / 24%);
+}
+.sp-confirm-modal h2 {
+  letter-spacing: -.03em;
+}
+.sp-btn {
+  min-height: 40px;
+  padding: 10px 15px;
+  border-radius: 11px;
+  font-weight: 700;
+  transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;
+}
+.sp-btn:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 7px 18px -12px color-mix(in srgb, var(--brand) 50%, transparent);
+}
+.sp-btn:not(:disabled):active {
+  transform: translateY(0);
+}
+.sp-icon-button {
+  border-radius: 10px;
+  transition: background 140ms ease, color 140ms ease, transform 140ms ease;
+}
+.sp-icon-button:hover {
+  transform: translateY(-1px);
+}
+.sp-toast {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 14px 36px -20px rgb(0 0 0 / 35%);
+}
+
+@media (max-width: 760px) {
+  .dashboard-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .dashboard-kpis {
+    gap: 11px;
+  }
+  .dashboard-metric,
+  .management-card,
+  .management-room-card,
+  .management-student-card {
+    padding: 15px;
+    border-radius: 15px;
+  }
+  .management-toolbar {
+    align-items: stretch;
+    padding: 12px;
+  }
+  .management-toolbar .sp-form-field {
+    min-width: 0;
+    width: 100%;
+  }
+  .sp-modal-backdrop,
+  .planning-dialog-backdrop {
+    align-items: end;
+    padding: 8px 8px max(8px, env(safe-area-inset-bottom));
+  }
+  .sp-modal,
+  .planning-dialog,
+  .enrollment-reject-dialog {
+    width: 100%;
+    max-height: min(92dvh, 1000px);
+    border-radius: 20px 20px 14px 14px;
+  }
+  .sp-modal .management-editor-actions {
+    flex-direction: column-reverse;
+  }
+  .sp-modal .management-editor-actions > button {
+    width: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-metric,
+  .management-card,
+  .management-room-card,
+  .management-student-card,
+  .management-group-card,
+  .sp-btn,
+  .sp-icon-button {
+    transition: none !important;
+  }
+}
