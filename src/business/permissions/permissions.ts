@@ -98,6 +98,7 @@ export function canAccessSection(
 ): section is AppSection {
   if (!APP_SECTIONS.includes(section as AppSection)) return false;
   const appSection = section as AppSection;
+  if (appSection === 'vfinance') return role === 'admin' || role === 'director';
   if (role === 'super_admin') return true;
 
   // Les étudiants peuvent toujours consulter leur planning et leurs salles.
