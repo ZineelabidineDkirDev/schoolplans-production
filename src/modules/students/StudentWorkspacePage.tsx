@@ -227,7 +227,7 @@ export function StudentWorkspacePage({ view }: { view: 'courses' | 'attendance' 
                     { label: 'Heures prévues', value: plannedTotalHours === null ? '—' : `${plannedTotalHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h`, note: `${weeklyHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h par semaine`, icon: 'hours' as const, tone: 'bg-sky-500/10 text-sky-600' },
                     { label: 'Heures réalisées', value: `${realizedHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h`, note: 'Séances marquées comme réalisées', icon: 'completed' as const, tone: 'bg-emerald-500/10 text-emerald-600' },
                     { label: 'Taux d’assiduité', value: attendanceRate === null ? '—' : `${attendanceRate}%`, note: `${attendedCount} présence(s) ou retard(s) sur ${attendance.length} pointage(s)`, icon: 'attendance' as const, tone: 'bg-amber-500/10 text-amber-600' },
-                  ]).map((item, index) => (
+                  ]).map((item) => (
                     <article key={item.label} className="dashboard-card dashboard-metric sp-report-kpi">
                       <span className="dashboard-metric-icon"><ReportIcon name={item.icon} /></span>
                       <div><b>{item.label}</b><small>{item.note}</small><strong>{item.value}</strong></div>
