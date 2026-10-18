@@ -101,6 +101,7 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
 
   async function changeExpenseStatus(expense: Expense, status: 'approved' | 'rejected') {
     if (!profile?.centreId) return;
+    if (status === 'rejected' && !window.confirm('Supprimer cette dépense en la marquant comme refusée ? Son historique sera conservé.')) return;
     setSaving(true); setError(null); setNotice(null);
     try {
       const { error } = await getSupabaseClient().from('finance_expenses').update({ status, approved_by: status === 'approved' ? profile.id : null }).eq('id', expense.id).eq('centre_id', profile.centreId).eq('status', 'pending');
