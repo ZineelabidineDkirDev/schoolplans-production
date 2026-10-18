@@ -390,7 +390,7 @@ export function SectionPlaceholder() {
   if (section === 'vn') return <MyStudentsPage />;
   if (section === 'vd') return <DashboardPage />;
   if (section === 'vrapport') return <RapportCentrePage />;
-  if (section === 'vcal') return profile?.role === 'etudiant' ? <StudentWorkspacePage view="planning" /> : <PlanningPage />;
+  if (section === 'vcal') return <PlanningPage />;
   if (section === 'vl') return <PlanningPage view="sessions" />;
   if (section === 'vi') return <EnrollmentRequestsPage />;
   if (section === 'vz') return <CentreManagementPage />;
