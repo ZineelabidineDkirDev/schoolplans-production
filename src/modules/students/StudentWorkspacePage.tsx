@@ -257,16 +257,53 @@ export function StudentWorkspacePage({ view }: { view: 'courses' | 'attendance' 
                     )}
                   </Panel>
                   <Panel className="space-y-4">
-                    <div><h2 className="font-semibold">Heures par cours</h2><p className="sp-muted text-sm">Heures hebdomadaires prévues et heures pointées</p></div>
-                    <div className="space-y-4">
-                      {courses.slice(0, 8).map(course => {
-                        const planned = hoursFor(course);
-                        const realized = state.workspace.realizedSessions.filter(item => String(item.courseId) === String(course.id)).reduce((sum) => sum + hoursFor(course), 0);
-                        const scale = Math.max(1, planned, realized);
-                        return <div key={String(course.id)}><div className="mb-1 flex justify-between gap-2 text-sm"><span className="font-medium">{course.subject}</span><span>{planned.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h/sem.</span></div><div className="flex h-3 overflow-hidden rounded-full bg-gray-200/70"><div title="Prévu par semaine" className="h-full bg-indigo-500" style={{ width: `${planned / scale * 100}%` }} /><div title="Pointé" className="h-full bg-emerald-500" style={{ width: `${Math.min(realized, scale) / scale * 100}%` }} /></div><p className="sp-muted mt-1 text-xs">{realized.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h réalisées · {course.teacher || 'Formateur non renseigné'}</p></div>;
-                      })}
+                    <div>
+                      <h2 className="font-semibold">Graphique des heures par cours</h2>
+                      <p className="sp-muted text-sm">Comparaison visuelle de la durée prévue par séance et du cumul des heures réalisées</p>
                     </div>
-                    <p className="sp-muted text-xs">La progression totale est calculée uniquement si la durée de la formation et ses heures hebdomadaires sont renseignées dans le dossier de formation.</p>
+                    <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs">
+                      <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-sm bg-indigo-500" />Durée prévue par séance</span>
+                      <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-sm bg-emerald-500" />Heures réalisées cumulées</span>
+                    </div>
+                    {courses.length === 0 ? <p className="sp-muted text-sm">Aucun cours à afficher.</p> : (
+                      <div className="space-y-5" role="img" aria-label="Graphique en barres comparant les heures prévues par séance et les heures réalisées pour chaque cours">
+                        {(() => {
+                          const chartCourses = courses.slice(0, 8).map(course => ({
+                            course,
+                            planned: hoursFor(course),
+                            realized: state.workspace.realizedSessions
+                              .filter(item => String(item.courseId) === String(course.id))
+                              .reduce((sum) => sum + hoursFor(course), 0),
+                          }));
+                          const maxHours = Math.max(1, ...chartCourses.flatMap(item => [item.planned, item.realized]));
+                          return chartCourses.map(({ course, planned, realized }) => (
+                            <div key={String(course.id)} className="space-y-2">
+                              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                                <span className="font-medium text-sm">{course.subject}</span>
+                                <span className="sp-muted text-xs">{course.teacher || 'Formateur non renseigné'}</span>
+                              </div>
+                              <div className="space-y-2">
+                                <div className="grid grid-cols-[5.5rem_minmax(0,1fr)_3.5rem] items-center gap-2">
+                                  <span className="sp-muted text-xs">Prévu</span>
+                                  <div className="h-4 overflow-hidden rounded-full bg-gray-200/70">
+                                    <div className="h-full rounded-full bg-indigo-500 transition-[width] duration-700 motion-reduce:transition-none" style={{ width: `${planned / maxHours * 100}%` }} />
+                                  </div>
+                                  <strong className="text-right text-xs tabular-nums">{planned.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h</strong>
+                                </div>
+                                <div className="grid grid-cols-[5.5rem_minmax(0,1fr)_3.5rem] items-center gap-2">
+                                  <span className="sp-muted text-xs">Réalisé</span>
+                                  <div className="h-4 overflow-hidden rounded-full bg-gray-200/70">
+                                    <div className="h-full rounded-full bg-emerald-500 transition-[width] duration-700 motion-reduce:transition-none" style={{ width: `${realized / maxHours * 100}%` }} />
+                                  </div>
+                                  <strong className="text-right text-xs tabular-nums">{realized.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h</strong>
+                                </div>
+                              </div>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    )}
+                    <p className="sp-muted text-xs">Le prévu correspond à la durée d’une séance du cours ; le réalisé cumule les séances marquées comme terminées. Les deux valeurs sont exprimées en heures.</p>
                   </Panel>
                 </div>
                 <Panel className="space-y-3">
