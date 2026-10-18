@@ -6987,3 +6987,94 @@ button:disabled {
     flex-direction: column;
   }
 }
+
+
+/* Finance: formulaires de frais et de paiements */
+.finance-operation-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.finance-operation-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, .78fr) minmax(0, 1.5fr);
+  align-items: start;
+  gap: 16px;
+}
+.finance-operation-card {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: var(--sh);
+}
+.finance-operation-card h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 850;
+}
+.finance-operation-card .sp-form-field {
+  display: grid;
+  gap: 6px;
+  color: var(--ink);
+  font-size: .83rem;
+  font-weight: 700;
+}
+.finance-operation-card textarea {
+  resize: vertical;
+}
+.finance-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+.finance-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .82rem;
+  text-align: left;
+}
+.finance-table th,
+.finance-table td {
+  padding: 11px 10px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+  white-space: nowrap;
+}
+.finance-table th {
+  color: var(--mute);
+  font-size: .72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.finance-table td small {
+  display: block;
+  margin-top: 4px;
+  color: var(--mute);
+  white-space: normal;
+}
+.finance-status {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bur) 14%, var(--card));
+  color: var(--bur);
+  font-size: .72rem;
+  font-weight: 800;
+}
+.finance-status-paid {
+  background: color-mix(in srgb, var(--lang) 14%, var(--card));
+  color: var(--lang);
+}
+.finance-status-partial {
+  background: color-mix(in srgb, var(--data) 14%, var(--card));
+  color: var(--data);
+}
+@media (max-width: 900px) {
+  .finance-operation-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
