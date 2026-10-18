@@ -290,7 +290,7 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
   )?.name;
   const teacherId =
     profile?.role === 'formateur' ? (data?.filters.teachers[0]?.id.toString() ?? null) : null;
-  const actorRole = profile ? getPlanningRole(profile.role) : null;
+  const actorRole = profile && profile.role !== 'etudiant' ? getPlanningRole(profile.role) : null;
   const actor = {
     role: actorRole ?? 'super_admin',
     teacherId,
