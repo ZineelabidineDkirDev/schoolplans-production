@@ -181,7 +181,7 @@ export function StudentWorkspacePage({ view }: { view: 'courses' | 'attendance' 
             </div>
           </Panel>
         ))}
-      {state.status === 'loaded' && state.workspace.studentFound && !isCourses && (
+      {state.status === 'loaded' && state.workspace.studentFound && !isCourses && !isRooms && (
         <>
           {state.workspace.attendance.length > 0 && (
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
