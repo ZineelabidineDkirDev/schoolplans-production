@@ -212,7 +212,7 @@ export function StudentWorkspacePage({ view }: { view: 'courses' | 'attendance' 
         const maxStatus = Math.max(1, ...statusCounts.map(item => item.count));
         return (
           <div className="space-y-5">
-            {state.workspace.formation && <Panel className="dashboard-panel space-y-3"><div><p className="sp-muted text-sm">Formation</p><h2 className="text-xl font-semibold">{state.workspace.formation.name}</h2></div><div className="flex flex-wrap justify-between gap-2 text-sm"><span>Progression calculée</span><strong>{progress === null ? 'Durée totale non renseignée' : `${progress}%`}</strong></div><div className="h-3 overflow-hidden rounded-full bg-gray-200/70"><div className="h-full rounded-full bg-indigo-500" style={{ width: `${progress ?? 0}%` }} /></div>{plannedTotalHours !== null && <p className="sp-muted text-xs">{realizedHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h réalisées sur {plannedTotalHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h estimées.</p>}</Panel>}
+            {state.workspace.formation && <Panel className="dashboard-panel space-y-3"><div><p className="sp-muted text-sm">Formation</p><h2 className="text-xl font-semibold">{state.workspace.formation.name}</h2></div><div className="flex flex-wrap justify-between gap-2 text-sm"><span>Progression calculée</span><strong>{progress === null ? 'Durée totale non renseignée' : `${progress}%`}</strong></div><div className="dashboard-progress-track h-3 overflow-hidden rounded-full"><div className="dashboard-progress-value h-full rounded-full" style={{ width: `${progress ?? 0}%` }} /></div>{plannedTotalHours !== null && <p className="sp-muted text-xs">{realizedHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h réalisées sur {plannedTotalHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h estimées.</p>}</Panel>}
             {courses.length === 0 ? (
               <EmptyState title="Aucune formation à analyser" description="Les statistiques apparaîtront lorsque vos cours seront associés à votre inscription." />
             ) : (
@@ -229,10 +229,8 @@ export function StudentWorkspacePage({ view }: { view: 'courses' | 'attendance' 
                     { label: 'Taux d’assiduité', value: attendanceRate === null ? '—' : `${attendanceRate}%`, note: `${attendedCount} présence(s) ou retard(s) sur ${attendance.length} pointage(s)`, icon: 'attendance' as const, tone: 'bg-amber-500/10 text-amber-600' },
                   ]).map((item, index) => (
                     <article key={item.label} className="dashboard-card dashboard-metric sp-report-kpi">
-                      <div className="flex items-start justify-between gap-3">
-                        <div><b>{item.label}</b><small>{item.note}</small><strong>{item.value}</strong></div>
-                        <span className="dashboard-metric-icon"><ReportIcon name={item.icon} /></span>
-                      </div>
+                      <span className="dashboard-metric-icon"><ReportIcon name={item.icon} /></span>
+                      <div><b>{item.label}</b><small>{item.note}</small><strong>{item.value}</strong></div>
                       <span className="dashboard-metric-detail"><ReportIcon name={item.icon} /></span>
                     </article>
                   ))}
@@ -292,7 +290,7 @@ export function StudentWorkspacePage({ view }: { view: 'courses' | 'attendance' 
                                 </div>
                                 <div className="grid grid-cols-[5.5rem_minmax(0,1fr)_3.5rem] items-center gap-2">
                                   <span className="sp-muted text-xs">Réalisé</span>
-                                  <div className="h-4 overflow-hidden rounded-full bg-gray-200/70">
+                                  <div className="dashboard-chart-bar-track h-4 overflow-hidden rounded-full">
                                     <div className="dashboard-chart-bar dashboard-course-realized h-full rounded-full transition-[width] duration-700 motion-reduce:transition-none" style={{ width: `${realized / maxHours * 100}%` }} />
                                   </div>
                                   <strong className="text-right text-xs tabular-nums">{realized.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h</strong>
