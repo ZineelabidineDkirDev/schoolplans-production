@@ -108,6 +108,15 @@ export function StudentWorkspacePage({ view }: { view: 'courses' | 'attendance' 
               return (
                 <Panel key={room}>
                   <h2 className="text-lg font-semibold">Salle {room}</h2>
+                  {(() => {
+                    const details = roomCourses.find((course) => course.room === room);
+                    return details && (details.roomType || details.roomCapacity !== null) ? (
+                      <p className="sp-muted mt-1">
+                        {details.roomType || 'Salle de formation'}
+                        {details.roomCapacity !== null ? ` · ${details.roomCapacity} places` : ''}
+                      </p>
+                    ) : null;
+                  })()}
                   <div className="sp-table-wrap">
                     <table className="sp-table">
                       <thead><tr><th>Jour</th><th>Cours</th><th>Horaire</th><th>Formateur</th></tr></thead>
