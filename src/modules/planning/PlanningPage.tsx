@@ -34,7 +34,7 @@ type PageState =
   | { status: 'error'; message: string }
   | { status: 'loaded'; data: PlanningData };
 
-type PlanningRole = 'admin' | 'director' | 'super_admin' | 'formateur';
+type PlanningRole = 'admin' | 'director' | 'super_admin' | 'formateur' | 'etudiant';
 
 type EditorState = {
   courseId?: StudentIdentifier;
@@ -66,7 +66,7 @@ function errorMessage(error: unknown): string {
 }
 
 function getPlanningRole(role: string): PlanningRole | null {
-  return role === 'admin' || role === 'director' || role === 'super_admin' || role === 'formateur'
+  return role === 'admin' || role === 'director' || role === 'super_admin' || role === 'formateur' || role === 'etudiant'
     ? role
     : null;
 }
@@ -147,7 +147,7 @@ function isCourseFilterMatch(
 }
 
 export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessions' }) {
-  const { profile, permissions } = useAuth();
+  const { profile, permissions, session } = useAuth();
   const [reloadKey, setReloadKey] = useState(0);
   const [state, setState] = useState<PageState>({ status: 'loading' });
   const [week, setWeek] = useState(() => getMonday(new Date()));
@@ -194,7 +194,7 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
     return () => {
       active = false;
     };
-  }, [profile?.centreId, profile?.id, profile?.role, reloadKey]);
+  }, [profile?.centreId, profile?.id, profile?.role, session?.user.email, reloadKey]);
 
   const data = state.status === 'loaded' ? state.data : null;
   const formationProgresses = useMemo(() => {
@@ -830,10 +830,10 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
         }
         description={
           view === 'planning'
-            ? 'Semaine type, répétée chaque semaine, avec les séances prévues pour votre centre.'
+            ? isStudent\n              ? 'Votre calendrier de cours et de formateurs, en consultation uniquement.'\n              : 'Semaine type, répétée chaque semaine, avec les séances prévues pour votre centre.'
             : 'Liste des séances prévues pendant la semaine sélectionnée.'
         }
-        eyebrow={profile?.role === 'formateur' ? 'Espace formateur' : 'Gestion du centre'}
+        eyebrow={isStudent ? 'Espace étudiant' : profile?.role === 'formateur' ? 'Espace formateur' : 'Gestion du centre'}
         title={heading}
       />
 
@@ -857,7 +857,7 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
 
       {data && (
         <>
-          {renderFilters()}
+          {!isStudent && renderFilters()}
           {view === 'planning' && formationProgresses.length > 0 && (
             <section aria-label="Progression de la formation sélectionnée" className="space-y-3">
               <header className="planning-progress-section-heading">
