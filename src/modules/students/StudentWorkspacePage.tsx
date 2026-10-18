@@ -23,7 +23,7 @@ function displayDate(value: string) {
   return new Date(`${value}T00:00:00`).toLocaleDateString('fr-FR');
 }
 
-export function StudentWorkspacePage({ view }: { view: 'courses' | 'attendance' | 'planning' | 'rooms' }) {
+export function StudentWorkspacePage({ view }: { view: 'courses' | 'attendance' | 'planning' | 'rooms' | 'report' }) {
   const { profile, session } = useAuth();
   const [reload, setReload] = useState(0);
   const [state, setState] = useState<PageState>({ status: 'loading' });
@@ -61,6 +61,7 @@ export function StudentWorkspacePage({ view }: { view: 'courses' | 'attendance' 
   const isCourses = view === 'courses' || view === 'planning';
   const isPlanning = view === 'planning';
   const isRooms = view === 'rooms';
+  const isReport = view === 'report';
   return (
     <section className="mx-auto w-full max-w-screen-2xl space-y-5">
       <PageHeader
@@ -69,12 +70,14 @@ export function StudentWorkspacePage({ view }: { view: 'courses' | 'attendance' 
             ? 'Votre emploi du temps personnel, limité aux cours auxquels vous êtes inscrit.'
             : isRooms
               ? 'Consultez les salles prévues pour vos cours et leurs horaires.'
+              : isReport
+                ? 'Vos statistiques personnelles de formation, vos heures et votre assiduité.'
               : isCourses
                 ? 'Retrouvez les séances planifiées pour les cours auxquels vous êtes inscrit.'
                 : 'Consultez vos présences, retards et absences enregistrés par le centre.'
         }
         eyebrow="Espace étudiant"
-        title={isPlanning ? 'Mon planning' : isRooms ? 'Mes salles de cours' : isCourses ? 'Mes cours' : 'Mes présences'}
+        title={isPlanning ? 'Mon planning' : isRooms ? 'Mes salles de cours' : isReport ? 'Mon rapport de formation' : isCourses ? 'Mes cours' : 'Mes présences'}
       />
       {state.status === 'loading' && (
         <Panel>
@@ -99,46 +102,134 @@ export function StudentWorkspacePage({ view }: { view: 'courses' | 'attendance' 
         </Alert>
       )}
       {state.status === 'loaded' && state.workspace.studentFound && isRooms && (
-        state.workspace.courses.length === 0 ? (
-          <EmptyState title="Aucune salle n’est associée à vos cours." description="Les salles apparaîtront ici lorsque l’administration aura affecté une salle à vos cours." />
-        ) : (
-          <div className="space-y-4">
-            {[...new Set(state.workspace.courses.map((course) => course.room).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr')).map((room) => {
-              const roomCourses = state.workspace.courses.filter((course) => course.room === room).sort((a, b) => a.weekday - b.weekday || a.startsAt.localeCompare(b.startsAt));
-              return (
-                <Panel key={room}>
-                  <h2 className="text-lg font-semibold">Salle {room}</h2>
-                  {(() => {
-                    const details = roomCourses.find((course) => course.room === room);
-                    return details && (details.roomType || details.roomCapacity !== null) ? (
-                      <p className="sp-muted mt-1">
-                        {details.roomType || 'Salle de formation'}
-                        {details.roomCapacity !== null ? ` · ${details.roomCapacity} places` : ''}
-                      </p>
-                    ) : null;
-                  })()}
-                  <div className="sp-table-wrap">
-                    <table className="sp-table">
-                      <thead><tr><th>Jour</th><th>Cours</th><th>Horaire</th><th>Formateur</th></tr></thead>
-                      <tbody>{roomCourses.map((course) => (
-                        <tr key={String(course.id)}>
-                          <td>{course.startsOn && course.startsOn === course.endsOn ? displayDate(course.startsOn) : WEEKDAYS[course.weekday] ?? 'Jour à confirmer'}</td>
-                          <td><strong>{course.subject}</strong></td>
-                          <td>{course.startsAt.slice(0, 5)} – {course.endsAt.slice(0, 5)}</td>
-                          <td>{course.teacher || '—'}</td>
-                        </tr>
-                      ))}</tbody>
-                    </table>
-                  </div>
+        <div className="space-y-4">
+          {state.workspace.courses.length === 0 ? (
+            <EmptyState title="Aucun cours inscrit" description="Aucune salle ne peut être affichée car aucun cours n’est associé à votre inscription." />
+          ) : (
+            <>
+              {[...new Map(state.workspace.courses.filter(course => course.room).map(course => [course.room, course])).entries()]
+                .sort(([a], [b]) => a.localeCompare(b, 'fr'))
+                .map(([room, firstCourse]) => {
+                  const roomCourses = state.workspace.courses.filter(course => course.room === room)
+                    .sort((a, b) => a.weekday - b.weekday || a.startsAt.localeCompare(b.startsAt));
+                  return (
+                    <Panel key={room} className="space-y-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--sp-accent-soft,rgba(79,94,232,.12))] text-xl" aria-hidden="true">▦</div>
+                          <div>
+                            <h2 className="text-lg font-semibold">{room}</h2>
+                            <p className="sp-muted mt-1">{firstCourse.roomType || 'Salle de formation'}</p>
+                          </div>
+                        </div>
+                        <span className="rounded-full border px-3 py-1 text-sm">{firstCourse.roomCapacity !== null ? `${firstCourse.roomCapacity} places` : 'Capacité non renseignée'}</span>
+                      </div>
+                      <div>
+                        <h3 className="mb-2 text-sm font-semibold">Cours programmés dans cette salle</h3>
+                        <div className="grid gap-3 md:grid-cols-2">
+                          {roomCourses.map(course => (
+                            <div key={String(course.id)} className="rounded-xl border p-3">
+                              <strong>{course.subject}</strong>
+                              <p className="sp-muted mt-1">{course.teacher || 'Formateur non renseigné'}</p>
+                              <p className="mt-2 text-sm">{course.startsOn && course.startsOn === course.endsOn ? displayDate(course.startsOn) : WEEKDAYS[course.weekday] ?? 'Jour à confirmer'}</p>
+                              <p className="text-sm">{course.startsAt.slice(0, 5)} – {course.endsAt.slice(0, 5)}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </Panel>
+                  );
+                })}
+              {state.workspace.courses.every(course => !course.room) ? (
+                <Panel className="space-y-2">
+                  <h2 className="font-semibold">Aucune salle affectée</h2>
+                  <p className="sp-muted">Vous êtes inscrit à des cours, mais aucune salle n’est renseignée pour ces cours. Contactez l’administration de votre centre.</p>
                 </Panel>
-              );
-            })}
-            {state.workspace.courses.some((course) => !course.room) && (
-              <Panel><h2 className="font-semibold">Salle à confirmer</h2><p className="sp-muted">Certains cours n’ont pas encore de salle affectée.</p></Panel>
+              ) : state.workspace.courses.some(course => !course.room) ? (
+                <Panel className="space-y-2">
+                  <h2 className="font-semibold">Certains cours n’ont pas de salle</h2>
+                  <p className="sp-muted">Une salle n’a pas encore été affectée à tous vos cours.</p>
+                  <ul className="list-disc pl-5">{state.workspace.courses.filter(course => !course.room).map(course => <li key={String(course.id)}>{course.subject}</li>)}</ul>
+                </Panel>
+              ) : null}
+            </>
+          )}
+        </div>
+      )}
+
+      {state.status === 'loaded' && state.workspace.studentFound && isReport && (() => {
+        const courses = state.workspace.courses;
+        const attendance = state.workspace.attendance;
+        const hoursFor = (course: StudentWorkspace['courses'][number]) => {
+          const [sh, sm] = course.startsAt.split(':').map(Number);
+          const [eh, em] = course.endsAt.split(':').map(Number);
+          const value = (eh * 60 + (em || 0) - (sh * 60 + (sm || 0))) / 60;
+          return Number.isFinite(value) && value > 0 ? value : 0;
+        };
+        const courseHours = new Map(courses.map(course => [String(course.id), hoursFor(course)]));
+        const realizedHours = attendance.reduce((sum, item) => sum + (courseHours.get(String(item.courseId)) ?? 0), 0);
+        const presentCount = attendance.filter(item => item.status === 'present').length;
+        const lateCount = attendance.filter(item => item.status === 'retard').length;
+        const absentCount = attendance.filter(item => item.status === 'absent').length;
+        const attendedCount = presentCount + lateCount;
+        const attendanceRate = attendance.length ? Math.round(attendedCount / attendance.length * 100) : null;
+        const weeklyHours = courses.reduce((sum, course) => sum + hoursFor(course), 0);
+        const statusCounts = [
+          { label: 'Présences', count: presentCount, color: '#16a34a' },
+          { label: 'Retards', count: lateCount, color: '#d97706' },
+          { label: 'Absences', count: absentCount, color: '#dc2626' },
+        ];
+        const maxStatus = Math.max(1, ...statusCounts.map(item => item.count));
+        return (
+          <div className="space-y-5">
+            {courses.length === 0 ? (
+              <EmptyState title="Aucune formation à analyser" description="Les statistiques apparaîtront lorsque vos cours seront associés à votre inscription." />
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                  <Panel><p className="sp-muted text-sm">Cours inscrits</p><strong className="mt-2 block text-3xl">{courses.length}</strong></Panel>
+                  <Panel><p className="sp-muted text-sm">Heures hebdomadaires prévues</p><strong className="mt-2 block text-3xl">{weeklyHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h</strong></Panel>
+                  <Panel><p className="sp-muted text-sm">Heures pointées</p><strong className="mt-2 block text-3xl">{realizedHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h</strong><p className="sp-muted mt-1 text-xs">Calculées à partir des séances avec un pointage enregistré.</p></Panel>
+                  <Panel><p className="sp-muted text-sm">Taux d’assiduité</p><strong className="mt-2 block text-3xl">{attendanceRate === null ? '—' : `${attendanceRate}%`}</strong></Panel>
+                </div>
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <Panel className="space-y-4">
+                    <div><h2 className="font-semibold">Présence et absences</h2><p className="sp-muted text-sm">Répartition des pointages enregistrés</p></div>
+                    {attendance.length === 0 ? <p className="sp-muted">Aucun pointage enregistré pour le moment.</p> : (
+                      <div className="space-y-4">
+                        {statusCounts.map(item => (
+                          <div key={item.label}>
+                            <div className="mb-1 flex justify-between gap-2 text-sm"><span>{item.label}</span><strong>{item.count}</strong></div>
+                            <div className="h-3 overflow-hidden rounded-full bg-gray-200/70"><div className="h-full rounded-full" style={{ width: `${item.count / maxStatus * 100}%`, backgroundColor: item.color }} /></div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </Panel>
+                  <Panel className="space-y-4">
+                    <div><h2 className="font-semibold">Heures par cours</h2><p className="sp-muted text-sm">Heures hebdomadaires prévues et heures pointées</p></div>
+                    <div className="space-y-4">
+                      {courses.slice(0, 8).map(course => {
+                        const planned = hoursFor(course);
+                        const realized = attendance.filter(item => String(item.courseId) === String(course.id)).reduce((sum) => sum + hoursFor(course), 0);
+                        const scale = Math.max(1, planned, realized);
+                        return <div key={String(course.id)}><div className="mb-1 flex justify-between gap-2 text-sm"><span className="font-medium">{course.subject}</span><span>{planned.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h/sem.</span></div><div className="flex h-3 overflow-hidden rounded-full bg-gray-200/70"><div title="Prévu par semaine" className="h-full bg-indigo-500" style={{ width: `${planned / scale * 100}%` }} /><div title="Pointé" className="h-full bg-emerald-500" style={{ width: `${Math.min(realized, scale) / scale * 100}%` }} /></div><p className="sp-muted mt-1 text-xs">{realized.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h pointées · {course.teacher || 'Formateur non renseigné'}</p></div>;
+                      })}
+                    </div>
+                    <p className="sp-muted text-xs">Les heures prévues correspondent à la durée hebdomadaire des cours affichés. Une progression globale de la formation nécessite la durée totale et les dates de fin de formation.</p>
+                  </Panel>
+                </div>
+                <Panel className="space-y-3">
+                  <h2 className="font-semibold">Historique récent des présences</h2>
+                  {attendance.length === 0 ? <p className="sp-muted">Aucun historique disponible.</p> : (
+                    <div className="sp-table-wrap"><table className="sp-table"><thead><tr><th>Date</th><th>Cours</th><th>Statut</th><th>Durée</th></tr></thead><tbody>{attendance.slice(0, 12).map((item, index) => <tr key={`${item.courseId}-${item.date}-${index}`}><td>{displayDate(item.date)}</td><td>{item.subject}</td><td>{ATTENDANCE_LABELS[item.status]}</td><td>{(courseHours.get(String(item.courseId)) ?? 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h</td></tr>)}</tbody></table></div>
+                  )}
+                </Panel>
+              </>
             )}
           </div>
-        )
-      )}
+        );
+      })()}
       {state.status === 'loaded' &&
         state.workspace.studentFound &&
         isCourses &&
