@@ -14,13 +14,14 @@ create table if not exists public.finance_student_charges (
   notes text,
   created_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  unique (centre_id, id)
 );
 
 create table if not exists public.finance_payments (
   id uuid primary key default gen_random_uuid(),
   centre_id uuid not null references public.centres(id) on delete cascade,
-  charge_id uuid references public.finance_student_charges(id) on delete restrict,
+  charge_id uuid not null,
   student_id text not null,
   amount numeric(12,2) not null check (amount > 0),
   payment_method text not null check (payment_method in ('cash','bank_transfer','card','cheque','other')),
@@ -30,7 +31,8 @@ create table if not exists public.finance_payments (
   notes text,
   created_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
-  unique (centre_id, receipt_number)
+  unique (centre_id, receipt_number),
+  foreign key (centre_id, charge_id) references public.finance_student_charges(centre_id, id) on delete restrict
 );
 
 create table if not exists public.finance_expenses (
@@ -62,13 +64,14 @@ create table if not exists public.finance_accounts (
   active boolean not null default true,
   created_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
-  unique (centre_id, name)
+  unique (centre_id, name),
+  unique (centre_id, id)
 );
 
 create table if not exists public.finance_account_movements (
   id uuid primary key default gen_random_uuid(),
   centre_id uuid not null references public.centres(id) on delete cascade,
-  account_id uuid not null references public.finance_accounts(id) on delete restrict,
+  account_id uuid not null,
   movement_type text not null check (movement_type in ('inflow','outflow','transfer_in','transfer_out','adjustment')),
   amount numeric(12,2) not null check (amount > 0),
   movement_date timestamptz not null default now(),
@@ -77,7 +80,8 @@ create table if not exists public.finance_account_movements (
   source_id uuid,
   transfer_group_id uuid,
   created_by uuid references auth.users(id) on delete set null,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  foreign key (centre_id, account_id) references public.finance_accounts(centre_id, id) on delete restrict
 );
 
 create table if not exists public.finance_teacher_payroll (
