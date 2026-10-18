@@ -22,6 +22,16 @@ const num = (v: number | string | null | undefined) => { const n = Number(v ?? 0
 const today = () => new Date().toISOString().slice(0, 10);
 const movementLabel = (type: Movement['movement_type']) => ({ inflow: 'Entrée', outflow: 'Sortie', transfer_in: 'Transfert reçu', transfer_out: 'Transfert envoyé', adjustment: 'Ajustement' }[type]);
 
+function readableFinanceError(cause: unknown, fallback: string): string {
+  if (cause && typeof cause === 'object' && 'message' in cause && typeof cause.message === 'string') {
+    const details = 'details' in cause && typeof cause.details === 'string' ? cause.details : '';
+    const code = 'code' in cause && typeof cause.code === 'string' ? ' [' + cause.code + ']' : '';
+    return cause.message + code + (details ? ' — ' + details : '');
+  }
+  return cause instanceof Error ? cause.message : fallback;
+}
+
+
 export function FinanceOperations({ onChange }: { onChange: () => void }) {
   const { profile } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -63,7 +73,7 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
         setMovements((results[2].data ?? []) as Movement[]);
         setPaymentAccountId((v) => v || nextAccounts.find((a) => a.active)?.id || '');
         setMovementForm((v) => ({ ...v, accountId: v.accountId || nextAccounts.find((a) => a.active)?.id || '', destinationId: v.destinationId || nextAccounts.find((a) => a.active)?.id || '' }));
-      } catch (e) { if (active) setError(e instanceof Error ? e.message : 'Impossible de charger les données.'); }
+      } catch (e) { if (active) setError(readableFinanceError(e, 'Impossible de charger les données.')); }
       finally { if (active) setLoading(false); }
     }
     void load();
@@ -95,7 +105,7 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
       setExpenseForm({ label: '', category: 'Loyer', supplier: '', amount: '', expenseDate: today(), dueDate: '', notes: '' });
       setEditingExpenseId(null); setModal(null);
       setNotice(editingExpenseId ? 'Dépense modifiée.' : 'Dépense enregistrée comme « à valider ». La trésorerie reste inchangée.'); reload(); onChange();
-    } catch (e) { setError(e instanceof Error ? e.message : 'Impossible d’enregistrer la dépense.'); }
+    } catch (e) { setError(readableFinanceError(e, 'Impossible d’enregistrer la dépense.')); }
     finally { setSaving(false); }
   }
 
@@ -107,7 +117,7 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
       const { error } = await getSupabaseClient().from('finance_expenses').update({ status, approved_by: status === 'approved' ? profile.id : null }).eq('id', expense.id).eq('centre_id', profile.centreId).eq('status', 'pending');
       if (error) throw error;
       setNotice(status === 'approved' ? 'Dépense validée.' : 'Dépense refusée.'); reload(); onChange();
-    } catch (e) { setError(e instanceof Error ? e.message : 'Impossible de modifier le statut.'); }
+    } catch (e) { setError(readableFinanceError(e, 'Impossible de modifier le statut.')); }
     finally { setSaving(false); }
   }
 
@@ -121,7 +131,7 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
       const { error: payError } = await getSupabaseClient().rpc('finance_pay_expense', { p_expense_id: expense.id, p_account_id: account.id });
       if (payError) throw payError;
       setNotice('Dépense payée depuis « ' + account.name + ' ». Le statut et le mouvement de trésorerie ont été enregistrés ensemble.'); reload(); onChange();
-    } catch (e) { setError(e instanceof Error ? e.message : 'Impossible de payer la dépense.'); }
+    } catch (e) { setError(readableFinanceError(e, 'Impossible de payer la dépense.')); }
     finally { setSaving(false); }
   }
 
@@ -138,7 +148,7 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
       if (result.error) throw result.error;
       setAccountForm({ name: '', accountType: 'cash', openingBalance: '0' }); setEditingAccountId(null); setModal(null);
       setNotice(editingAccountId ? 'Nom du compte modifié.' : 'Caisse/compte créé avec succès.'); reload(); onChange();
-    } catch (e) { setError(e instanceof Error ? e.message : 'Impossible de créer le compte.'); }
+    } catch (e) { setError(readableFinanceError(e, 'Impossible de créer le compte.')); }
     finally { setSaving(false); }
   }
 
@@ -149,7 +159,7 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
       const { error } = await getSupabaseClient().from('finance_accounts').update({ active: false }).eq('id', account.id).eq('centre_id', profile.centreId).eq('active', true);
       if (error) throw error;
       setNotice('Compte désactivé. Les mouvements existants restent consultables.'); reload(); onChange();
-    } catch (e) { setError(e instanceof Error ? e.message : 'Impossible de désactiver le compte.'); }
+    } catch (e) { setError(readableFinanceError(e, 'Impossible de désactiver le compte.')); }
     finally { setSaving(false); }
   }
 
@@ -164,7 +174,7 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
       const { error } = await getSupabaseClient().from('finance_account_movements').insert({ centre_id: profile.centreId, account_id: account.id, movement_type: movementForm.movementType, amount, movement_date: new Date((movementForm.date || today()) + 'T12:00:00').toISOString(), description: movementForm.description.trim(), source_type: 'manual', created_by: profile.id });
       if (error) throw error;
       setMovementForm((v) => ({ ...v, amount: '', description: '' })); setNotice('Mouvement de trésorerie enregistré.'); reload(); onChange();
-    } catch (e) { setError(e instanceof Error ? e.message : 'Impossible d’enregistrer le mouvement.'); }
+    } catch (e) { setError(readableFinanceError(e, 'Impossible d’enregistrer le mouvement.')); }
     finally { setSaving(false); }
   }
 
@@ -186,7 +196,7 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
       });
       if (error) throw error;
       setMovementForm((v) => ({ ...v, amount: '', description: '' })); setNotice('Transfert de ' + money(amount) + ' effectué ; les deux mouvements sont liés et atomiques.'); reload(); onChange();
-    } catch (e) { setError(e instanceof Error ? e.message : 'Impossible d’effectuer le transfert.'); }
+    } catch (e) { setError(readableFinanceError(e, 'Impossible d’effectuer le transfert.')); }
     finally { setSaving(false); }
   }
 
