@@ -146,6 +146,9 @@ begin
   if v_status <> 'approved' then
     raise exception 'Seule une rémunération validée et non payée peut être réglée.';
   end if;
+  if v_amount is null or v_amount <= 0 then
+    raise exception 'Le montant net de la rémunération doit être supérieur à zéro pour effectuer le règlement.';
+  end if;
 
   select a.id into v_account_id
   from public.finance_accounts a
