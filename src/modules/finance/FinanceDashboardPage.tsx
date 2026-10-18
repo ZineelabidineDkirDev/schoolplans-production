@@ -3,7 +3,7 @@ import { Alert, LoadingState } from '../../components/ui';
 import { getSupabaseClient } from '../../data/supabase/client';
 import { useAuth } from '../auth/AuthProvider';
 
-type ChargeRow = { id: string; amount_due: number | string };
+type ChargeRow = { id: string; amount_due: number | string; status: string };
 type AmountRow = { amount: number | string };
 type PayrollRow = { amount_due: number | string; status: string };
 
@@ -59,7 +59,7 @@ export function FinanceDashboardPage() {
 
         const client = getSupabaseClient();
         const [chargesResult, paymentsResult, expensesResult, payrollResult] = await Promise.all([
-          client.from('finance_student_charges').select('id,amount_due').eq('centre_id', profile.centreId),
+          client.from('finance_student_charges').select('id,amount_due,status').eq('centre_id', profile.centreId).neq('status', 'cancelled'),
           client.from('finance_payments').select('amount').eq('centre_id', profile.centreId),
           client.from('finance_expenses').select('amount').eq('centre_id', profile.centreId).eq('status', 'paid'),
           client.from('finance_teacher_payroll').select('amount_due,status').eq('centre_id', profile.centreId),
