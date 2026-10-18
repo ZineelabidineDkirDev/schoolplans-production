@@ -40,7 +40,7 @@ const ROLE_SECTIONS: Record<SourceRole, readonly AppSection[]> = {
   ],
   super_admin: [...COMMON_SECTIONS, 'vz', 'vd'],
   formateur: [...COMMON_SECTIONS, 'vl', 'vn', 'vp', 'vk', 'vrapport'],
-  etudiant: ['vcal', 'vr', 'vm', 'vq', 'vk'],
+  etudiant: ['vcal', 'vr', 'vm', 'vq', 'vk', 'vrapport'],
 };
 
 const SECTION_REQUIREMENTS: Partial<Record<AppSection, readonly CentrePermissionKey[]>> = {
@@ -59,7 +59,7 @@ const SECTION_REQUIREMENTS: Partial<Record<AppSection, readonly CentrePermission
 export const SECTION_LABELS: Record<AppSection, string> = {
   vcal: 'Planning',
   vd: 'Tableau de bord',
-  vrapport: 'Rapport du centre',
+  vrapport: 'Mon rapport',
   vl: 'Séances',
   vr: 'Salles',
   vk: 'Supports',
