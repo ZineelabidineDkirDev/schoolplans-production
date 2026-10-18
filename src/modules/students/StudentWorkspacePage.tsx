@@ -167,7 +167,7 @@ export function StudentWorkspacePage({ view }: { view: 'courses' | 'attendance' 
           return Number.isFinite(value) && value > 0 ? value : 0;
         };
         const courseHours = new Map(courses.map(course => [String(course.id), hoursFor(course)]));
-        const realizedHours = attendance.reduce((sum, item) => sum + (courseHours.get(String(item.courseId)) ?? 0), 0);
+        const realizedHours = state.workspace.realizedSessions.reduce((sum, item) => sum + (courseHours.get(String(item.courseId)) ?? 0), 0);
         const presentCount = attendance.filter(item => item.status === 'present').length;
         const lateCount = attendance.filter(item => item.status === 'retard').length;
         const absentCount = attendance.filter(item => item.status === 'absent').length;
@@ -197,7 +197,7 @@ export function StudentWorkspacePage({ view }: { view: 'courses' | 'attendance' 
                 <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
                   <Panel><p className="sp-muted text-sm">Cours inscrits</p><strong className="mt-2 block text-3xl">{courses.length}</strong></Panel>
                   <Panel><p className="sp-muted text-sm">Heures prévues au total</p><strong className="mt-2 block text-3xl">{plannedTotalHours === null ? '—' : `${plannedTotalHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h`}</strong><p className="sp-muted mt-1 text-xs">{weeklyHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h par semaine</p></Panel>
-                  <Panel><p className="sp-muted text-sm">Heures pointées</p><strong className="mt-2 block text-3xl">{realizedHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h</strong><p className="sp-muted mt-1 text-xs">Calculées à partir des séances avec un pointage enregistré.</p></Panel>
+                  <Panel><p className="sp-muted text-sm">Heures réalisées</p><strong className="mt-2 block text-3xl">{realizedHours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h</strong><p className="sp-muted mt-1 text-xs">Calculées à partir des séances avec un séance marquée comme réalisée.</p></Panel>
                   <Panel><p className="sp-muted text-sm">Taux d’assiduité</p><strong className="mt-2 block text-3xl">{attendanceRate === null ? '—' : `${attendanceRate}%`}</strong></Panel>
                 </div>
                 <div className="grid gap-4 lg:grid-cols-2">
@@ -219,9 +219,9 @@ export function StudentWorkspacePage({ view }: { view: 'courses' | 'attendance' 
                     <div className="space-y-4">
                       {courses.slice(0, 8).map(course => {
                         const planned = hoursFor(course);
-                        const realized = attendance.filter(item => String(item.courseId) === String(course.id)).reduce((sum) => sum + hoursFor(course), 0);
+                        const realized = state.workspace.realizedSessions.filter(item => String(item.courseId) === String(course.id)).reduce((sum) => sum + hoursFor(course), 0);
                         const scale = Math.max(1, planned, realized);
-                        return <div key={String(course.id)}><div className="mb-1 flex justify-between gap-2 text-sm"><span className="font-medium">{course.subject}</span><span>{planned.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h/sem.</span></div><div className="flex h-3 overflow-hidden rounded-full bg-gray-200/70"><div title="Prévu par semaine" className="h-full bg-indigo-500" style={{ width: `${planned / scale * 100}%` }} /><div title="Pointé" className="h-full bg-emerald-500" style={{ width: `${Math.min(realized, scale) / scale * 100}%` }} /></div><p className="sp-muted mt-1 text-xs">{realized.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h pointées · {course.teacher || 'Formateur non renseigné'}</p></div>;
+                        return <div key={String(course.id)}><div className="mb-1 flex justify-between gap-2 text-sm"><span className="font-medium">{course.subject}</span><span>{planned.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h/sem.</span></div><div className="flex h-3 overflow-hidden rounded-full bg-gray-200/70"><div title="Prévu par semaine" className="h-full bg-indigo-500" style={{ width: `${planned / scale * 100}%` }} /><div title="Pointé" className="h-full bg-emerald-500" style={{ width: `${Math.min(realized, scale) / scale * 100}%` }} /></div><p className="sp-muted mt-1 text-xs">{realized.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h réalisées · {course.teacher || 'Formateur non renseigné'}</p></div>;
                       })}
                     </div>
                     <p className="sp-muted text-xs">La progression totale est calculée uniquement si la durée de la formation et ses heures hebdomadaires sont renseignées dans le dossier de formation.</p>
