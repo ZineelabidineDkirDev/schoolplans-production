@@ -5,7 +5,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { FinanceOperations } from './FinanceOperations';
 
 type Student = { id: number; prenom: string; nom: string };
-type Teacher = { id: number; prenom: string; nom: string };
+type Teacher = { id: number; nom: string };
 type Charge = { id: string; student_id: number; label: string; amount_due: number | string; due_date: string | null; status: string; notes: string | null };
 type Payment = { id: string; charge_id: string; amount: number | string; payment_method: string; receipt_number: string; paid_at: string; reference?: string | null; notes?: string | null };
 type Payroll = { id: string; teacher_id: number; period_start: string; period_end: string; hours: number | string; hourly_rate: number | string; amount_due: number | string; status: string; paid_at: string | null; notes: string | null };
@@ -66,7 +66,7 @@ export function FinanceDashboardPage() {
         const client = getSupabaseClient();
         const results = await Promise.all([
           client.from('etudiants').select('id,prenom,nom').eq('centre_id', profile.centreId).order('nom'),
-          client.from('formateurs').select('id,prenom,nom').eq('centre_id', profile.centreId).order('nom'),
+          client.from('formateurs').select('id,nom').eq('centre_id', profile.centreId).order('nom'),
           client.from('finance_student_charges').select('id,student_id,label,amount_due,due_date,status,notes').eq('centre_id', profile.centreId).neq('status', 'cancelled').order('created_at', { ascending: false }),
           client.from('finance_payments').select('id,charge_id,amount,payment_method,receipt_number,paid_at,reference,notes').eq('centre_id', profile.centreId).order('paid_at', { ascending: false }),
           client.from('finance_expenses').select('amount').eq('centre_id', profile.centreId).eq('status', 'paid'),
@@ -100,7 +100,7 @@ export function FinanceDashboardPage() {
   }, [profile?.centreId, reloadKey]);
 
   const studentName = (id: number) => { const student = students.find((item) => Number(item.id) === Number(id)); return student ? (student.prenom + ' ' + student.nom).trim() : 'Étudiant #' + id; };
-  const teacherName = (id: number) => { const teacher = teachers.find((item) => Number(item.id) === Number(id)); return teacher ? (teacher.prenom + ' ' + teacher.nom).trim() : 'Formateur #' + id; };
+  const teacherName = (id: number) => { const teacher = teachers.find((item) => Number(item.id) === Number(id)); return teacher ? teacher.nom : 'Formateur #' + id; };
   const paidForCharge = (chargeId: string) => payments.filter((payment) => payment.charge_id === chargeId).reduce((sum, payment) => sum + numeric(payment.amount), 0);
   const outstanding = Math.max(0, summary.charges - summary.collected);
 
