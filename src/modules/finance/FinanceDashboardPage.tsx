@@ -113,7 +113,9 @@ export function FinanceDashboardPage() {
     setSaving(true); setError(null); setNotice(null);
     try {
       const client = getSupabaseClient();
-      const payload = { student_id: Number(chargeForm.studentId), label: chargeForm.label.trim(), amount_due: amountDue, due_date: chargeForm.dueDate || null, notes: chargeForm.notes.trim() || null, updated_at: new Date().toISOString() };
+      const alreadyCollected = editingChargeId ? paidForCharge(editingChargeId) : 0;
+      const nextStatus = alreadyCollected >= amountDue ? 'paid' : alreadyCollected > 0 ? 'partial' : 'open';
+      const payload = { student_id: Number(chargeForm.studentId), label: chargeForm.label.trim(), amount_due: amountDue, due_date: chargeForm.dueDate || null, notes: chargeForm.notes.trim() || null, status: nextStatus, updated_at: new Date().toISOString() };
       const result = editingChargeId
         ? await client.from('finance_student_charges').update(payload).eq('id', editingChargeId).eq('centre_id', profile.centreId)
         : await client.from('finance_student_charges').insert({ ...payload, centre_id: profile.centreId, created_by: profile.id });
