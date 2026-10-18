@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { Alert, Button, LoadingState } from '../../components/ui';
 import { getSupabaseClient } from '../../data/supabase/client';
 import { useAuth } from '../auth/AuthProvider';
@@ -7,7 +7,7 @@ type Expense = { id: string; label: string; category: string; supplier: string |
 type Account = { id: string; name: string; account_type: 'cash' | 'bank'; opening_balance: number | string; active: boolean };
 type Movement = { id: string; account_id: string; movement_type: 'inflow' | 'outflow' | 'transfer_in' | 'transfer_out' | 'adjustment'; amount: number | string; movement_date: string; description: string; transfer_group_id: string | null };
 
-function OperationsModal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+function OperationsModal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   return <div className="finance-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <section aria-modal="true" className="finance-modal" role="dialog">
       <header className="finance-modal-header"><div><p className="sp-page-eyebrow">Dépenses et trésorerie</p><h2>{title}</h2></div><button type="button" className="finance-modal-close" aria-label="Fermer" onClick={onClose}>×</button></header>
