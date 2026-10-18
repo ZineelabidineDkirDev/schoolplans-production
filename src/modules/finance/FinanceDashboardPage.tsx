@@ -238,9 +238,14 @@ export function FinanceDashboardPage() {
     if (!window.confirm(prompt)) return;
     setSaving(true); setError(null); setNotice(null);
     try {
-      const { error } = await getSupabaseClient().from('finance_teacher_payroll').update({ status, approved_by: status === 'approved' ? profile.id : null }).eq('id', item.id).eq('centre_id', profile.centreId).eq('status', 'draft');
+      const client = getSupabaseClient();
+      const { error } = await client.from('finance_teacher_payroll').update({ status, approved_by: status === 'approved' ? profile.id : null }).eq('id', item.id).eq('centre_id', profile.centreId).eq('status', 'draft');
       if (error) throw error;
-      setNotice(status === 'approved' ? 'Rémunération validée.' : 'Rémunération annulée.'); reload();
+      if (status === 'cancelled') {
+        const { error: repaymentError } = await client.from('finance_teacher_advance_repayments').update({ status: 'cancelled' }).eq('centre_id', profile.centreId).eq('payroll_id', item.id).eq('status', 'active');
+        if (repaymentError) throw repaymentError;
+      }
+      setNotice(status === 'approved' ? 'Rémunération validée.' : 'Rémunération annulée. La déduction d’avance associée est libérée.'); reload();
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Impossible de modifier la rémunération.'); }
     finally { setSaving(false); }
   }
@@ -309,7 +314,7 @@ export function FinanceDashboardPage() {
     </form></Popup>}
 
     {modal === 'payroll' && <Popup title={editingPayrollId ? 'Modifier la rémunération' : 'Préparer une rémunération'} onClose={() => setModal(null)}><form className="finance-modal-form" onSubmit={(event) => void savePayroll(event)}>
-      <label className="sp-form-field">Formateur<select className="sp-field" required value={payrollForm.teacherId} onChange={(event) => { const teacherId = event.target.value; setPayrollForm((v) => ({ ...v, teacherId, advanceDeduction: v.advanceDeduction || String(advanceBalance(Number(teacherId))) })); }}><option value="">Sélectionner un formateur</option>{teachers.map((teacher) => <option key={teacher.id} value={teacher.id}>{teacher.nom}</option>)}</select></label>
+      <label className="sp-form-field">Formateur<select className="sp-field" required value={payrollForm.teacherId} onChange={(event) => { const teacherId = event.target.value; const previous = payroll.find((item) => String(item.teacher_id) === teacherId); setPayrollForm((v) => ({ ...v, teacherId, compensationMode: previous?.compensation_mode ?? v.compensationMode, hours: previous ? String(previous.hours) : v.hours, hourlyRate: previous ? String(previous.hourly_rate) : v.hourlyRate, sessionCount: previous ? String(previous.session_count ?? 0) : v.sessionCount, sessionRate: previous ? String(previous.session_rate ?? 0) : v.sessionRate, monthlySalary: previous ? String(previous.monthly_salary ?? 0) : v.monthlySalary, advanceDeduction: String(advanceBalance(Number(teacherId))) })); }}><option value="">Sélectionner un formateur</option>{teachers.map((teacher) => <option key={teacher.id} value={teacher.id}>{teacher.nom}</option>)}</select></label>
       <div className="finance-modal-grid"><label className="sp-form-field">Début de période<input className="sp-field" required type="date" value={payrollForm.periodStart} onChange={(event) => setPayrollForm((v) => ({ ...v, periodStart: event.target.value }))} /></label><label className="sp-form-field">Fin de période<input className="sp-field" required type="date" value={payrollForm.periodEnd} onChange={(event) => setPayrollForm((v) => ({ ...v, periodEnd: event.target.value }))} /></label></div>
       <label className="sp-form-field">Mode de rémunération<select className="sp-field" value={payrollForm.compensationMode} onChange={(event) => setPayrollForm((v) => ({ ...v, compensationMode: event.target.value }))}><option value="hourly">À l’heure</option><option value="session">À la séance</option><option value="monthly">Salaire mensuel</option></select></label>
       {payrollForm.compensationMode === 'hourly' && <div className="finance-modal-grid"><label className="sp-form-field">Heures réalisées<input className="sp-field" required type="number" min="0" step="0.25" value={payrollForm.hours} onChange={(event) => setPayrollForm((v) => ({ ...v, hours: event.target.value }))} /></label><label className="sp-form-field">Taux horaire (DH)<input className="sp-field" required type="number" min="0" step="0.01" value={payrollForm.hourlyRate} onChange={(event) => setPayrollForm((v) => ({ ...v, hourlyRate: event.target.value }))} /></label></div>}
