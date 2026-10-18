@@ -6,6 +6,8 @@ export type StudentCourse = {
   subject: string;
   teacher: string;
   room: string;
+  roomType: string;
+  roomCapacity: number | null;
   weekday: number;
   startsAt: string;
   endsAt: string;
@@ -143,7 +145,7 @@ export async function getStudentWorkspace(
       ? client.from('formateurs').select('id,nom').eq('centre_id', centreId).in('id', teacherIds)
       : Promise.resolve({ data: [], error: null }),
     roomIds.length
-      ? client.from('salles').select('id,nom').eq('centre_id', centreId).in('id', roomIds)
+      ? client.from('salles').select('id,nom,type,capacite').eq('centre_id', centreId).in('id', roomIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
   if (subjectsResult.error) throw subjectsResult.error;
@@ -159,6 +161,15 @@ export async function getStudentWorkspace(
   const subjects = namesById(subjectsResult.data, 'matières');
   const teachers = namesById(teachersResult.data, 'formateurs');
   const rooms = namesById(roomsResult.data, 'salles');
+  const roomDetails = new Map(
+    parseRows(roomsResult.data, 'salles').map((row) => [
+      String(identifier(row.id, 'salle associée')),
+      {
+        type: text(row.type, ''),
+        capacity: typeof row.capacite === 'number' && Number.isFinite(row.capacite) ? row.capacite : null,
+      },
+    ]),
+  );
   const subjectByCourse = new Map(
     presenceCourseRows.map((row) => [
       String(identifier(row.id, 'cours de présence')),
@@ -181,6 +192,14 @@ export async function getStudentWorkspace(
       row.salle_id === null || row.salle_id === undefined
         ? ''
         : (rooms.get(String(row.salle_id)) ?? ''),
+    roomType:
+      row.salle_id === null || row.salle_id === undefined
+        ? ''
+        : (roomDetails.get(String(row.salle_id))?.type ?? ''),
+    roomCapacity:
+      row.salle_id === null || row.salle_id === undefined
+        ? null
+        : (roomDetails.get(String(row.salle_id))?.capacity ?? null),
     weekday: typeof row.jour === 'number' ? row.jour : 0,
     startsAt: text(row.debut, ''),
     endsAt: text(row.fin, ''),
