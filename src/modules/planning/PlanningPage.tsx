@@ -831,7 +831,9 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
         }
         description={
           view === 'planning'
-            ? isStudent\n              ? 'Votre calendrier de cours et de formateurs, en consultation uniquement.'\n              : 'Semaine type, répétée chaque semaine, avec les séances prévues pour votre centre.'
+            ? isStudent
+              ? 'Votre calendrier de cours et de formateurs, en consultation uniquement.'
+              : 'Semaine type, répétée chaque semaine, avec les séances prévues pour votre centre.'
             : 'Liste des séances prévues pendant la semaine sélectionnée.'
         }
         eyebrow={isStudent ? 'Espace étudiant' : profile?.role === 'formateur' ? 'Espace formateur' : 'Gestion du centre'}
