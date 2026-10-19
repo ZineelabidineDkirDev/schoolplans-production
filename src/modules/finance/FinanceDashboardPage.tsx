@@ -199,25 +199,22 @@ export function FinanceDashboardPage() {
     setSaving(true); setError(null); setNotice(null);
     try {
       const client = getSupabaseClient();
-      const payload = { teacher_id: Number(payrollForm.teacherId), period_start: payrollForm.periodStart, period_end: payrollForm.periodEnd, compensation_mode: payrollForm.compensationMode, hours, hourly_rate: hourlyRate, session_count: sessionCount, session_rate: sessionRate, monthly_salary: monthlySalary, gross_amount: Math.round(gross * 100) / 100, advance_deduction: Math.round(deduction * 100) / 100, amount_due: Math.round((gross - deduction) * 100) / 100, notes: payrollForm.notes.trim() || null };
-      let payrollId = editingPayrollId;
-      if (editingPayrollId) {
-        const result = await client.from('finance_teacher_payroll').update(payload).eq('id', editingPayrollId).eq('centre_id', profile.centreId).eq('status', 'draft').select('id').maybeSingle();
-        if (result.error) throw result.error;
-        if (!result.data?.id) throw new Error('La rémunération n’est plus modifiable ou n’existe pas.');
-        payrollId = result.data.id;
-      } else {
-        const result = await client.from('finance_teacher_payroll').insert({ ...payload, centre_id: profile.centreId, status: 'draft', created_by: profile.id }).select('id').single();
-        if (result.error) throw result.error;
-        payrollId = result.data.id;
-      }
-      if (deduction > 0 && payrollId) {
-        const { error: repaymentError } = await client.from('finance_teacher_advance_repayments').upsert({ centre_id: profile.centreId, teacher_id: Number(payrollForm.teacherId), payroll_id: payrollId, amount: Math.round(deduction * 100) / 100, status: 'active', created_by: profile.id }, { onConflict: 'centre_id,payroll_id' });
-        if (repaymentError) throw new Error('Rémunération enregistrée, mais la déduction d’avance n’a pas été enregistrée : ' + repaymentError.message);
-      } else if (payrollId) {
-        const { error: repaymentError } = await client.from('finance_teacher_advance_repayments').update({ status: 'cancelled' }).eq('centre_id', profile.centreId).eq('payroll_id', payrollId).eq('status', 'active');
-        if (repaymentError) throw repaymentError;
-      }
+      const { data: payrollId, error: saveError } = await client.rpc('finance_save_teacher_payroll', {
+        p_payroll_id: editingPayrollId,
+        p_teacher_id: Number(payrollForm.teacherId),
+        p_period_start: payrollForm.periodStart,
+        p_period_end: payrollForm.periodEnd,
+        p_compensation_mode: payrollForm.compensationMode,
+        p_hours: hours,
+        p_hourly_rate: hourlyRate,
+        p_session_count: sessionCount,
+        p_session_rate: sessionRate,
+        p_monthly_salary: monthlySalary,
+        p_advance_deduction: Math.round(deduction * 100) / 100,
+        p_notes: payrollForm.notes.trim() || null,
+      });
+      if (saveError) throw saveError;
+      if (!payrollId) throw new Error('La base de données n’a retourné aucun identifiant de rémunération.');
       setNotice(editingPayrollId ? 'Rémunération modifiée.' : 'Rémunération préparée en brouillon.'); setModal(null); reload();
     } catch (cause) { setError(readableFinanceError(cause, 'Impossible d’enregistrer la rémunération.')); }
     finally { setSaving(false); }
@@ -243,13 +240,11 @@ export function FinanceDashboardPage() {
     if (!window.confirm(prompt)) return;
     setSaving(true); setError(null); setNotice(null);
     try {
-      const client = getSupabaseClient();
-      const { error } = await client.from('finance_teacher_payroll').update({ status, approved_by: status === 'approved' ? profile.id : null }).eq('id', item.id).eq('centre_id', profile.centreId).eq('status', 'draft');
+      const { error } = await getSupabaseClient().rpc('finance_change_teacher_payroll_status', {
+        p_payroll_id: item.id,
+        p_status: status,
+      });
       if (error) throw error;
-      if (status === 'cancelled') {
-        const { error: repaymentError } = await client.from('finance_teacher_advance_repayments').update({ status: 'cancelled' }).eq('centre_id', profile.centreId).eq('payroll_id', item.id).eq('status', 'active');
-        if (repaymentError) throw repaymentError;
-      }
       setNotice(status === 'approved' ? 'Rémunération validée.' : 'Rémunération annulée. La déduction d’avance associée est libérée.'); reload();
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Impossible de modifier la rémunération.'); }
     finally { setSaving(false); }
