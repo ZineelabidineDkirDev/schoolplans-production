@@ -50,6 +50,84 @@ describe('support repository', () => {
     expect(from).not.toHaveBeenCalled();
   });
 
+  it('deletes support metadata before removing its storage object', async () => {
+    const query = {
+      delete: vi.fn(),
+      eq: vi.fn(),
+      select: vi.fn(),
+      maybeSingle: vi.fn(async () => ({ data: { id: 1 }, error: null })),
+    };
+    query.delete.mockReturnValue(query);
+    query.eq.mockReturnValue(query);
+    query.select.mockReturnValue(query);
+    const remove = vi.fn(async () => ({ error: null }));
+    const client = {
+      from: vi.fn(() => query),
+      storage: { from: vi.fn(() => ({ remove })) },
+    } as unknown as SupabaseClient;
+
+    await expect(
+      deleteCourseSupport(
+        client,
+        'centre-a',
+        {
+          id: 1,
+          courseId: 12,
+          title: 'Support',
+          description: null,
+          filePath: '12/support.pdf',
+          fileName: 'support.pdf',
+          size: 10,
+          mimeType: 'application/pdf',
+          createdAt: '2026-01-01',
+        },
+        [12],
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(query.delete).toHaveBeenCalledOnce();
+    expect(query.eq).toHaveBeenNthCalledWith(1, 'id', 1);
+    expect(query.eq).toHaveBeenNthCalledWith(2, 'centre_id', 'centre-a');
+    expect(remove).toHaveBeenCalledWith(['12/support.pdf']);
+  });
+
+  it('reports when the database row was not deleted and does not touch storage', async () => {
+    const query = {
+      delete: vi.fn(),
+      eq: vi.fn(),
+      select: vi.fn(),
+      maybeSingle: vi.fn(async () => ({ data: null, error: null })),
+    };
+    query.delete.mockReturnValue(query);
+    query.eq.mockReturnValue(query);
+    query.select.mockReturnValue(query);
+    const remove = vi.fn();
+    const client = {
+      from: vi.fn(() => query),
+      storage: { from: vi.fn(() => ({ remove })) },
+    } as unknown as SupabaseClient;
+
+    await expect(
+      deleteCourseSupport(
+        client,
+        'centre-a',
+        {
+          id: 1,
+          courseId: 12,
+          title: 'Support',
+          description: null,
+          filePath: '12/support.pdf',
+          fileName: 'support.pdf',
+          size: 10,
+          mimeType: 'application/pdf',
+          createdAt: '2026-01-01',
+        },
+        [12],
+      ),
+    ).rejects.toThrow('Support introuvable');
+    expect(remove).not.toHaveBeenCalled();
+  });
+
   it('removes the uploaded object when saving its metadata fails', async () => {
     const query = {
       insert: vi.fn(),
