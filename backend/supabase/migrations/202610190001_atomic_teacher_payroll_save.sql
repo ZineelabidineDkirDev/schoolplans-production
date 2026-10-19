@@ -48,7 +48,7 @@ begin
      or p_period_end < p_period_start then
     raise exception 'Formateur ou période de rémunération invalide.';
   end if;
-  if p_compensation_mode not in ('hourly', 'session', 'monthly') then
+  if p_compensation_mode is null or p_compensation_mode not in ('hourly', 'session', 'monthly') then
     raise exception 'Mode de calcul de rémunération invalide.';
   end if;
   if p_hours is null or p_hourly_rate is null or p_session_count is null
@@ -193,7 +193,7 @@ begin
   if auth.uid() is null or coalesce(v_role, '') not in ('admin', 'director') or v_centre_id is null then
     raise exception 'Accès refusé : directeur ou administrateur du centre requis.';
   end if;
-  if p_status not in ('approved', 'cancelled') then
+  if p_status is null or p_status not in ('approved', 'cancelled') then
     raise exception 'Transition de statut invalide.';
   end if;
 
