@@ -216,8 +216,10 @@ export function FinanceDashboardPage() {
       if (saveError) throw saveError;
       if (!payrollId) throw new Error('La base de données n’a retourné aucun identifiant de rémunération.');
       setNotice(editingPayrollId ? 'Rémunération modifiée.' : 'Rémunération préparée en brouillon.'); setModal(null); reload();
-    } catch (cause) { setError(readableFinanceError(cause, 'Impossible d’enregistrer la rémunération.')); }
-    finally { setSaving(false); }
+    } catch (cause) {
+      console.error('[SchoolPlans] Échec de sauvegarde de la rémunération :', cause);
+      setError(readableFinanceError(cause, 'Impossible d’enregistrer la rémunération.'));
+    } finally { setSaving(false); }
   }
 
   async function saveAdvance(event: FormEvent<HTMLFormElement>) {
@@ -317,7 +319,7 @@ export function FinanceDashboardPage() {
     </form></Popup>}
 
     {modal === 'payroll' && <Popup title={editingPayrollId ? 'Modifier la rémunération' : 'Préparer une rémunération'} onClose={() => setModal(null)}>
-      {error && <Alert tone="error"><p>{error}</p></Alert>}
+      {error && <div role="alert" aria-live="assertive" style={{ margin: '12px 0', padding: '14px 16px', border: '2px solid #b42318', borderRadius: '8px', background: '#fff1f0', color: '#7a1712', fontSize: '14px', fontWeight: 600, lineHeight: 1.5, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}><p style={{ margin: 0 }}>Erreur d’enregistrement</p><p style={{ margin: '6px 0 0', fontWeight: 500 }}>{error}</p></div>}
       <form className="finance-modal-form" onSubmit={(event) => void savePayroll(event)}>
       <label className="sp-form-field">Formateur<select className="sp-field" required value={payrollForm.teacherId} onChange={(event) => { const teacherId = event.target.value; const previous = payroll.find((item) => String(item.teacher_id) === teacherId); setPayrollForm((v) => ({ ...v, teacherId, compensationMode: previous?.compensation_mode ?? v.compensationMode, hours: previous ? String(previous.hours) : v.hours, hourlyRate: previous ? String(previous.hourly_rate) : v.hourlyRate, sessionCount: previous ? String(previous.session_count ?? 0) : v.sessionCount, sessionRate: previous ? String(previous.session_rate ?? 0) : v.sessionRate, monthlySalary: previous ? String(previous.monthly_salary ?? 0) : v.monthlySalary, advanceDeduction: String(advanceBalance(Number(teacherId))) })); }}><option value="">Sélectionner un formateur</option>{teachers.map((teacher) => <option key={teacher.id} value={teacher.id}>{teacher.nom}</option>)}</select></label>
       <div className="finance-modal-grid"><label className="sp-form-field">Début de période<input className="sp-field" required type="date" value={payrollForm.periodStart} onChange={(event) => setPayrollForm((v) => ({ ...v, periodStart: event.target.value }))} /></label><label className="sp-form-field">Fin de période<input className="sp-field" required type="date" value={payrollForm.periodEnd} onChange={(event) => setPayrollForm((v) => ({ ...v, periodEnd: event.target.value }))} /></label></div>
