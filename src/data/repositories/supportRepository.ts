@@ -142,12 +142,26 @@ export async function deleteCourseSupport(
   if (!allowedCourseIds.some((courseId) => String(courseId) === String(support.courseId))) {
     throw new Error('Vous ne pouvez supprimer que les supports de vos propres cours.');
   }
-  const { error: storageError } = await client.storage.from('supports').remove([support.filePath]);
-  if (storageError) throw storageError;
-  const { error } = await client
+  // Delete the database row first. If Storage cleanup fails afterward, the
+  // document is no longer visible or downloadable through the documents-based
+  // Storage SELECT policy, and we avoid leaving a visible row with a missing file.
+  const { data: deleted, error: deleteError } = await client
     .from('documents')
     .delete()
     .eq('id', support.id)
-    .eq('centre_id', centreId);
-  if (error) throw error;
+    .eq('centre_id', centreId)
+    .select('id')
+    .maybeSingle();
+
+  if (deleteError) throw deleteError;
+  if (!deleted) {
+    throw new Error('Support introuvable ou suppression non autorisée pour ce centre.');
+  }
+
+  const { error: storageError } = await client.storage.from('supports').remove([support.filePath]);
+  if (storageError) {
+    throw new Error(
+      `Le support a été retiré de la liste, mais son fichier n’a pas pu être nettoyé dans Storage : ${storageError.message}`,
+    );
+  }
 }
