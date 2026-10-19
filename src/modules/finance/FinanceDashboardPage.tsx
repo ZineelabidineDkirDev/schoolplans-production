@@ -195,7 +195,7 @@ export function FinanceDashboardPage() {
     const monthlySalary = payrollForm.compensationMode === 'monthly' ? Number(payrollForm.monthlySalary) : 0;
     const deduction = Number(payrollForm.advanceDeduction || 0);
     const gross = payrollForm.compensationMode === 'session' ? sessionCount * sessionRate : payrollForm.compensationMode === 'monthly' ? monthlySalary : hours * hourlyRate;
-    if (!payrollForm.teacherId || !payrollForm.periodStart || !payrollForm.periodEnd || payrollForm.periodEnd < payrollForm.periodStart || ![hours,hourlyRate,sessionCount,sessionRate,monthlySalary,deduction,gross].every(Number.isFinite) || [hours,hourlyRate,sessionCount,sessionRate,monthlySalary,deduction].some((value) => value < 0) || deduction > gross || deduction > advanceBalance(Number(payrollForm.teacherId)) + 0.001) { setError('Vérifiez le formateur, la période et les montants. La déduction ne peut dépasser ni la rémunération brute ni le solde des avances à récupérer.'); return; }
+    if (!payrollForm.teacherId || !payrollForm.periodStart || !payrollForm.periodEnd || payrollForm.periodEnd < payrollForm.periodStart || ![hours,hourlyRate,sessionCount,sessionRate,monthlySalary,deduction,gross].every(Number.isFinite) || [hours,hourlyRate,sessionCount,sessionRate,monthlySalary,deduction].some((value) => value < 0) || deduction > gross) { setError('Vérifiez le formateur, la période et les montants. La déduction ne peut pas dépasser la rémunération brute. Le solde réel des avances sera vérifié par la base de données.'); return; }
     setSaving(true); setError(null); setNotice(null);
     try {
       const client = getSupabaseClient();
