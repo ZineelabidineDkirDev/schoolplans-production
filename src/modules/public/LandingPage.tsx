@@ -217,7 +217,7 @@ export function LandingPage() {
   const connectedLabel = profile?.fullName?.trim() || session?.user.email || 'Mon espace';
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [pricingIndex, setPricingIndex] = useState(0);
+  const [pricingIndex, setPricingIndex] = useState(2);
   const [contactMessage, setContactMessage] = useState('');
   const pricingViewport = useRef<HTMLDivElement>(null);
 
@@ -226,6 +226,15 @@ export function LandingPage() {
     syncScroll();
     window.addEventListener('scroll', syncScroll, { passive: true });
     return () => window.removeEventListener('scroll', syncScroll);
+  }, []);
+
+  useEffect(() => {
+    const viewport = pricingViewport.current;
+    const card = viewport?.querySelector<HTMLElement>('.sp-landing-plan');
+    if (!viewport || !card) return;
+    const step = card.offsetWidth + 16;
+    viewport.scrollLeft = step * 2;
+    setPricingIndex(2);
   }, []);
 
   function syncPricingIndex() {
