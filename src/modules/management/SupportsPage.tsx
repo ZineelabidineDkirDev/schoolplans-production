@@ -462,7 +462,7 @@ export function SupportsPage() {
         <Panel className="!p-0">
           {state.documents.length === 0 ? (
             <EmptyState
-              description="Les documents de vos cours apparaîtront ici."
+              description="Les fichiers et liens partagés pour vos cours apparaîtront ici."
               title="Aucun support disponible."
             />
           ) : (
@@ -472,7 +472,7 @@ export function SupportsPage() {
                   <tr>
                     <th>Document</th>
                     <th>Cours</th>
-                    <th>Fichier</th>
+                    <th>Fichier / lien</th>
                     <th>Ajouté le</th>
                     <th>Actions</th>
                   </tr>
@@ -566,7 +566,7 @@ export function SupportsPage() {
                         </td>
                       </tr>
                     );
-                  })}}
+                  })}
                 </tbody>
               </table>
             </div>
