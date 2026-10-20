@@ -396,6 +396,12 @@ export function SupportsPage() {
     }
   }
 
+  const displayedDocuments = state.status === 'loaded'
+    ? state.documents.filter((item) => activeMode === 'live'
+      ? item.title.startsWith('🔴 LIVE — ')
+      : !item.title.startsWith('🔴 LIVE — '))
+    : [];
+
   return (
     <section className="mx-auto w-full max-w-screen-2xl space-y-5">
       <PageHeader
@@ -592,10 +598,12 @@ export function SupportsPage() {
       )}
       {state.status === 'loaded' && state.studentFound && (
         <Panel className="!p-0">
-          {state.documents.length === 0 ? (
+          {displayedDocuments.length === 0 ? (
             <EmptyState
-              description="Les vidéos et ressources partagées par les formateurs de votre centre apparaîtront ici."
-              title="Aucun support disponible."
+              description={activeMode === 'live'
+                ? 'Les séances LIVE publiées par les formateurs de votre centre apparaîtront ici.'
+                : 'Les vidéos et ressources partagées par les formateurs de votre centre apparaîtront ici.'}
+              title={activeMode === 'live' ? 'Aucune séance LIVE disponible.' : 'Aucun cours enregistré disponible.'}
             />
           ) : (
             <div className="sp-table-wrap">
@@ -610,7 +618,7 @@ export function SupportsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {state.documents.map((support) => {
+                  {displayedDocuments.map((support) => {
                     const course = state.courses.find(
                       (item) => String(item.id) === String(support.courseId),
                     );
