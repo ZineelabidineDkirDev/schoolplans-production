@@ -6,6 +6,7 @@ export type StudentRecordInput = {
   lastName: string;
   email: string;
   telephone: string;
+  parentTelephone: string;
   city: string;
   address: string;
   educationLevel: string;
@@ -34,6 +35,7 @@ function toRow(centreId: string, input: StudentRecordInput) {
     nom: input.lastName.trim(),
     email: normalize(input.email),
     telephone: normalize(input.telephone),
+    telephone_parent: normalize(input.parentTelephone),
     ville: normalize(input.city),
     adresse: normalize(input.address),
     niveau_etudes: normalize(input.educationLevel),
