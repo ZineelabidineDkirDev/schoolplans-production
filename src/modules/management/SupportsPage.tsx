@@ -116,12 +116,10 @@ export function SupportsPage() {
           throw new Error('Votre rôle ne permet pas de consulter les supports du centre.');
         }
         const planning = await getPlanningData(client, profile.centreId, profile.id, profile.role);
-        // Les formateurs ne consultent que les supports des cours qui leur sont affectés.
-        // Les administrateurs/directeurs gardent la vue complète du centre.
-        const courseIds = profile.role === 'formateur'
-          ? planning.courses.map((course) => course.id)
-          : undefined;
-        const documents = await getCourseSupports(client, profile.centreId, courseIds);
+        // Tous les formateurs peuvent consulter les ressources pédagogiques du centre.
+        // Les droits de création, modification et suppression restent réservés aux formateurs
+        // et les règles Supabase doivent protéger ces actions côté serveur.
+        const documents = await getCourseSupports(client, profile.centreId);
         if (active) {
           setState({
             status: 'loaded',
