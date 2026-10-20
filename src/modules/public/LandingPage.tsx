@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../auth/AuthProvider';
 
 const features = [
   [
@@ -164,6 +165,9 @@ function AnimatedMetric({ label, value }: { label: string; value: number }) {
 }
 
 export function LandingPage() {
+  const { status, profile, session } = useAuth();
+  const connected = status === 'authenticated' && profile !== null;
+  const connectedLabel = profile?.fullName?.trim() || session?.user.email || 'Mon espace';
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [pricingIndex, setPricingIndex] = useState(0);
@@ -240,9 +244,16 @@ export function LandingPage() {
           <a href="#lp-ct" onClick={() => setMenuOpen(false)}>
             Nous contacter
           </a>
-          <Link className="sp-landing-login" to="/login">
-            Se connecter <span aria-hidden="true">→</span>
-          </Link>
+          {connected ? (
+            <Link aria-label={`Ouvrir l’espace de ${connectedLabel}`} className="sp-landing-login" to="/app">
+              <span className="sp-landing-account-name">{connectedLabel}</span>
+              <span aria-hidden="true">→</span>
+            </Link>
+          ) : (
+            <Link className="sp-landing-login" to="/login">
+              Se connecter <span aria-hidden="true">→</span>
+            </Link>
+          )}
         </nav>
       </header>
 
