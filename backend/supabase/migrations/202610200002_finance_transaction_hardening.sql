@@ -152,3 +152,48 @@ for each row
 execute function public.finance_validate_payroll_advance_date();
 
 revoke all on function public.finance_validate_payroll_advance_date() from public;
+
+-- Do not hide money by deactivating a cash/bank account that still has a balance.
+create or replace function public.finance_prevent_deactivate_nonzero_account()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_balance numeric(12,2);
+begin
+  if old.active = true and new.active = false then
+    select a.opening_balance + coalesce(sum(
+      case
+        when m.movement_type in ('inflow', 'transfer_in', 'adjustment') then m.amount
+        else -m.amount
+      end
+    ), 0)
+      into v_balance
+    from public.finance_accounts a
+    left join public.finance_account_movements m
+      on m.account_id = a.id and m.centre_id = a.centre_id
+    where a.id = old.id and a.centre_id = old.centre_id
+    group by a.id, a.opening_balance;
+
+    if round(coalesce(v_balance, 0), 2) <> 0 then
+      raise exception
+        'Impossible de désactiver ce compte : son solde est de % DH. Transférez d’abord les fonds.',
+        round(v_balance, 2);
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists finance_account_no_deactivate_with_balance
+  on public.finance_accounts;
+
+create trigger finance_account_no_deactivate_with_balance
+before update of active on public.finance_accounts
+for each row
+execute function public.finance_prevent_deactivate_nonzero_account();
+
+revoke all on function public.finance_prevent_deactivate_nonzero_account() from public;
