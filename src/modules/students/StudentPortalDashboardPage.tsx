@@ -83,7 +83,7 @@ export function StudentPortalDashboardPage() {
     <section className="student-portal mx-auto w-full max-w-screen-2xl space-y-6">
       <PageHeader
         eyebrow="Mon espace"
-        title={`Bonjour ${profile?.fullName?.trim().split(/\\s+/)[0] || 'etudiant'} 👋`}
+        title={`Bonjour ${profile?.fullName?.trim().split(/\s+/)[0] || 'Étudiant'} 👋`}
         description="Retrouvez en un coup d’œil vos cours, votre présence et vos ressources pédagogiques."
       />
       {state.status === 'loading' && <Panel><LoadingState label="Chargement de votre espace étudiant…" /></Panel>}
