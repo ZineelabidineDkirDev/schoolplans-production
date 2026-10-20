@@ -312,6 +312,7 @@ export async function deleteCourseSupport(
     .delete()
     .eq('id', support.id)
     .eq('centre_id', centreId)
+    .eq('cours_id', support.courseId)
     .select('id')
     .maybeSingle();
 
