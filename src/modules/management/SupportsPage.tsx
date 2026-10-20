@@ -45,7 +45,8 @@ function sortSupports(supports: CourseSupport[]) {
 function sessionCourse(course: PlanningCourse): SupportCourse {
   return {
     id: course.id,
-    label: `${course.subjectName} · ${course.teacherName}${course.roomName ? ` · ${course.roomName}` : ''}`,
+    // Afficher uniquement le module : ni formateur ni salle dans les sélecteurs en ligne.
+    label: course.subjectName,
   };
 }
 
