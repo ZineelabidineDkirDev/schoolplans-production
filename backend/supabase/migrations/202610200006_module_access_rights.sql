@@ -108,3 +108,97 @@ begin
     );
   end loop;
 end $$;
+
+-- SECURITY DEFINER finance RPC must check the module explicitly because it bypasses table RLS.
+create or replace function public.finance_record_manual_movement(
+  p_account_id uuid,
+  p_movement_type text,
+  p_amount numeric,
+  p_movement_date timestamptz,
+  p_description text
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_centre_id uuid;
+  v_role text;
+  v_account_name text;
+  v_balance numeric(12,2);
+  v_amount numeric(12,2);
+  v_movement_id uuid := gen_random_uuid();
+begin
+  if not public.mc_droit('gestion_financiere') then
+    raise exception 'Accès refusé : le module Gestion financière n’est pas inclus dans le pack du centre.';
+  end if;
+
+  select p.centre_id, p.role
+    into v_centre_id, v_role
+  from public.profiles p
+  where p.id = auth.uid();
+
+  if auth.uid() is null
+     or coalesce(v_role, '') not in ('admin', 'director')
+     or v_centre_id is null then
+    raise exception 'Accès refusé : directeur ou administrateur du centre requis.';
+  end if;
+
+  if p_movement_type not in ('inflow', 'outflow') then
+    raise exception 'Type de mouvement manuel invalide.';
+  end if;
+
+  if p_amount is null or p_amount <= 0 then
+    raise exception 'Le montant doit être supérieur à zéro.';
+  end if;
+  v_amount := round(p_amount, 2);
+  if v_amount <= 0 then
+    raise exception 'Le montant doit être d’au moins 0,01 DH.';
+  end if;
+
+  if nullif(trim(p_description), '') is null then
+    raise exception 'La description du mouvement est obligatoire.';
+  end if;
+
+  select a.name
+    into v_account_name
+  from public.finance_accounts a
+  where a.id = p_account_id
+    and a.centre_id = v_centre_id
+    and a.active = true
+  for update;
+
+  if not found then
+    raise exception 'Compte introuvable ou inactif pour ce centre.';
+  end if;
+
+  select a.opening_balance + coalesce(sum(
+    case
+      when m.movement_type in ('inflow', 'transfer_in', 'adjustment') then m.amount
+      else -m.amount
+    end
+  ), 0)
+    into v_balance
+  from public.finance_accounts a
+  left join public.finance_account_movements m
+    on m.account_id = a.id and m.centre_id = a.centre_id
+  where a.id = p_account_id and a.centre_id = v_centre_id
+  group by a.id, a.opening_balance;
+
+  if p_movement_type = 'outflow' and v_balance < v_amount then
+    raise exception 'Solde insuffisant dans « % » : disponible % DH.',
+      v_account_name, round(v_balance, 2);
+  end if;
+
+  insert into public.finance_account_movements (
+    id, centre_id, account_id, movement_type, amount, movement_date,
+    description, source_type, created_by
+  ) values (
+    v_movement_id, v_centre_id, p_account_id, p_movement_type, v_amount,
+    coalesce(p_movement_date, now()), trim(p_description), 'manual', auth.uid()
+  );
+
+  return v_movement_id;
+end;
+$$;
