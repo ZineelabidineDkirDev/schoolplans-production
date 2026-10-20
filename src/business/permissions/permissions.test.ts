@@ -12,19 +12,21 @@ describe('centralized section permissions', () => {
   it('fails closed for missing and disabled centre rights', () => {
     expect(canAccessSection('admin', 'vcal', {})).toBe(false);
     expect(canAccessSection('admin', 'vcal', { planning: false })).toBe(false);
-    expect(canAccessSection('admin', 'vk', { supports: true })).toBe(false);
+    expect(canAccessSection('admin', 'vk', { supports: true, documents: true })).toBe(false);
+    expect(canAccessSection('admin', 'vk', { cours_en_ligne: true })).toBe(true);
   });
 
   it('does not grant a section outside a role menu or without the required right', () => {
     const permissions: CentrePermissions = {
       planning: true,
       salles: true,
-      supports: true,
-      documents: true,
+      cours_en_ligne: true,
+      gestion_financiere: true,
     };
     expect(canAccessSection('formateur', 'vk', permissions)).toBe(true);
     expect(canAccessSection('etudiant', 'vp', permissions)).toBe(false);
-    expect(canAccessSection('etudiant', 'vk', {})).toBe(true);
+    expect(canAccessSection('etudiant', 'vk', {})).toBe(false);
+    expect(canAccessSection('etudiant', 'vk', { cours_en_ligne: true })).toBe(true);
     expect(canAccessSection('admin', 'vc', { certificats: true })).toBe(true);
     expect(canAccessSection('admin', 'vc', {})).toBe(false);
   });
@@ -51,12 +53,34 @@ describe('centralized section permissions', () => {
     expect(canAccessSection('formateur', 'vpcentre', {})).toBe(false);
   });
 
-  it('reserves financial management for centre administrators and directors', () => {
-    expect(canAccessSection('admin', 'vfinance', {})).toBe(true);
-    expect(canAccessSection('director', 'vfinance', {})).toBe(true);
+  it('reserves financial management for centre administrators and directors with the finance module enabled', () => {
+    expect(canAccessSection('admin', 'vfinance', {})).toBe(false);
+    expect(canAccessSection('director', 'vfinance', {})).toBe(false);
+    expect(canAccessSection('admin', 'vfinance', { gestion_financiere: true })).toBe(true);
+    expect(canAccessSection('director', 'vfinance', { gestion_financiere: true })).toBe(true);
     expect(canAccessSection('super_admin', 'vfinance', {})).toBe(false);
     expect(canAccessSection('formateur', 'vfinance', {})).toBe(false);
     expect(canAccessSection('etudiant', 'vfinance', {})).toBe(false);
+  });
+
+
+  it('shows online courses only once in the admin navigation', () => {
+    const visible = getVisibleSections('director', {
+      cours_en_ligne: true,
+      planning: true,
+      salles: true,
+      gestion_financiere: true,
+      formations: true,
+      groupes: true,
+      formateurs: true,
+      statistiques: true,
+      cours: true,
+      seances: true,
+      presences: true,
+      certificats: true,
+      etudiants: true,
+    });
+    expect(visible.filter((section) => section === 'vk')).toHaveLength(1);
   });
 
   it('allows super-admin sections without centre feature flags', () => {
@@ -64,14 +88,9 @@ describe('centralized section permissions', () => {
   });
 
   it('enables migrated centre modules only when their central permission is true', () => {
-    expect(
-      canAccessSection('director', 'vfg', {
-        planning: true,
-        cours: true,
-        formations: true,
-      }),
-    ).toBe(true);
-    expect(canAccessSection('director', 'vfg', { formations: false })).toBe(false);
+    expect(canAccessSection('director', 'vfg', { formations: true })).toBe(false);
+    expect(canAccessSection('director', 'vfg', { formations: true, groupes: true })).toBe(true);
+    expect(canAccessSection('director', 'vfg', { formations: false, groupes: true })).toBe(false);
     expect(canAccessSection('admin', 'vr', { salles: true })).toBe(true);
     expect(canAccessSection('admin', 'vp', { presences: true })).toBe(true);
   });
