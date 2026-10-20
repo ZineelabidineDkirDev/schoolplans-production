@@ -61,6 +61,13 @@ export function SupportsPage() {
   const [externalUrl, setExternalUrl] = useState('');
   const [editingSupportId, setEditingSupportId] = useState<StudentIdentifier | null>(null);
   const [busy, setBusy] = useState(false);
+  const [activeMode, setActiveMode] = useState<'recorded' | 'live'>('recorded');
+  const [liveCourse, setLiveCourse] = useState('');
+  const [liveTitle, setLiveTitle] = useState('');
+  const [liveProvider, setLiveProvider] = useState<'Google Meet' | 'Zoom' | 'Microsoft Teams' | 'Autre'>('Google Meet');
+  const [liveUrl, setLiveUrl] = useState('');
+  const [liveDate, setLiveDate] = useState('');
+  const [liveTime, setLiveTime] = useState('');
   const [message, setMessageState] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
   const setMessage = (value: { tone: 'success' | 'error'; text: string } | null) => {
     setMessageState(value);
@@ -271,6 +278,38 @@ export function SupportsPage() {
     }
   }
 
+  async function submitLiveSession(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (state.status !== 'loaded' || !profile?.centreId) return;
+    if (!liveCourse || !liveTitle.trim() || !liveUrl.trim() || !liveDate || !liveTime) {
+      setMessage({ tone: 'error', text: 'Complétez le cours, le titre, le lien, la date et l’heure de la séance.' });
+      return;
+    }
+    try {
+      const parsedUrl = new URL(liveUrl);
+      if (!['https:', 'http:'].includes(parsedUrl.protocol)) throw new Error('Le lien de réunion doit commencer par https:// ou http://.');
+      setBusy(true);
+      setMessage(null);
+      const support = await createLinkCourseSupport(getSupabaseClient(), {
+        centreId: profile.centreId,
+        courseId: liveCourse,
+        title: `🔴 LIVE — ${liveTitle.trim()}`,
+        description: `Séance en direct via ${liveProvider} · ${new Date(`${liveDate}T${liveTime}`).toLocaleString('fr-FR')}`,
+        url: parsedUrl.toString(),
+      });
+      setState({ ...state, documents: sortSupports([support, ...state.documents]) });
+      setLiveTitle('');
+      setLiveUrl('');
+      setLiveDate('');
+      setLiveTime('');
+      setMessage({ tone: 'success', text: 'Séance LIVE publiée. Les étudiants de votre centre peuvent ouvrir le lien depuis Cours en ligne.' });
+    } catch (cause) {
+      setMessage({ tone: 'error', text: cause instanceof Error ? cause.message : 'Impossible de publier la séance LIVE.' });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function openSupport(support: CourseSupport, download: boolean) {
     setMessage(null);
     try {
@@ -365,6 +404,45 @@ export function SupportsPage() {
         title="Cours en ligne"
       />
       {message && <Alert tone={message.tone}>{message.text}</Alert>}
+      {state.status === 'loaded' && state.studentFound && (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => setActiveMode('recorded')}
+            aria-pressed={activeMode === 'recorded'}
+            className={`group rounded-2xl border p-5 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${activeMode === 'recorded' ? 'border-blue-500 bg-blue-50/70 ring-1 ring-blue-200' : 'border-slate-200 bg-white hover:border-blue-300'}`}
+          >
+            <div className="flex items-start gap-4">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-blue-100 text-blue-700 transition-transform group-hover:scale-105">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-7 w-7"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3V9Z" fill="currentColor" stroke="none"/></svg>
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-lg font-bold text-slate-900">Mettre un cours en ligne</span>
+                <span className="mt-1 block text-sm leading-6 text-slate-600">Publier des vidéos MP4, PDF, documents et ressources à consulter à tout moment.</span>
+                <span className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-blue-700">Cours enregistrés <span aria-hidden="true">→</span></span>
+              </span>
+            </div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveMode('live')}
+            aria-pressed={activeMode === 'live'}
+            className={`group rounded-2xl border p-5 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 ${activeMode === 'live' ? 'border-emerald-500 bg-emerald-50/70 ring-1 ring-emerald-200' : 'border-slate-200 bg-white hover:border-emerald-300'}`}
+          >
+            <div className="flex items-start gap-4">
+              <span className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700 transition-transform group-hover:scale-105">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-7 w-7"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="m16 10 5-3v10l-5-3" strokeLinecap="round" strokeLinejoin="round"/><circle cx="8" cy="12" r="2"/></svg>
+                <span className="absolute -right-1 -top-1 rounded-full bg-red-600 px-1.5 py-0.5 text-[9px] font-bold tracking-wide text-white">LIVE</span>
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-lg font-bold text-slate-900">Séance en ligne LIVE</span>
+                <span className="mt-1 block text-sm leading-6 text-slate-600">Programmer une séance et partager un lien Google Meet, Zoom ou Microsoft Teams.</span>
+                <span className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-emerald-700">Préparer une séance <span aria-hidden="true">→</span></span>
+              </span>
+            </div>
+          </button>
+        </div>
+      )}
       {state.status === 'loading' && (
         <Panel>
           <LoadingState label="Chargement des supports…" />
@@ -384,7 +462,28 @@ export function SupportsPage() {
           l’administration de vérifier l’adresse e-mail associée à votre dossier.
         </Alert>
       )}
-      {state.status === 'loaded' && profile?.role === 'formateur' && (
+      {state.status === 'loaded' && activeMode === 'live' && profile?.role === 'formateur' && (
+        <Panel>
+          <div className="mb-4 flex items-start gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="m16 10 5-3v10l-5-3" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
+            <div><h2 className="management-panel-title">Programmer une séance LIVE</h2><p className="sp-muted">Collez le lien créé dans Google Meet, Zoom ou Teams. La séance sera partagée avec les étudiants de votre centre.</p></div>
+          </div>
+          {state.courses.length === 0 ? (
+            <EmptyState description="Affectez-vous d’abord à un cours dans le planning." title="Aucun cours disponible." />
+          ) : (
+            <form className="management-editor-form" onSubmit={(event) => void submitLiveSession(event)}>
+              <label className="sp-form-field">Cours / module<select className="sp-field" value={liveCourse} onChange={(event) => setLiveCourse(event.target.value)} required><option value="">Sélectionner un cours</option>{state.courses.map((course) => <option key={String(course.id)} value={String(course.id)}>{course.label}</option>)}</select></label>
+              <label className="sp-form-field">Titre de la séance<input className="sp-field" value={liveTitle} onChange={(event) => setLiveTitle(event.target.value)} maxLength={150} placeholder="Ex. Révision SQL — chapitre 3" required /></label>
+              <label className="sp-form-field">Plateforme<select className="sp-field" value={liveProvider} onChange={(event) => setLiveProvider(event.target.value as typeof liveProvider)}><option>Google Meet</option><option>Zoom</option><option>Microsoft Teams</option><option>Autre</option></select></label>
+              <label className="sp-form-field">Lien de réunion<input className="sp-field" type="url" value={liveUrl} onChange={(event) => setLiveUrl(event.target.value)} placeholder="https://meet.google.com/..." required /></label>
+              <label className="sp-form-field">Date<input className="sp-field" type="date" value={liveDate} onChange={(event) => setLiveDate(event.target.value)} required /></label>
+              <label className="sp-form-field">Heure de début<input className="sp-field" type="time" value={liveTime} onChange={(event) => setLiveTime(event.target.value)} required /></label>
+              <div className="management-editor-actions management-editor-wide"><Button disabled={busy} type="submit">{busy ? 'Publication…' : 'Publier la séance LIVE'}</Button></div>
+            </form>
+          )}
+        </Panel>
+      )}
+      {state.status === 'loaded' && activeMode === 'recorded' && profile?.role === 'formateur' && (
         <Panel>
           <h2 className="management-panel-title">{editingSupportId ? 'Modifier un support' : 'Partager une ressource'}</h2>
           {state.courses.length === 0 ? (
