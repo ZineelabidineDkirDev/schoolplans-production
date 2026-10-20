@@ -16,9 +16,11 @@ import {
   type ModuleOption,
 } from '../../data/repositories/formationGroupRepository';
 import {
+  getAbsenceAlerts,
   getAttendanceSheet,
   getCentreStudents,
   saveAttendance,
+  type AbsenceAlert,
 } from '../../data/repositories/managementRepository';
 import {
   createCentreStudent,
@@ -1108,7 +1110,7 @@ export function StudentsPage() {
   };
   const [enrollmentIds, setEnrollmentIds] = useState<Record<string, Array<string | number>>>({});
   const [form, setForm] = useState<StudentRecordInput>({
-    firstName: '', lastName: '', email: '', telephone: '', city: '', address: '', educationLevel: '',
+    firstName: '', lastName: '', email: '', telephone: '', parentTelephone: '', city: '', address: '', educationLevel: '',
   });
   const canManage = profile?.role === 'admin' || profile?.role === 'director';
 
@@ -1157,14 +1159,14 @@ export function StudentsPage() {
     if (state.status !== 'loaded') return [];
     const normalized = search.trim().toLocaleLowerCase('fr');
     return state.students.filter((student) =>
-      [student.firstName, student.lastName, student.email, student.telephone, student.city, student.groupName]
+      [student.firstName, student.lastName, student.email, student.telephone, student.parentTelephone, student.city, student.groupName]
         .filter(Boolean).join(' ').toLocaleLowerCase('fr').includes(normalized),
     );
   }, [search, state]);
 
   function startCreate() {
     setEditingId(null);
-    setForm({ firstName: '', lastName: '', email: '', telephone: '', city: '', address: '', educationLevel: '' });
+    setForm({ firstName: '', lastName: '', email: '', telephone: '', parentTelephone: '', city: '', address: '', educationLevel: '' });
     setError(null);
     setMessage(null);
     setFormOpen(true);
@@ -1177,6 +1179,7 @@ export function StudentsPage() {
       lastName: student.lastName,
       email: student.email ?? '',
       telephone: student.telephone ?? '',
+      parentTelephone: student.parentTelephone ?? '',
       city: student.city ?? '',
       address: student.address ?? '',
       educationLevel: student.educationLevel ?? '',
@@ -1240,7 +1243,8 @@ export function StudentsPage() {
     { key: 'firstName', label: 'Prénom', required: true },
     { key: 'lastName', label: 'Nom', required: true },
     { key: 'email', label: 'E-mail', type: 'email' },
-    { key: 'telephone', label: 'Téléphone', type: 'tel' },
+    { key: 'telephone', label: 'Téléphone de l’étudiant', type: 'tel' },
+    { key: 'parentTelephone', label: 'Téléphone du parent / tuteur', type: 'tel' },
     { key: 'city', label: 'Ville' },
     { key: 'address', label: 'Adresse' },
     { key: 'educationLevel', label: 'Niveau d’études' },
@@ -1317,6 +1321,7 @@ export function StudentsPage() {
               <div className="management-student-details">
                 {student.email && <a href={`mailto:${student.email}`}><span aria-hidden="true">✉</span>{student.email}</a>}
                 {student.telephone && <a href={`tel:${student.telephone}`}><span aria-hidden="true">☎</span>{student.telephone}</a>}
+                {student.parentTelephone && <a href={`tel:${student.parentTelephone}`}><span aria-hidden="true">☎</span>Parent : {student.parentTelephone}</a>}
                 {student.city && <span><span aria-hidden="true">⌖</span>{student.city}</span>}
               </div>
               <footer className="management-student-footer">
@@ -1383,11 +1388,24 @@ function formatCourseTime(occurrence: PlanningOccurrence): string {
   return `${occurrence.startsAt.slice(0, 5)} – ${occurrence.endsAt.slice(0, 5)}`;
 }
 
+function normalizeWhatsAppPhone(phone: string): string {
+  const digits = phone.replace(/[^0-9]/g, '');
+  if (digits.startsWith('00')) return digits.slice(2);
+  if (digits.startsWith('0')) return `212${digits.slice(1)}`;
+  return digits;
+}
+
+function formatAbsenceDate(value: string): string {
+  return new Date(`${value}T12:00:00`).toLocaleDateString('fr-FR');
+}
+
 export function AttendancePage() {
   const { profile } = useAuth();
   const { state: planningState, reload } = usePlanningData();
   const [date, setDate] = useState(() => isoDate(new Date()));
   const [sheet, setSheet] = useState<AttendanceSheet | null>(null);
+  const [absenceAlerts, setAbsenceAlerts] = useState<AbsenceAlert[]>([]);
+  const [alertsLoading, setAlertsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
   const setError = (value: string | null) => {
@@ -1443,6 +1461,26 @@ export function AttendancePage() {
     };
   }, [date, occurrences, planningState, profile?.centreId, revision]);
 
+  useEffect(() => {
+    if (planningState.status !== 'loaded' || !profile?.centreId) return;
+    let active = true;
+    setAlertsLoading(true);
+    const courseIds = planningState.data.courses.map((course) => course.id);
+    void getAbsenceAlerts(getSupabaseClient(), profile.centreId, courseIds)
+      .then((alerts) => {
+        if (active) setAbsenceAlerts(alerts);
+      })
+      .catch((cause: unknown) => {
+        if (active) setError(errorMessage(cause));
+      })
+      .finally(() => {
+        if (active) setAlertsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [planningState, profile?.centreId, revision]);
+
   async function updateStatus(
     courseId: string | number,
     studentId: string | number,
@@ -1487,6 +1525,50 @@ export function AttendancePage() {
       title="Présences"
     >
       <PlanningLoadState retry={reload} state={planningState} />
+      {planningState.status === 'loaded' && (
+        <Panel className="management-absence-alerts">
+          <header className="management-attendance-heading">
+            <div>
+              <p className="planning-progress-eyebrow">Suivi automatique</p>
+              <h2>Alertes d’absences répétées</h2>
+              <p>Un étudiant apparaît après sa 4ᵉ absence dans le même cours.</p>
+            </div>
+            <span className="management-attendance-count">{absenceAlerts.length} alerte{absenceAlerts.length === 1 ? '' : 's'}</span>
+          </header>
+          {alertsLoading ? (
+            <LoadingState label="Vérification des absences historiques…" />
+          ) : absenceAlerts.length === 0 ? (
+            <p className="management-muted">Aucun étudiant n’a dépassé 3 absences dans les cours accessibles à votre rôle.</p>
+          ) : (
+            <div className="management-attendance-list">
+              {absenceAlerts.map((alert) => {
+                const course = planningState.data.courses.find((item) => String(item.id) === String(alert.courseId));
+                const phone = alert.parentTelephone ? normalizeWhatsAppPhone(alert.parentTelephone) : '';
+                const messageText = `Bonjour, nous vous contactons au sujet de ${alert.firstName} ${alert.lastName}, qui compte ${alert.absenceCount} absences dans le cours « ${course?.subjectName ?? 'cours'} » à SchoolPlans. Dernière absence enregistrée : ${formatAbsenceDate(alert.lastAbsenceDate)}. Merci de contacter le centre pour faire le point.`;
+                const whatsappUrl = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(messageText)}` : '';
+                return (
+                  <div className="management-attendance-row management-absence-alert-row" key={`${alert.courseId}|${alert.studentId}`}>
+                    <div className="management-absence-alert-info">
+                      <strong>{alert.firstName} {alert.lastName}</strong>
+                      <span>{course?.subjectName ?? 'Cours'} · {alert.absenceCount} absences</span>
+                      <small>Dernière absence : {formatAbsenceDate(alert.lastAbsenceDate)}</small>
+                      {alert.parentTelephone ? (
+                        <small>Parent / tuteur : {alert.parentTelephone}</small>
+                      ) : (
+                        <small className="management-absence-alert-missing">Téléphone du parent manquant — complétez la fiche étudiant.</small>
+                      )}
+                    </div>
+                    <div className="management-toolbar">
+                      {alert.parentTelephone && <a className="sp-btn sp-btn-ghost" href={`tel:${alert.parentTelephone}`}>Appeler</a>}
+                      {whatsappUrl && <a className="sp-btn" href={whatsappUrl} rel="noreferrer" target="_blank">WhatsApp</a>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Panel>
+      )}
       {message && <Alert tone="success">{message}</Alert>}
       {error && <Alert tone="error">{error}</Alert>}
       {loading && (
