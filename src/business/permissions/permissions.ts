@@ -42,8 +42,8 @@ const ROLE_SECTIONS: Record<SourceRole, readonly AppSection[]> = {
     'vfinance',
   ],
   super_admin: [...COMMON_SECTIONS, 'vz', 'vd'],
-  formateur: [...COMMON_SECTIONS, 'vl', 'vn', 'vp', 'vk', 'vrapport'],
-  etudiant: ['vcal', 'vr', 'vm', 'vq', 'vk', 'vrapport'],
+  formateur: [...COMMON_SECTIONS, 'vl', 'vn', 'vp', 'vk', 'vnotes', 'vrapport'],
+  etudiant: ['vcal', 'vr', 'vm', 'vq', 'vk', 'vnotes', 'vrapport'],
 };
 
 const SECTION_REQUIREMENTS: Partial<Record<AppSection, readonly CentrePermissionKey[]>> = {
