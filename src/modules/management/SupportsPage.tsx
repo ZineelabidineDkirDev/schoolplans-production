@@ -94,11 +94,13 @@ export function SupportsPage() {
             }
             return;
           }
-          const courseIds = workspace.courses.map((course) => course.id);
+          // L'étudiant consulte toutes les ressources de son centre, pas uniquement
+          // celles des cours auxquels il est individuellement inscrit.
+          // getCourseSupports filtre explicitement sur profile.centreId.
+          const documents = await getCourseSupports(client, profile.centreId);
           const courseById = new Map(
             workspace.courses.map((course) => [String(course.id), course]),
           );
-          const documents = await getCourseSupports(client, profile.centreId, courseIds);
           if (active) {
             setState({
               status: 'loaded',
@@ -223,8 +225,8 @@ export function SupportsPage() {
       setMessage({
         tone: 'success',
         text: resourceType === 'link'
-          ? 'Lien ajouté. Les étudiants inscrits au cours peuvent l’ouvrir.'
-          : 'Document importé. Les étudiants inscrits au cours peuvent le consulter et le télécharger.',
+          ? 'Lien ajouté. Les étudiants de votre centre peuvent le consulter.'
+          : 'Fichier importé. Les étudiants de votre centre peuvent le consulter et le télécharger.',
       });
     } catch (cause) {
       setMessage({
@@ -431,9 +433,9 @@ export function SupportsPage() {
                 </p>
               ) : (
                 <label className="sp-form-field management-editor-wide">
-                  Fichier (20 Mo maximum)
+                  Fichier ou vidéo MP4 (20 Mo maximum)
                   <input
-                    accept="application/pdf,image/*,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt"
+                    accept="video/mp4,.mp4,application/pdf,image/*,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt"
                     className="sp-field"
                     id="support-file"
                     onChange={(event) => setFile(event.target.files?.[0] ?? null)}
@@ -460,7 +462,7 @@ export function SupportsPage() {
         <Panel className="!p-0">
           {state.documents.length === 0 ? (
             <EmptyState
-              description="Les fichiers et liens partagés pour vos cours apparaîtront ici."
+              description="Les vidéos et ressources partagées par les formateurs de votre centre apparaîtront ici."
               title="Aucun support disponible."
             />
           ) : (
