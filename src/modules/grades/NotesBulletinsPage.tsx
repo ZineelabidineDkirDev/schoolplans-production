@@ -24,6 +24,7 @@ export function NotesBulletinsPage() {
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [eligibleStudentIds, setEligibleStudentIds] = useState<string[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [bulletins, setBulletins] = useState<Bulletin[]>([]);
   const [currentStudentId, setCurrentStudentId] = useState<string | null>(null);
@@ -73,6 +74,19 @@ export function NotesBulletinsPage() {
   const activeEvaluation = evaluations.find((e) => e.id === selectedEvaluation) ?? null;
   const currentGrades = useMemo(() => grades.filter((g) => g.evaluation_id === selectedEvaluation), [grades, selectedEvaluation]);
   const gradeByStudent = useMemo(() => new Map(currentGrades.map((g) => [g.student_id, g])), [currentGrades]);
+
+  useEffect(() => {
+    if (!activeEvaluation || !centreId || role === 'etudiant') { setEligibleStudentIds([]); return; }
+    let active = true;
+    void getSupabaseClient().from('inscriptions').select('etudiant_id')
+      .eq('centre_id', centreId).eq('cours_id', activeEvaluation.cours_id)
+      .then(({ data, error: enrollmentError }) => {
+        if (!active) return;
+        if (enrollmentError) { setError(enrollmentError.message); setEligibleStudentIds([]); return; }
+        setEligibleStudentIds([...new Set((data ?? []).map((row) => String(row.etudiant_id)))]);
+      });
+    return () => { active = false; };
+  }, [activeEvaluation?.id, activeEvaluation?.cours_id, centreId, role]);
 
   async function createEvaluation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -189,13 +203,13 @@ export function NotesBulletinsPage() {
           <Field label="Évaluation"><select className="sp-input" value={selectedEvaluation} onChange={(e) => setSelectedEvaluation(e.target.value)}><option value="">Choisir une évaluation</option>{evaluations.map((e) => <option key={e.id} value={e.id}>{e.titre} — {e.periode}</option>)}</select></Field>
           <Field label="Barème du bulletin"><input className="sp-input" type="number" min="1" step="0.25" value={barremeMax} onChange={(e) => setBaremeMax(e.target.value)} /></Field>
         </div>
-        {activeEvaluation && canEdit ? <div className="mt-4 space-y-2">{students.map((student) => {
+        {activeEvaluation && canEdit ? <div className="mt-4 space-y-2">{students.filter((student) => eligibleStudentIds.includes(String(student.id))).map((student) => {
           const id = String(student.id); const existing = gradeByStudent.get(id);
           return <div key={id} className="grid items-center gap-2 rounded-lg border p-3 md:grid-cols-[1fr_150px_120px]"><span>{[student.prenom, student.nom].filter(Boolean).join(' ') || id}</span><input className="sp-input" aria-label={'Note de '+student.nom} type="number" min="0" max={activeEvaluation.note_max} step="0.25" value={scores[id] ?? (existing ? String(existing.note) : '')} onChange={(e) => setScores((old) => ({ ...old, [id]: e.target.value }))} placeholder={'/ '+activeEvaluation.note_max} /><span className="text-sm text-muted-foreground">{existing ? 'Enregistrée' : 'Non saisie'}</span></div>;
         })}<div className="mt-3"><Button disabled={busy} onClick={() => void saveGrades()} type="button">Enregistrer les notes</Button></div></div> : !activeEvaluation ? <EmptyState title="Choisissez une évaluation" description="Créez une évaluation puis sélectionnez-la pour saisir les notes." /> : <p>Consultation des notes.</p>}
       </Panel>
       {canEdit && activeEvaluation && <Panel title="Rattrapage" description="Une deuxième tentative est enregistrée séparément ; la note initiale reste dans l’historique.">
-        <div className="grid gap-3 md:grid-cols-3"><Field label="Étudiant"><select className="sp-input" value={rattrapageStudent} onChange={(e) => setRattrapageStudent(e.target.value)}><option value="">Choisir</option>{students.filter((s) => gradeByStudent.has(String(s.id))).map((s) => <option key={String(s.id)} value={String(s.id)}>{[s.prenom,s.nom].filter(Boolean).join(' ')}</option>)}</select></Field><Field label="Note de rattrapage"><input className="sp-input" type="number" min="0" max={activeEvaluation.note_max} step="0.25" value={rattrapageScore} onChange={(e) => setRattrapageScore(e.target.value)} /></Field><div className="self-end"><Button disabled={busy} onClick={() => void saveRetake()} type="button">Enregistrer le rattrapage</Button></div></div>
+        <div className="grid gap-3 md:grid-cols-3"><Field label="Étudiant"><select className="sp-input" value={rattrapageStudent} onChange={(e) => setRattrapageStudent(e.target.value)}><option value="">Choisir</option>{students.filter((s) => eligibleStudentIds.includes(String(s.id)) && gradeByStudent.has(String(s.id))).map((s) => <option key={String(s.id)} value={String(s.id)}>{[s.prenom,s.nom].filter(Boolean).join(' ')}</option>)}</select></Field><Field label="Note de rattrapage"><input className="sp-input" type="number" min="0" max={activeEvaluation.note_max} step="0.25" value={rattrapageScore} onChange={(e) => setRattrapageScore(e.target.value)} /></Field><div className="self-end"><Button disabled={busy} onClick={() => void saveRetake()} type="button">Enregistrer le rattrapage</Button></div></div>
       </Panel>}
       <Panel title="Bulletins par période" description="La dernière tentative est utilisée pour le calcul. Le Directeur valide avant publication.">
         {canEdit && <div className="mb-3 flex flex-wrap gap-2"><Button disabled={busy} onClick={() => void submitBulletins()} type="button">Calculer et soumettre les bulletins</Button><Button variant="secondary" onClick={() => window.print()} type="button">Imprimer / PDF</Button></div>}
