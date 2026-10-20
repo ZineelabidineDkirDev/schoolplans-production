@@ -25,6 +25,7 @@ export function NotesBulletinsPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [eligibleStudentIds, setEligibleStudentIds] = useState<string[]>([]);
+  const [formationByStudent, setFormationByStudent] = useState<Record<string, string>>({});
   const [grades, setGrades] = useState<Grade[]>([]);
   const [bulletins, setBulletins] = useState<Bulletin[]>([]);
   const [currentStudentId, setCurrentStudentId] = useState<string | null>(null);
@@ -61,6 +62,10 @@ export function NotesBulletinsPage() {
         const { data: courseRows, error: courseError } = await db.from('cours').select('id').eq('centre_id', centreId).order('id');
         if (courseError) throw courseError;
         setCourses((courseRows ?? []).map((row) => ({ id: String(row.id), label: 'Cours #' + String(row.id) })));
+        const { data: groupRows, error: groupError } = await db.from('groupes').select('id,formation_id').eq('centre_id', centreId);
+        if (groupError) throw groupError;
+        const formationByGroup = new Map((groupRows ?? []).map((row) => [String(row.id), String(row.formation_id)]));
+        setFormationByStudent(Object.fromEntries(((st.data ?? []) as Student[]).filter((student) => student.groupe_id && formationByGroup.has(String(student.groupe_id))).map((student) => [String(student.id), formationByGroup.get(String(student.groupe_id))!])));
       }
       setGrades((gr.data ?? []) as Grade[]);
       setBulletins((bu.data ?? []) as Bulletin[]);
@@ -148,6 +153,8 @@ export function NotesBulletinsPage() {
     try {
       const db = getSupabaseClient();
       const rows = students.map((student) => {
+        const formationId = formationByStudent[String(student.id)];
+        if (!formationId) throw new Error('Un étudiant ne possède pas de groupe rattaché à une formation : ' + [student.prenom, student.nom].filter(Boolean).join(' '));
         const studentEntries = grades.filter((g) => g.student_id === String(student.id));
         const relevant = studentEntries.map((g) => ({ grade: g, evaluation: evaluations.find((e) => e.id === g.evaluation_id) })).filter((x) => x.evaluation && x.evaluation.periode === periode);
         const latestByEvaluation = new Map<string, { grade: Grade; evaluation: Evaluation }>();
@@ -159,7 +166,7 @@ export function NotesBulletinsPage() {
         const denominator = finalRows.reduce((sum, x) => sum + Number(x.evaluation.coefficient), 0);
         const moyenne = denominator ? finalRows.reduce((sum, x) => sum + (Number(x.grade.note) / Number(x.evaluation.note_max)) * barremeMaxNumber * Number(x.evaluation.coefficient), 0) / denominator : null;
         return {
-          centre_id: centreId, student_id: String(student.id), periode, formation_id: null, moyenne,
+          centre_id: centreId, student_id: String(student.id), periode, formation_id: formationId, moyenne,
           statut: 'soumis', soumis_par: profile?.id,
           contenu: { etudiant: [student.prenom, student.nom].filter(Boolean).join(' '), periode, bareme_max: barremeMaxNumber,
             lignes: finalRows.map((x) => ({ evaluation: x.evaluation.titre, note: x.grade.note, note_max: x.evaluation.note_max, coefficient: x.evaluation.coefficient, tentative: x.grade.tentative })) },
