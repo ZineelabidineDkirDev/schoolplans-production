@@ -2,12 +2,15 @@
 import { App } from './App';
 import { AuthenticatedRoutes, SectionPlaceholder } from '../modules/auth/AuthRoutes';
 import { DashboardPage } from '../modules/dashboard/DashboardPage';
+import { RapportCentrePage } from '../modules/dashboard/RapportCentrePage';
 import { StudentPortalDashboardPage } from '../modules/students/StudentPortalDashboardPage';
 import { useAuth } from '../modules/auth/AuthProvider';
 
 function HomeByRole() {
   const { profile } = useAuth();
-  return profile?.role === 'etudiant' ? <StudentPortalDashboardPage /> : <DashboardPage />;
+  if (profile?.role === 'etudiant') return <StudentPortalDashboardPage />;
+  if (profile?.role === 'formateur') return <RapportCentrePage />;
+  return <DashboardPage />;
 }
 import { LandingPage } from '../modules/public/LandingPage';
 
