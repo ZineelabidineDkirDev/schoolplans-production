@@ -1,9 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Alert, Button, EmptyState, LoadingState, PageHeader, Panel, confirmAction, notify } from '../../components/ui';
 import {
+  createLinkCourseSupport,
   deleteCourseSupport,
   getCourseSupports,
   getSupportSignedUrl,
+  swapCourseSupportOrder,
+  updateCourseSupport,
   uploadCourseSupport,
   type CourseSupport,
 } from '../../data/repositories/supportRepository';
@@ -31,6 +34,14 @@ function fileSize(size: number) {
     : `${Math.max(1, Math.round(size / 1024))} Ko`;
 }
 
+function sortSupports(supports: CourseSupport[]) {
+  return [...supports].sort((a, b) =>
+    String(a.courseId).localeCompare(String(b.courseId)) ||
+    a.sortOrder - b.sortOrder ||
+    a.createdAt.localeCompare(b.createdAt),
+  );
+}
+
 function sessionCourse(course: PlanningCourse): SupportCourse {
   return {
     id: course.id,
@@ -46,6 +57,9 @@ export function SupportsPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [resourceType, setResourceType] = useState<'file' | 'link'>('file');
+  const [externalUrl, setExternalUrl] = useState('');
+  const [editingSupportId, setEditingSupportId] = useState<StudentIdentifier | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessageState] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
   const setMessage = (value: { tone: 'success' | 'error'; text: string } | null) => {
@@ -131,37 +145,93 @@ export function SupportsPage() {
     };
   }, [profile?.centreId, profile?.id, profile?.role, session?.user.email, reload]);
 
+  function resetEditor() {
+    setEditingSupportId(null);
+    setSelectedCourse('');
+    setTitle('');
+    setDescription('');
+    setFile(null);
+    setResourceType('file');
+    setExternalUrl('');
+    const fileInput = document.getElementById('support-file') as HTMLInputElement | null;
+    if (fileInput) fileInput.value = '';
+  }
+
+  function editSupport(support: CourseSupport) {
+    setEditingSupportId(support.id);
+    setSelectedCourse(String(support.courseId));
+    setTitle(support.title);
+    setDescription(support.description ?? '');
+    setResourceType(support.resourceType);
+    setExternalUrl(support.externalUrl ?? '');
+    setFile(null);
+    setMessage(null);
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (state.status !== 'loaded' || !profile?.centreId || !file) {
+    if (state.status !== 'loaded' || !profile?.centreId) return;
+    if (!selectedCourse || !title.trim()) {
+      setMessage({ tone: 'error', text: 'Sélectionnez un cours et saisissez un titre.' });
+      return;
+    }
+    if (!editingSupportId && resourceType === 'file' && !file) {
       setMessage({ tone: 'error', text: 'Choisissez un fichier à importer.' });
       return;
     }
+
     setBusy(true);
     setMessage(null);
     try {
-      const support = await uploadCourseSupport(getSupabaseClient(), {
-        centreId: profile.centreId,
-        courseId: selectedCourse,
-        title,
-        description,
-        file,
-      });
-      setState({ ...state, documents: [support, ...state.documents] });
-      setTitle('');
-      setDescription('');
-      setFile(null);
-      setSelectedCourse('');
-      const fileInput = document.getElementById('support-file') as HTMLInputElement | null;
-      if (fileInput) fileInput.value = '';
+      const client = getSupabaseClient();
+      const ownCourseIds = state.courses.map((course) => course.id);
+
+      if (editingSupportId) {
+        const existing = state.documents.find((item) => String(item.id) === String(editingSupportId));
+        if (!existing) throw new Error('Le support à modifier est introuvable.');
+        const updated = await updateCourseSupport(client, profile.centreId, existing, ownCourseIds, {
+          title,
+          description,
+          url: externalUrl,
+        });
+        setState({
+          ...state,
+          documents: sortSupports(state.documents.map((item) =>
+            String(item.id) === String(updated.id) ? updated : item,
+          )),
+        });
+        resetEditor();
+        setMessage({ tone: 'success', text: 'Support modifié.' });
+        return;
+      }
+
+      const support = resourceType === 'link'
+        ? await createLinkCourseSupport(client, {
+            centreId: profile.centreId,
+            courseId: selectedCourse,
+            title,
+            description,
+            url: externalUrl,
+          })
+        : await uploadCourseSupport(client, {
+            centreId: profile.centreId,
+            courseId: selectedCourse,
+            title,
+            description,
+            file: file as File,
+          });
+      setState({ ...state, documents: sortSupports([support, ...state.documents]) });
+      resetEditor();
       setMessage({
         tone: 'success',
-        text: 'Document importé. Les étudiants inscrits au cours peuvent le consulter et le télécharger.',
+        text: resourceType === 'link'
+          ? 'Lien ajouté. Les étudiants inscrits au cours peuvent l’ouvrir.'
+          : 'Document importé. Les étudiants inscrits au cours peuvent le consulter et le télécharger.',
       });
     } catch (cause) {
       setMessage({
         tone: 'error',
-        text: cause instanceof Error ? cause.message : 'Impossible d’importer le document.',
+        text: cause instanceof Error ? cause.message : 'Impossible d’enregistrer la ressource.',
       });
     } finally {
       setBusy(false);
@@ -171,6 +241,17 @@ export function SupportsPage() {
   async function openSupport(support: CourseSupport, download: boolean) {
     setMessage(null);
     try {
+      if (support.resourceType === 'link') {
+        if (!support.externalUrl) throw new Error('Le lien de cette ressource est manquant.');
+        const link = document.createElement('a');
+        link.href = support.externalUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.append(link);
+        link.click();
+        link.remove();
+        return;
+      }
       const url = await getSupportSignedUrl(getSupabaseClient(), support, download);
       const link = document.createElement('a');
       link.href = url;
@@ -185,6 +266,41 @@ export function SupportsPage() {
         tone: 'error',
         text: cause instanceof Error ? cause.message : 'Impossible d’ouvrir ce support.',
       });
+    }
+  }
+
+  async function moveSupport(support: CourseSupport, direction: -1 | 1) {
+    if (!profile?.centreId || profile.role !== 'formateur' || state.status !== 'loaded') return;
+    const courseSupports = state.documents
+      .filter((item) => String(item.courseId) === String(support.courseId))
+      .sort((a, b) => a.sortOrder - b.sortOrder || a.createdAt.localeCompare(b.createdAt));
+    const index = courseSupports.findIndex((item) => String(item.id) === String(support.id));
+    const neighbor = courseSupports[index + direction];
+    if (!neighbor) return;
+
+    setBusy(true);
+    setMessage(null);
+    try {
+      await swapCourseSupportOrder(
+        getSupabaseClient(),
+        profile.centreId,
+        support,
+        neighbor,
+        state.courses.map((course) => course.id),
+      );
+      const updated = state.documents.map((item) => {
+        if (String(item.id) === String(support.id)) return { ...item, sortOrder: neighbor.sortOrder };
+        if (String(item.id) === String(neighbor.id)) return { ...item, sortOrder: support.sortOrder };
+        return item;
+      });
+      setState({ ...state, documents: sortSupports(updated) });
+    } catch (cause) {
+      setMessage({
+        tone: 'error',
+        text: cause instanceof Error ? cause.message : 'Impossible de réorganiser les supports.',
+      });
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -237,7 +353,7 @@ export function SupportsPage() {
       )}
       {state.status === 'loaded' && profile?.role === 'formateur' && (
         <Panel>
-          <h2 className="management-panel-title">Partager un support</h2>
+          <h2 className="management-panel-title">{editingSupportId ? 'Modifier un support' : 'Partager une ressource'}</h2>
           {state.courses.length === 0 ? (
             <EmptyState
               description="Affectez-vous d’abord à un cours dans le planning."
@@ -251,6 +367,7 @@ export function SupportsPage() {
                   className="sp-field"
                   onChange={(event) => setSelectedCourse(event.target.value)}
                   required
+                  disabled={Boolean(editingSupportId)}
                   value={selectedCourse}
                 >
                   <option value="">Sélectionner un cours</option>
@@ -261,6 +378,23 @@ export function SupportsPage() {
                   ))}
                 </select>
               </label>
+              {!editingSupportId && (
+                <label className="sp-form-field">
+                  Type de ressource
+                  <select
+                    className="sp-field"
+                    value={resourceType}
+                    onChange={(event) => {
+                      setResourceType(event.target.value as 'file' | 'link');
+                      setFile(null);
+                      setExternalUrl('');
+                    }}
+                  >
+                    <option value="file">Fichier pédagogique</option>
+                    <option value="link">Lien vidéo ou ressource en ligne</option>
+                  </select>
+                </label>
+              )}
               <label className="sp-form-field">
                 Titre
                 <input
@@ -281,20 +415,43 @@ export function SupportsPage() {
                   value={description}
                 />
               </label>
-              <label className="sp-form-field management-editor-wide">
-                Fichier (20 Mo maximum)
-                <input
-                  accept="application/pdf,image/*,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt"
-                  className="sp-field"
-                  id="support-file"
-                  onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-                  required
-                  type="file"
-                />
-              </label>
+              {resourceType === 'link' ? (
+                <label className="sp-form-field management-editor-wide">
+                  Adresse du lien (YouTube, vidéo, site pédagogique…)
+                  <input
+                    className="sp-field"
+                    type="url"
+                    placeholder="https://…"
+                    required
+                    value={externalUrl}
+                    onChange={(event) => setExternalUrl(event.target.value)}
+                  />
+                </label>
+              ) : editingSupportId ? (
+                <p className="sp-muted management-editor-wide">
+                  Le fichier existant sera conservé. Pour le remplacer, supprimez ce support puis importez le nouveau fichier.
+                </p>
+              ) : (
+                <label className="sp-form-field management-editor-wide">
+                  Fichier (20 Mo maximum)
+                  <input
+                    accept="application/pdf,image/*,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt"
+                    className="sp-field"
+                    id="support-file"
+                    onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                    required
+                    type="file"
+                  />
+                </label>
+              )}
               <div className="management-editor-actions management-editor-wide">
+                {editingSupportId && (
+                  <Button disabled={busy} onClick={resetEditor} type="button" variant="secondary">
+                    Annuler
+                  </Button>
+                )}
                 <Button disabled={busy} type="submit">
-                  {busy ? 'Importation…' : 'Importer le support'}
+                  {busy ? 'Enregistrement…' : editingSupportId ? 'Enregistrer les modifications' : resourceType === 'link' ? 'Ajouter le lien' : 'Importer le support'}
                 </Button>
               </div>
             </form>
@@ -325,17 +482,30 @@ export function SupportsPage() {
                     const course = state.courses.find(
                       (item) => String(item.id) === String(support.courseId),
                     );
+                    const sameCourse = state.documents
+                      .filter((item) => String(item.courseId) === String(support.courseId))
+                      .sort((a, b) => a.sortOrder - b.sortOrder || a.createdAt.localeCompare(b.createdAt));
+                    const position = sameCourse.findIndex((item) => String(item.id) === String(support.id));
                     return (
                       <tr key={String(support.id)}>
                         <td>
                           <strong>{support.title}</strong>
                           {support.description && <p className="sp-muted">{support.description}</p>}
+                          <small>{support.resourceType === 'link' ? 'Lien externe' : 'Fichier pédagogique'}</small>
                         </td>
                         <td>{course?.label ?? 'Cours associé'}</td>
                         <td>
-                          {support.fileName}
-                          <br />
-                          <small>{fileSize(support.size)}</small>
+                          {support.resourceType === 'link' ? (
+                            <a href={support.externalUrl ?? '#'} target="_blank" rel="noopener noreferrer">
+                              {support.externalUrl}
+                            </a>
+                          ) : (
+                            <>
+                              {support.fileName}
+                              <br />
+                              <small>{fileSize(support.size)}</small>
+                            </>
+                          )}
                         </td>
                         <td>{new Date(support.createdAt).toLocaleDateString('fr-FR')}</td>
                         <td>
@@ -345,29 +515,58 @@ export function SupportsPage() {
                               type="button"
                               variant="secondary"
                             >
-                              Voir
+                              {support.resourceType === 'link' ? 'Ouvrir le lien' : 'Voir'}
                             </Button>
-                            <Button
-                              onClick={() => void openSupport(support, true)}
-                              type="button"
-                              variant="secondary"
-                            >
-                              Télécharger
-                            </Button>
-                            {profile?.role === 'formateur' && (
+                            {support.resourceType === 'file' && (
                               <Button
-                                onClick={() => void removeSupport(support)}
+                                onClick={() => void openSupport(support, true)}
                                 type="button"
-                                variant="danger"
+                                variant="secondary"
                               >
-                                Supprimer
+                                Télécharger
                               </Button>
+                            )}
+                            {profile?.role === 'formateur' && (
+                              <>
+                                <Button
+                                  disabled={busy}
+                                  onClick={() => editSupport(support)}
+                                  type="button"
+                                  variant="secondary"
+                                >
+                                  Modifier
+                                </Button>
+                                <Button
+                                  disabled={busy || position <= 0}
+                                  onClick={() => void moveSupport(support, -1)}
+                                  type="button"
+                                  variant="secondary"
+                                >
+                                  ↑
+                                </Button>
+                                <Button
+                                  disabled={busy || position >= sameCourse.length - 1}
+                                  onClick={() => void moveSupport(support, 1)}
+                                  type="button"
+                                  variant="secondary"
+                                >
+                                  ↓
+                                </Button>
+                                <Button
+                                  disabled={busy}
+                                  onClick={() => void removeSupport(support)}
+                                  type="button"
+                                  variant="danger"
+                                >
+                                  Supprimer
+                                </Button>
+                              </>
                             )}
                           </div>
                         </td>
                       </tr>
                     );
-                  })}
+                  })}}
                 </tbody>
               </table>
             </div>
