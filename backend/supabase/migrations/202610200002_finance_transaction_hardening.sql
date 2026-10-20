@@ -111,3 +111,44 @@ revoke insert, update on public.finance_account_movements from authenticated;
 revoke insert, update on public.finance_teacher_advances from authenticated;
 revoke insert, update on public.finance_teacher_advance_repayments from authenticated;
 revoke insert, update on public.finance_teacher_payroll from authenticated;
+
+-- A payroll may only deduct advances that had actually been issued by its
+-- period end. The existing atomic save RPC separately checks the outstanding
+-- (not already reserved/recovered) balance.
+create or replace function public.finance_validate_payroll_advance_date()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_eligible_advances numeric(12,2);
+begin
+  select coalesce(sum(a.amount), 0)
+    into v_eligible_advances
+  from public.finance_teacher_advances a
+  where a.centre_id = new.centre_id
+    and a.teacher_id = new.teacher_id
+    and a.status = 'active'
+    and a.advance_date <= new.period_end;
+
+  if round(coalesce(new.advance_deduction, 0), 2) > round(v_eligible_advances, 2) then
+    raise exception
+      'Déduction impossible : les avances émises au plus tard le % totalisent % DH.',
+      new.period_end, round(v_eligible_advances, 2);
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists finance_payroll_advance_date_guard
+  on public.finance_teacher_payroll;
+
+create trigger finance_payroll_advance_date_guard
+before insert or update of teacher_id, period_end, advance_deduction
+on public.finance_teacher_payroll
+for each row
+execute function public.finance_validate_payroll_advance_date();
+
+revoke all on function public.finance_validate_payroll_advance_date() from public;
