@@ -12,7 +12,7 @@ const errText = (error: unknown) => error instanceof Error ? error.message : 'Un
 const numeric = (value: string, fallback: number) => { const n = Number(value); return Number.isFinite(n) ? n : fallback; };
 
 export function NotesBulletinsPage() {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const centreId = profile?.centreId ?? '';
   const role = profile?.role ?? 'etudiant';
   const canEdit = role === 'admin' || role === 'director' || role === 'formateur';
@@ -23,7 +23,7 @@ export function NotesBulletinsPage() {
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
-  const [bulletins, setBulletins] = useState<Bulletin[]>([]);
+  const [bulletins, setBulletins] = useState<Bulletin[]>([]);\n  const [currentStudentId, setCurrentStudentId] = useState<string | null>(null);
   const [selectedEvaluation, setSelectedEvaluation] = useState('');
   const [titre, setTitre] = useState('');
   const [periode, setPeriode] = useState('Semestre 1');
@@ -48,13 +48,13 @@ export function NotesBulletinsPage() {
       ]);
       for (const result of [ev, st, gr, bu]) if (result.error) throw result.error;
       setEvaluations((ev.data ?? []) as Evaluation[]);
-      setStudents((st.data ?? []) as Student[]);
+      setStudents((st.data ?? []) as Student[]);\n      setCurrentStudentId(st.data?.[0]?.id == null ? null : String(st.data[0].id));
       setGrades((gr.data ?? []) as Grade[]);
       setBulletins((bu.data ?? []) as Bulletin[]);
       if (!selectedEvaluation && ev.data?.[0]?.id) setSelectedEvaluation(ev.data[0].id);
     } catch (cause) { setError(errText(cause)); }
     finally { setLoading(false); }
-  }, [centreId, selectedEvaluation]);
+  }, [centreId, selectedEvaluation, role, session?.user.email]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -165,7 +165,7 @@ export function NotesBulletinsPage() {
   return <section className="sp-page">
     <PageHeader eyebrow="Suivi pédagogique" title="Notes & Bulletins" description="Saisissez les évaluations, conservez les rattrapages et soumettez les bulletins au Directeur." />
     {error && <Alert tone="error">{error}</Alert>}
-    {role === 'etudiant' ? <Panel title="Mes bulletins"><div className="space-y-3">{bulletins.filter((b) => b.statut === 'publie' && String(b.student_id) === profile?.id).map((b) => <article key={b.id} className="rounded-xl border p-4"><h3 className="font-semibold">{b.periode}</h3><p>Moyenne : {b.moyenne == null ? 'Non calculée' : Number(b.moyenne).toFixed(2)}</p><Button onClick={() => window.print()} type="button">Imprimer / PDF</Button></article>)}{!bulletins.some((b) => b.statut === 'publie' && String(b.student_id) === profile?.id) && <EmptyState title="Aucun bulletin publié" description="Vos bulletins validés apparaîtront ici." />}</div></Panel> : <>
+    {role === 'etudiant' ? <Panel title="Mes bulletins"><div className="space-y-3">{bulletins.filter((b) => b.statut === 'publie' && String(b.student_id) === currentStudentId).map((b) => <article key={b.id} className="rounded-xl border p-4"><h3 className="font-semibold">{b.periode}</h3><p>Moyenne : {b.moyenne == null ? 'Non calculée' : Number(b.moyenne).toFixed(2)}</p><Button onClick={() => window.print()} type="button">Imprimer / PDF</Button></article>)}{!bulletins.some((b) => b.statut === 'publie' && String(b.student_id) === currentStudentId) && <EmptyState title="Aucun bulletin publié" description="Vos bulletins validés apparaîtront ici." />}</div></Panel> : <>
       {canEdit && <Panel title="Créer une évaluation" description="Le barème maximal est configurable. Utilisez l’identifiant du cours existant dans SchoolPlans.">
         <form className="grid gap-3 md:grid-cols-2" onSubmit={(event) => void createEvaluation(event)}>
           <Field label="Titre de l’évaluation"><input className="sp-input" value={titre} onChange={(e) => setTitre(e.target.value)} required placeholder="Ex. Examen final" /></Field>
@@ -191,7 +191,7 @@ export function NotesBulletinsPage() {
       </Panel>}
       <Panel title="Bulletins par période" description="La dernière tentative est utilisée pour le calcul. Le Directeur valide avant publication.">
         {canEdit && <div className="mb-3 flex flex-wrap gap-2"><Button disabled={busy} onClick={() => void submitBulletins()} type="button">Calculer et soumettre les bulletins</Button><Button variant="secondary" onClick={() => window.print()} type="button">Imprimer / PDF</Button></div>}
-        {bulletins.filter((b) => role === 'etudiant' ? b.statut === 'publie' && String(b.student_id) === profile?.id : true).map((b) => <article key={b.id} className="mb-3 rounded-xl border p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-semibold">{String(b.contenu?.etudiant ?? b.student_id)} — {b.periode}</h3><p>Moyenne : {b.moyenne == null ? 'Incomplète' : Number(b.moyenne).toFixed(2)} / {barremeMaxNumber}</p><p className="text-sm">Statut : {b.statut}</p></div>{canValidate && b.statut === 'soumis' && <Button disabled={busy} onClick={() => void changeBulletinStatus(b,'valide')} type="button">Valider</Button>}{canValidate && b.statut === 'valide' && <Button disabled={busy} onClick={() => void changeBulletinStatus(b,'publie')} type="button">Publier</Button>}</div></article>)}
+        {bulletins.filter((b) => role === 'etudiant' ? b.statut === 'publie' && String(b.student_id) === currentStudentId : true).map((b) => <article key={b.id} className="mb-3 rounded-xl border p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-semibold">{String(b.contenu?.etudiant ?? b.student_id)} — {b.periode}</h3><p>Moyenne : {b.moyenne == null ? 'Incomplète' : Number(b.moyenne).toFixed(2)} / {barremeMaxNumber}</p><p className="text-sm">Statut : {b.statut}</p></div>{canValidate && b.statut === 'soumis' && <Button disabled={busy} onClick={() => void changeBulletinStatus(b,'valide')} type="button">Valider</Button>}{canValidate && b.statut === 'valide' && <Button disabled={busy} onClick={() => void changeBulletinStatus(b,'publie')} type="button">Publier</Button>}</div></article>)}
         {!bulletins.length && <EmptyState title="Aucun bulletin" description="Les bulletins soumis apparaîtront dans cette liste." />}
       </Panel>
     </>}
