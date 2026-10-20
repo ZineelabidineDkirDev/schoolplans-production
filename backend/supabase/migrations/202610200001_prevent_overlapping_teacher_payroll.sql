@@ -9,15 +9,6 @@ security invoker
 set search_path = public, pg_temp
 as $$
 begin
-  if tg_op = 'UPDATE'
-     and new.centre_id is not distinct from old.centre_id
-     and new.teacher_id is not distinct from old.teacher_id
-     and new.period_start is not distinct from old.period_start
-     and new.period_end is not distinct from old.period_end
-     and new.status is not distinct from old.status then
-    return new;
-  end if;
-
   if new.status is distinct from 'cancelled' and exists (
     select 1
     from public.finance_teacher_payroll existing
