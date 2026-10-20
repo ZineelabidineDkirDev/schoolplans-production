@@ -198,10 +198,10 @@ function ApplicationShell() {
           <small>{getRoleLabel(profile.role)}</small>
         </div>
         <Link
-          aria-label="Accueil (reste connecté)"
+          aria-label="Retourner au site public SchoolPlans"
           className="sp-icon-button"
-          title="Accueil"
-          to="/app"
+          title="Retourner au site"
+          to="/"
         >
           <svg aria-hidden="true" viewBox="0 0 24 24">
             <path d="m4 11 8-7 8 7v9h-5v-6H9v6H4z" />
