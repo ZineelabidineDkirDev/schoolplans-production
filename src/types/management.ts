@@ -6,6 +6,7 @@ export type ManagedStudent = {
   lastName: string;
   email: string | null;
   telephone: string | null;
+  parentTelephone: string | null;
   city: string | null;
   address: string | null;
   educationLevel: string | null;
