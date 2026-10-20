@@ -108,9 +108,9 @@ export function canAccessSection(
   if (role === 'etudiant' && (appSection === 'vcal' || appSection === 'vr')) return true;
 
   if (!ROLE_SECTIONS[role].includes(appSection)) return false;
-  // Les cours en ligne sont consultables par l’administration et les étudiants.
-  // Seuls les formateurs disposent des actions de création, modification et suppression.
-  if (appSection === 'vk' && ['admin', 'director', 'etudiant'].includes(role)) return true;
+  // Les cours en ligne sont accessibles à tous les formateurs du centre, ainsi qu’à l’administration et aux étudiants.
+  // Les actions d’écriture restent contrôlées séparément par la page et les règles Supabase.
+  if (appSection === 'vk' && ['admin', 'director', 'formateur', 'etudiant'].includes(role)) return true;
   if (role === 'formateur' && appSection === 'vp') return true;
 
   return (SECTION_REQUIREMENTS[appSection] ?? []).every((key) => permissions[key] === true);
