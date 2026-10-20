@@ -44,6 +44,7 @@ function parseStudents(
       lastName: optionalString(row.nom, 'nom') ?? '',
       email: optionalString(row.email, 'e-mail'),
       telephone: optionalString(row.telephone, 'téléphone'),
+      parentTelephone: optionalString(row.telephone_parent, 'téléphone du parent'),
       city: optionalString(row.ville, 'ville'),
       address: optionalString(row.adresse, 'adresse'),
       educationLevel: optionalString(row.niveau_etudes, 'niveau'),
@@ -62,7 +63,7 @@ export async function getCentreStudents(
   const [studentsResult, groupsResult, enrollmentsResult] = await Promise.all([
     client
       .from('etudiants')
-      .select('id,prenom,nom,email,telephone,ville,adresse,niveau_etudes,groupe_id')
+      .select('id,prenom,nom,email,telephone,telephone_parent,ville,adresse,niveau_etudes,groupe_id')
       .eq('centre_id', centreId)
       .order('nom'),
     client.from('groupes').select('id,nom').eq('centre_id', centreId),
@@ -98,7 +99,7 @@ export async function getAttendanceSheet(
   const [studentsResult, groupsResult, enrollmentsResult, attendanceResult] = await Promise.all([
     client
       .from('etudiants')
-      .select('id,prenom,nom,email,telephone,ville,adresse,niveau_etudes,groupe_id')
+      .select('id,prenom,nom,email,telephone,telephone_parent,ville,adresse,niveau_etudes,groupe_id')
       .eq('centre_id', centreId)
       .order('nom'),
     client.from('groupes').select('id,nom').eq('centre_id', centreId),
@@ -169,6 +170,85 @@ export async function getAttendanceSheet(
         ),
     })),
   };
+}
+
+export type AbsenceAlert = {
+  courseId: StudentIdentifier;
+  studentId: StudentIdentifier;
+  firstName: string;
+  lastName: string;
+  parentTelephone: string | null;
+  absenceCount: number;
+  lastAbsenceDate: string;
+};
+
+export async function getAbsenceAlerts(
+  client: SupabaseClient,
+  centreId: string,
+  courseIds: StudentIdentifier[],
+): Promise<AbsenceAlert[]> {
+  if (!centreId) throw new Error('Sélectionnez un centre avant de consulter les alertes d’absence.');
+  if (courseIds.length === 0) return [];
+
+  const { data, error } = await client
+    .from('presences')
+    .select('cours_id,etudiant_id,date')
+    .eq('centre_id', centreId)
+    .eq('statut', 'absent')
+    .in('cours_id', courseIds)
+    .order('date', { ascending: false });
+  if (error) throw error;
+
+  const grouped = new Map<string, {
+    courseId: StudentIdentifier;
+    studentId: StudentIdentifier;
+    dates: Set<string>;
+    lastAbsenceDate: string;
+  }>();
+  for (const row of rows(data, 'absences historiques')) {
+    if (typeof row.date !== 'string') continue;
+    const courseId = id(row.cours_id, 'cours en absence');
+    const studentId = id(row.etudiant_id, 'étudiant absent');
+    const key = `${String(courseId)}|${String(studentId)}`;
+    const current = grouped.get(key);
+    if (current) {
+      current.dates.add(row.date);
+      if (row.date > current.lastAbsenceDate) current.lastAbsenceDate = row.date;
+    } else {
+      grouped.set(key, { courseId, studentId, dates: new Set([row.date]), lastAbsenceDate: row.date });
+    }
+  }
+
+  const eligible = [...grouped.values()].filter((item) => item.dates.size > 3);
+  if (eligible.length === 0) return [];
+  const studentIds = [...new Set(eligible.map((item) => item.studentId))];
+  const { data: studentData, error: studentError } = await client
+    .from('etudiants')
+    .select('id,prenom,nom,telephone_parent')
+    .eq('centre_id', centreId)
+    .in('id', studentIds);
+  if (studentError) throw studentError;
+
+  const students = new Map(rows(studentData, 'contacts parentaux').map((row) => [
+    String(id(row.id, 'étudiant du contact')),
+    {
+      firstName: optionalString(row.prenom, 'prénom') ?? '',
+      lastName: optionalString(row.nom, 'nom') ?? '',
+      parentTelephone: optionalString(row.telephone_parent, 'téléphone du parent'),
+    },
+  ]));
+
+  return eligible.flatMap((item) => {
+    const student = students.get(String(item.studentId));
+    if (!student) return [];
+    return [{
+      courseId: item.courseId,
+      studentId: item.studentId,
+      ...student,
+      absenceCount: item.dates.size,
+      lastAbsenceDate: item.lastAbsenceDate,
+    }];
+  }).sort((a, b) => b.absenceCount - a.absenceCount || a.lastName.localeCompare(b.lastName, 'fr'));
 }
 
 export async function saveAttendance(
