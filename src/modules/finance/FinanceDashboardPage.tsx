@@ -17,7 +17,13 @@ const EMPTY: Summary = { charges: 0, collected: 0, expenses: 0, payrollDue: 0, c
 const METHODS = [{ value: 'cash', label: 'Espèces' }, { value: 'bank_transfer', label: 'Virement bancaire' }, { value: 'card', label: 'Carte bancaire' }, { value: 'cheque', label: 'Chèque' }, { value: 'other', label: 'Autre' }];
 const money = (value: number) => new Intl.NumberFormat('fr-MA', { style: 'currency', currency: 'MAD', maximumFractionDigits: 2 }).format(value);
 const numeric = (value: number | string | null | undefined) => { const n = Number(value ?? 0); return Number.isFinite(n) ? n : 0; };
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return year + '-' + month + '-' + day;
+};
 
 function readableFinanceError(cause: unknown, fallback: string): string {
   if (cause && typeof cause === 'object' && 'message' in cause && typeof cause.message === 'string') {
@@ -128,7 +134,7 @@ export function FinanceDashboardPage() {
   const payrollGross = payrollForm.compensationMode === 'session' ? numeric(payrollForm.sessionCount) * numeric(payrollForm.sessionRate) : payrollForm.compensationMode === 'monthly' ? numeric(payrollForm.monthlySalary) : numeric(payrollForm.hours) * numeric(payrollForm.hourlyRate);
   const payrollNet = Math.max(0, payrollGross - numeric(payrollForm.advanceDeduction));
   const paidForCharge = (chargeId: string) => payments.filter((payment) => payment.charge_id === chargeId).reduce((sum, payment) => sum + numeric(payment.amount), 0);
-  const outstanding = Math.max(0, summary.charges - summary.collected);
+  const outstanding = charges.reduce((sum, charge) => sum + Math.max(0, numeric(charge.amount_due) - paidForCharge(charge.id)), 0);
 
   function openCharge(charge?: Charge) {
     setError(null); setEditingChargeId(charge?.id ?? null);
@@ -284,7 +290,7 @@ export function FinanceDashboardPage() {
     { label: 'Reste à encaisser', value: money(outstanding), note: 'Montants restant dus', tone: 'warning' },
     { label: 'Dépenses payées', value: money(summary.expenses), note: summary.expenseCount + ' dépenses', tone: 'neutral' },
     { label: 'Rémunérations à payer', value: money(summary.payrollDue), note: summary.payrollCount + ' rémunérations validées', tone: 'neutral' },
-    { label: 'Solde net indicatif', value: money(summary.collected - summary.expenses), note: 'Encaissements moins dépenses', tone: 'brand' },
+    { label: 'Encaissements − dépenses payées', value: money(summary.collected - summary.expenses), note: 'Indicateur simplifié, hors autres mouvements de trésorerie', tone: 'brand' },
   ];
 
   if (loading) return <LoadingState label="Chargement du tableau de bord financier…" />;
