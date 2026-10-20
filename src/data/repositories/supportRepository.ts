@@ -141,8 +141,25 @@ export async function uploadCourseSupport(
     .replace(/[^a-zA-Z0-9._-]+/g, '-');
   const path = `${input.courseId}/${Date.now()}-${safeName || 'support'}`;
   const storage = client.storage.from('supports');
+  // Certains navigateurs Windows renvoient un type MIME vide pour les MP4.
+  // Déduire le type depuis l'extension évite d'envoyer application/octet-stream.
+  const extension = input.file.name.split('.').pop()?.toLowerCase();
+  const inferredMimeType = extension === 'mp4'
+    ? 'video/mp4'
+    : extension === 'webm'
+      ? 'video/webm'
+      : extension === 'mov'
+        ? 'video/quicktime'
+        : extension === 'pdf'
+          ? 'application/pdf'
+          : extension === 'png'
+            ? 'image/png'
+            : extension === 'jpg' || extension === 'jpeg'
+              ? 'image/jpeg'
+              : 'application/octet-stream';
+  const contentType = input.file.type || inferredMimeType;
   const { error: uploadError } = await storage.upload(path, input.file, {
-    contentType: input.file.type || 'application/octet-stream',
+    contentType,
     upsert: false,
   });
   if (uploadError) throw uploadError;
