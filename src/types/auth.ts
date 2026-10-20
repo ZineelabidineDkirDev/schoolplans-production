@@ -29,6 +29,7 @@ export const LOADED_CENTRE_PERMISSION_KEYS = [
   'groupes',
   'cours_en_ligne',
   'gestion_financiere',
+  'notes_bulletins',
 ] as const;
 
 export type LoadedCentrePermissionKey = (typeof LOADED_CENTRE_PERMISSION_KEYS)[number];
@@ -56,6 +57,7 @@ export const APP_SECTIONS = [
   'vh',
   'vpcentre',
   'vz',
+  'vnotes',
 ] as const;
 
 export type AppSection = (typeof APP_SECTIONS)[number];
