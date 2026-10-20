@@ -159,7 +159,12 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
   }
 
   async function deactivateAccount(account: Account) {
-    if (!profile?.centreId || !window.confirm('Désactiver « ' + account.name + ' » ? Son historique sera conservé.')) return;
+    if (!profile?.centreId) return;
+    if (Math.abs(balanceFor(account)) > 0.001) {
+      setError('Impossible de désactiver « ' + account.name + ' » tant que son solde est différent de 0 DH. Transférez d’abord les fonds vers un autre compte.');
+      return;
+    }
+    if (!window.confirm('Désactiver « ' + account.name + ' » ? Son historique sera conservé.')) return;
     setSaving(true); setError(null); setNotice(null);
     try {
       const { error } = await getSupabaseClient().from('finance_accounts').update({ active: false }).eq('id', account.id).eq('centre_id', profile.centreId).eq('active', true);
@@ -258,7 +263,7 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
           <label className="sp-form-field">Solde initial (DH)<input className="sp-field" required min="0" step="0.01" type="number" value={accountForm.openingBalance} onChange={(e) => setAccountForm((v) => ({ ...v, openingBalance: e.target.value }))} /></label></>}
           <div className="finance-modal-actions"><Button type="button" variant="secondary" onClick={() => setModal(null)}>Annuler</Button><Button type="submit" disabled={saving}>{saving ? 'Enregistrement…' : editingAccountId ? 'Enregistrer les modifications' : 'Créer le compte'}</Button></div>
         </form></OperationsModal>}
-        <div className="finance-operation-card"><div className="finance-content-heading"><div><h3>Caisses et comptes actifs</h3><p>Soldes calculés à partir des mouvements.</p></div><Button type="button" onClick={() => setModal('account')}>+ Ajouter un compte</Button></div>{activeAccounts.length === 0 ? <p className="management-muted">Créez d’abord une caisse ou un compte bancaire.</p> : <div className="finance-account-grid">{activeAccounts.map((a) => <article className="finance-account-card" key={a.id}><span>{a.account_type === 'cash' ? 'Caisse' : 'Banque'}</span><strong>{a.name}</strong><b>{money(balanceFor(a))}</b><small>Solde initial : {money(num(a.opening_balance))}</small><div className="finance-row-actions"><Button type="button" variant="secondary" disabled={saving} onClick={() => { setEditingAccountId(a.id); setAccountForm({ name: a.name, accountType: a.account_type, openingBalance: String(a.opening_balance) }); setModal('account'); }}>Modifier</Button><Button type="button" variant="danger" disabled={saving} onClick={() => void deactivateAccount(a)}>Supprimer</Button></div></article>)}</div>}</div>
+        <div className="finance-operation-card"><div className="finance-content-heading"><div><h3>Caisses et comptes actifs</h3><p>Soldes calculés à partir des mouvements.</p></div><Button type="button" onClick={() => setModal('account')}>+ Ajouter un compte</Button></div>{activeAccounts.length === 0 ? <p className="management-muted">Créez d’abord une caisse ou un compte bancaire.</p> : <div className="finance-account-grid">{activeAccounts.map((a) => <article className="finance-account-card" key={a.id}><span>{a.account_type === 'cash' ? 'Caisse' : 'Banque'}</span><strong>{a.name}</strong><b>{money(balanceFor(a))}</b><small>Solde initial : {money(num(a.opening_balance))}</small><div className="finance-row-actions"><Button type="button" variant="secondary" disabled={saving} onClick={() => { setEditingAccountId(a.id); setAccountForm({ name: a.name, accountType: a.account_type, openingBalance: String(a.opening_balance) }); setModal('account'); }}>Modifier</Button><Button type="button" variant="danger" disabled={saving} onClick={() => void deactivateAccount(a)}>Désactiver</Button></div></article>)}</div>}</div>
       </div>
       <div className="finance-operation-layout">
         <div className="finance-operation-card"><div className="finance-content-heading"><div><h3>Mouvements</h3><p>Enregistrez une entrée ou une sortie manuelle.</p></div><Button type="button" onClick={() => setModal('movement')}>+ Nouveau mouvement</Button></div></div>
