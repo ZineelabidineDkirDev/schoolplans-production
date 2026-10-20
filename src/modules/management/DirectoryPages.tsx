@@ -1465,6 +1465,7 @@ export function AttendancePage() {
     if (planningState.status !== 'loaded' || !profile?.centreId) return;
     let active = true;
     setAlertsLoading(true);
+    setAbsenceAlerts([]);
     const courseIds = planningState.data.courses.map((course) => course.id);
     void getAbsenceAlerts(getSupabaseClient(), profile.centreId, courseIds)
       .then((alerts) => {
