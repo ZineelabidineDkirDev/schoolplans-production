@@ -24,6 +24,7 @@ const ROLE_SECTIONS: Record<SourceRole, readonly AppSection[]> = {
     'vfg',
     'vc',
     'vfinance',
+    'vnotes',
   ],
   director: [
     ...COMMON_SECTIONS,
@@ -57,6 +58,7 @@ const SECTION_REQUIREMENTS: Partial<Record<AppSection, readonly CentrePermission
   vfg: ['formations', 'groupes'],
   vc: ['certificats'],
   vfinance: ['gestion_financiere'],
+  vnotes: ['notes_bulletins'],
 };
 
 export const SECTION_LABELS: Record<AppSection, string> = {
@@ -64,6 +66,7 @@ export const SECTION_LABELS: Record<AppSection, string> = {
   vd: 'Tableau de bord',
   vrapport: 'Mon rapport',
   vfinance: 'Tableau de bord financier',
+  vnotes: 'Notes & Bulletins',
   vl: 'Séances',
   vr: 'Salles',
   vk: 'Cours en ligne',
@@ -100,6 +103,7 @@ export function canAccessSection(
   if (!APP_SECTIONS.includes(section as AppSection)) return false;
   const appSection = section as AppSection;
   if (appSection === 'vfinance') return (role === 'admin' || role === 'director') && permissions.gestion_financiere === true;
+  if (appSection === 'vnotes') return ['admin', 'director', 'formateur', 'etudiant'].includes(role) && permissions.notes_bulletins === true;
   if (role === 'super_admin') return true;
 
   // Les étudiants peuvent toujours consulter leur planning et leurs salles.
