@@ -45,6 +45,48 @@ const features = [
     'Accès adaptés',
     'slate',
   ],
+  [
+    '▤',
+    'Formations & groupes',
+    'Structurez vos programmes, répartissez les étudiants en groupes et suivez les périodes de formation.',
+    'Organiser les formations',
+    'blue',
+  ],
+  [
+    '◷',
+    'Gestion des séances',
+    'Suivez les séances planifiées et réalisées pour garder une vision claire de l’avancement pédagogique.',
+    'Suivre les séances',
+    'teal',
+  ],
+  [
+    '⌂',
+    'Cours en ligne',
+    'Regroupez les ressources et contenus pédagogiques en ligne pour faciliter l’accès aux apprentissages.',
+    'Accéder aux cours',
+    'violet',
+  ],
+  [
+    '▥',
+    'Gestion financière',
+    'Centralisez le suivi des paiements, des dépenses et des opérations financières de votre centre.',
+    'Suivre les finances',
+    'amber',
+  ],
+  [
+    '▧',
+    'Rapports & statistiques',
+    'Consultez les indicateurs et rapports pour mieux comprendre l’activité de votre centre et de vos formateurs.',
+    'Analyser l’activité',
+    'pink',
+  ],
+  [
+    '⇄',
+    'Import & export Excel',
+    'Importez vos données et exportez les informations utiles pour simplifier le suivi administratif.',
+    'Échanger les données',
+    'slate',
+  ],
 ];
 
 const plans = [
