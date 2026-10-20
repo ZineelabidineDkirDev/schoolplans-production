@@ -94,17 +94,20 @@ export function SupportsPage() {
             }
             return;
           }
-          // L'étudiant consulte toutes les ressources de son centre, pas uniquement
-          // celles des cours auxquels il est individuellement inscrit.
-          // getCourseSupports filtre explicitement sur profile.centreId.
-          const documents = await getCourseSupports(client, profile.centreId);
-          // Récupérer les noms des modules de tout le centre afin d'afficher
-          // correctement les ressources même si l'étudiant n'est pas inscrit au cours.
+          // Charger uniquement les cours réellement rattachés au centre de l'étudiant.
+          // Les ressources sont ensuite filtrées par centre ET par ces cours pour éviter
+          // toute fuite si une ligne documents est mal rattachée à un autre centre.
           const { data: centreCourses, error: centreCoursesError } = await client
             .from('cours')
             .select('id,matiere_id')
             .eq('centre_id', profile.centreId);
           if (centreCoursesError) throw centreCoursesError;
+          const centreCourseIds = [...new Set(
+            (centreCourses ?? [])
+              .map((course) => course.id)
+              .filter((id): id is string | number => typeof id === 'string' || typeof id === 'number'),
+          )];
+          const documents = await getCourseSupports(client, profile.centreId, centreCourseIds);
           const moduleIds = [...new Set(
             (centreCourses ?? [])
               .map((course) => course.matiere_id)
@@ -140,7 +143,18 @@ export function SupportsPage() {
         // Tous les formateurs peuvent consulter les ressources pédagogiques du centre.
         // Les droits de création, modification et suppression restent réservés aux formateurs
         // et les règles Supabase doivent protéger ces actions côté serveur.
-        const documents = await getCourseSupports(client, profile.centreId);
+        // La bibliothèque visible est limitée aux cours rattachés à ce centre.
+        const { data: centreCourses, error: centreCoursesError } = await client
+          .from('cours')
+          .select('id')
+          .eq('centre_id', profile.centreId);
+        if (centreCoursesError) throw centreCoursesError;
+        const centreCourseIds = [...new Set(
+          (centreCourses ?? [])
+            .map((course) => course.id)
+            .filter((id): id is string | number => typeof id === 'string' || typeof id === 'number'),
+        )];
+        const documents = await getCourseSupports(client, profile.centreId, centreCourseIds);
         if (active) {
           setState({
             status: 'loaded',
