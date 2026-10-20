@@ -27,6 +27,8 @@ export const LOADED_CENTRE_PERMISSION_KEYS = [
   'seances',
   'formations',
   'groupes',
+  'cours_en_ligne',
+  'gestion_financiere',
 ] as const;
 
 export type LoadedCentrePermissionKey = (typeof LOADED_CENTRE_PERMISSION_KEYS)[number];
