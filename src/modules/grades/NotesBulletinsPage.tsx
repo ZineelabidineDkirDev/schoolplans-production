@@ -40,10 +40,13 @@ export function NotesBulletinsPage() {
     setLoading(true); setError(null);
     const db = getSupabaseClient();
     try {
+      const studentQuery = role === 'etudiant' && session?.user.email
+        ? db.from('etudiants').select('id,nom,prenom,groupe_id').eq('centre_id', centreId).ilike('email', session.user.email).limit(1)
+        : db.from('etudiants').select('id,nom,prenom,groupe_id').eq('centre_id', centreId).order('nom');
       const [ev, st, gr, bu] = await Promise.all([
-        db.from('grade_evaluations').select('*').eq('centre_id', centreId).order('created_at', { ascending: false }),
-        db.from('etudiants').select('id,nom,prenom,groupe_id').eq('centre_id', centreId).order('nom'),
-        db.from('grade_entries').select('*').eq('centre_id', centreId),
+        role === 'etudiant' ? Promise.resolve({ data: [], error: null }) : db.from('grade_evaluations').select('*').eq('centre_id', centreId).order('created_at', { ascending: false }),
+        studentQuery,
+        role === 'etudiant' ? Promise.resolve({ data: [], error: null }) : db.from('grade_entries').select('*').eq('centre_id', centreId),
         db.from('grade_bulletins').select('*').eq('centre_id', centreId).order('created_at', { ascending: false }),
       ]);
       for (const result of [ev, st, gr, bu]) if (result.error) throw result.error;
@@ -61,10 +64,7 @@ export function NotesBulletinsPage() {
   const activeEvaluation = evaluations.find((e) => e.id === selectedEvaluation) ?? null;
   const currentGrades = useMemo(() => grades.filter((g) => g.evaluation_id === selectedEvaluation), [grades, selectedEvaluation]);
   const gradeByStudent = useMemo(() => new Map(currentGrades.map((g) => [g.student_id, g])), [currentGrades]);
-  const visibleStudents = useMemo(() => {
-    if (role !== 'etudiant') return students;
-    return students.filter((s) => String(s.id) === profile?.id);
-  }, [students, role, profile?.id]);
+  const visibleStudents = useMemo(() => students, [students]);
 
   async function createEvaluation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
