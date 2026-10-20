@@ -24,7 +24,6 @@ const ROLE_SECTIONS: Record<SourceRole, readonly AppSection[]> = {
     'vfg',
     'vc',
     'vfinance',
-    'vk',
   ],
   director: [
     ...COMMON_SECTIONS,
@@ -40,7 +39,6 @@ const ROLE_SECTIONS: Record<SourceRole, readonly AppSection[]> = {
     'vfg',
     'vc',
     'vfinance',
-    'vk',
   ],
   super_admin: [...COMMON_SECTIONS, 'vz', 'vd'],
   formateur: [...COMMON_SECTIONS, 'vl', 'vn', 'vp', 'vk', 'vrapport'],
@@ -50,14 +48,15 @@ const ROLE_SECTIONS: Record<SourceRole, readonly AppSection[]> = {
 const SECTION_REQUIREMENTS: Partial<Record<AppSection, readonly CentrePermissionKey[]>> = {
   vcal: ['planning'],
   vd: ['statistiques'],
-  vl: ['cours'],
+  vl: ['cours', 'seances'],
   vr: ['salles'],
-  vk: ['supports', 'documents'],
+  vk: ['cours_en_ligne'],
   vf: ['formateurs'],
   vp: ['presences'],
   vs: ['etudiants'],
-  vfg: ['formations'],
+  vfg: ['formations', 'groupes'],
   vc: ['certificats'],
+  vfinance: ['gestion_financiere'],
 };
 
 export const SECTION_LABELS: Record<AppSection, string> = {
@@ -100,7 +99,7 @@ export function canAccessSection(
 ): section is AppSection {
   if (!APP_SECTIONS.includes(section as AppSection)) return false;
   const appSection = section as AppSection;
-  if (appSection === 'vfinance') return role === 'admin' || role === 'director';
+  if (appSection === 'vfinance') return (role === 'admin' || role === 'director') && permissions.gestion_financiere === true;
   if (role === 'super_admin') return true;
 
   // Les étudiants peuvent toujours consulter leur planning et leurs salles.
@@ -108,9 +107,7 @@ export function canAccessSection(
   if (role === 'etudiant' && (appSection === 'vcal' || appSection === 'vr')) return true;
 
   if (!ROLE_SECTIONS[role].includes(appSection)) return false;
-  // Les cours en ligne sont accessibles à tous les formateurs du centre, ainsi qu’à l’administration et aux étudiants.
-  // Les actions d’écriture restent contrôlées séparément par la page et les règles Supabase.
-  if (appSection === 'vk' && ['admin', 'director', 'formateur', 'etudiant'].includes(role)) return true;
+  // L’accès aux cours en ligne dépend du droit centre cours_en_ligne.
   if (role === 'formateur' && appSection === 'vp') return true;
 
   return (SECTION_REQUIREMENTS[appSection] ?? []).every((key) => permissions[key] === true);
