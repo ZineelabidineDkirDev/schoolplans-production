@@ -19,7 +19,13 @@ function OperationsModal({ title, onClose, children }: { title: string; onClose:
 const CATEGORIES = ['Loyer', 'Eau et électricité', 'Internet et téléphone', 'Achats et fournitures', 'Maintenance et réparation', 'Salaires et rémunérations', 'Transport', 'Impôts et taxes', 'Autre'];
 const money = (n: number) => new Intl.NumberFormat('fr-MA', { style: 'currency', currency: 'MAD', maximumFractionDigits: 2 }).format(n);
 const num = (v: number | string | null | undefined) => { const n = Number(v ?? 0); return Number.isFinite(n) ? n : 0; };
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return year + '-' + month + '-' + day;
+};
 const movementLabel = (type: Movement['movement_type']) => ({ inflow: 'Entrée', outflow: 'Sortie', transfer_in: 'Transfert reçu', transfer_out: 'Transfert envoyé', adjustment: 'Ajustement' }[type]);
 
 function readableFinanceError(cause: unknown, fallback: string): string {
@@ -171,7 +177,13 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
     if (movementForm.movementType === 'outflow' && amount > balanceFor(account) + 0.001) { setError('Solde insuffisant dans « ' + account.name + ' ».'); return; }
     setSaving(true); setError(null); setNotice(null);
     try {
-      const { error } = await getSupabaseClient().from('finance_account_movements').insert({ centre_id: profile.centreId, account_id: account.id, movement_type: movementForm.movementType, amount, movement_date: new Date((movementForm.date || today()) + 'T12:00:00').toISOString(), description: movementForm.description.trim(), source_type: 'manual', created_by: profile.id });
+      const { error } = await getSupabaseClient().rpc('finance_record_manual_movement', {
+        p_account_id: account.id,
+        p_movement_type: movementForm.movementType,
+        p_amount: Math.round(amount * 100) / 100,
+        p_movement_date: new Date((movementForm.date || today()) + 'T12:00:00').toISOString(),
+        p_description: movementForm.description.trim(),
+      });
       if (error) throw error;
       setMovementForm((v) => ({ ...v, amount: '', description: '' })); setNotice('Mouvement de trésorerie enregistré.'); reload(); onChange();
     } catch (e) { setError(readableFinanceError(e, 'Impossible d’enregistrer le mouvement.')); }
