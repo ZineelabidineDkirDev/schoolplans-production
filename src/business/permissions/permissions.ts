@@ -24,6 +24,7 @@ const ROLE_SECTIONS: Record<SourceRole, readonly AppSection[]> = {
     'vfg',
     'vc',
     'vfinance',
+    'vk',
   ],
   director: [
     ...COMMON_SECTIONS,
@@ -39,6 +40,7 @@ const ROLE_SECTIONS: Record<SourceRole, readonly AppSection[]> = {
     'vfg',
     'vc',
     'vfinance',
+    'vk',
   ],
   super_admin: [...COMMON_SECTIONS, 'vz', 'vd'],
   formateur: [...COMMON_SECTIONS, 'vl', 'vn', 'vp', 'vk', 'vrapport'],
@@ -65,7 +67,7 @@ export const SECTION_LABELS: Record<AppSection, string> = {
   vfinance: 'Tableau de bord financier',
   vl: 'Séances',
   vr: 'Salles',
-  vk: 'Supports',
+  vk: 'Cours en ligne',
   vm: 'Mes cours',
   vq: 'Mes présences',
   vf: 'Formateurs',
@@ -106,7 +108,9 @@ export function canAccessSection(
   if (role === 'etudiant' && (appSection === 'vcal' || appSection === 'vr')) return true;
 
   if (!ROLE_SECTIONS[role].includes(appSection)) return false;
-  if (role === 'etudiant' && appSection === 'vk') return true;
+  // Les cours en ligne sont consultables par l’administration et les étudiants.
+  // Seuls les formateurs disposent des actions de création, modification et suppression.
+  if (appSection === 'vk' && ['admin', 'director', 'etudiant'].includes(role)) return true;
   if (role === 'formateur' && appSection === 'vp') return true;
 
   return (SECTION_REQUIREMENTS[appSection] ?? []).every((key) => permissions[key] === true);
