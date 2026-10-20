@@ -327,9 +327,9 @@ export function SupportsPage() {
   return (
     <section className="mx-auto w-full max-w-screen-2xl space-y-5">
       <PageHeader
-        description="Consultez les ressources pédagogiques associées à vos cours. Les fichiers sont accessibles par lien temporaire sécurisé."
-        eyebrow="Ressources pédagogiques"
-        title="Supports de cours"
+        description="Consultez les fichiers pédagogiques et les liens vidéo associés aux cours de votre centre."
+        eyebrow="Espace pédagogique"
+        title="Cours en ligne"
       />
       {message && <Alert tone={message.tone}>{message.text}</Alert>}
       {state.status === 'loading' && (
