@@ -28,6 +28,7 @@ import { CentreProfilePage } from '../management/CentreProfilePage';
 import { CertificatesPage } from '../management/CertificatesPage';
 import { HistoryPage } from '../management/HistoryPage';
 import { FinanceDashboardPage } from '../finance/FinanceDashboardPage';
+import { NotesBulletinsPage } from '../grades/NotesBulletinsPage';
 import { SupportsPage } from '../management/SupportsPage';
 import { StudentWorkspacePage } from '../students/StudentWorkspacePage';
 import type { AppSection } from '../../types/auth';
@@ -345,6 +346,7 @@ function NavIcon({ section }: { section: AppSection | 'home' }) {
     vd: 'M4 20V4m0 16h16M8 16v-5m4 5V8m4 8v-3',
     vrapport: 'M4 19V5m0 14h16M8 15l3-4 3 2 5-7',
     vfinance: 'M3 7h18v13H3zM7 7V4h10v3m-14 4h18m-10 0v3',
+    vnotes: 'M5 4h14v16H5zM8 8h8m-8 4h8m-8 4h5',
     vl: 'M5 4h14v16H5zM8 8h8m-8 4h8m-8 4h5',
     vr: 'M4 20h16M6 20V5h12v15M9 9h2m2 0h2m-6 4h2m2 0h2m-4 7v-4h3v4',
     vk: 'M5 4h14v16H5zM8 8h8m-8 4h8m-8 4h5',
@@ -393,6 +395,7 @@ export function SectionPlaceholder() {
   if (section === 'vd') return <DashboardPage />;
   if (section === 'vrapport') return profile?.role === 'etudiant' ? <StudentWorkspacePage view="report" /> : <RapportCentrePage />;
   if (section === 'vfinance') return <FinanceDashboardPage />;
+  if (section === 'vnotes') return <NotesBulletinsPage />;
   if (section === 'vcal') return <PlanningPage />;
   if (section === 'vl') return <PlanningPage view="sessions" />;
   if (section === 'vi') return <EnrollmentRequestsPage />;
