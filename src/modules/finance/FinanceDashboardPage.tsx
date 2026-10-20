@@ -118,6 +118,13 @@ export function FinanceDashboardPage() {
   const studentName = (id: number) => { const student = students.find((item) => Number(item.id) === Number(id)); return student ? (student.prenom + ' ' + student.nom).trim() : 'Étudiant #' + id; };
   const teacherName = (id: number) => { const teacher = teachers.find((item) => Number(item.id) === Number(id)); return teacher ? teacher.nom : 'Formateur #' + id; };
   const advanceBalance = (teacherId: number) => Math.max(0, advances.filter((item) => Number(item.teacher_id) === Number(teacherId) && item.status === 'active').reduce((sum, item) => sum + numeric(item.amount), 0) - advanceRepayments.filter((item) => Number(item.teacher_id) === Number(teacherId) && item.status === 'active').reduce((sum, item) => sum + numeric(item.amount), 0));
+  const findOverlappingPayroll = (teacherId: number, periodStart: string, periodEnd: string, excludePayrollId?: string) =>
+    payroll.find((item) => item.id !== excludePayrollId
+      && Number(item.teacher_id) === Number(teacherId)
+      && item.status !== 'cancelled'
+      && item.period_start <= periodEnd
+      && item.period_end >= periodStart);
+  const overlappingPayrollMessage = 'Cette période chevauche une autre paie non annulée pour ce formateur. Pour éviter de payer deux fois les mêmes heures, annulez le brouillon en doublon ou choisissez une période qui ne chevauche pas la paie existante.';
   const payrollGross = payrollForm.compensationMode === 'session' ? numeric(payrollForm.sessionCount) * numeric(payrollForm.sessionRate) : payrollForm.compensationMode === 'monthly' ? numeric(payrollForm.monthlySalary) : numeric(payrollForm.hours) * numeric(payrollForm.hourlyRate);
   const payrollNet = Math.max(0, payrollGross - numeric(payrollForm.advanceDeduction));
   const paidForCharge = (chargeId: string) => payments.filter((payment) => payment.charge_id === chargeId).reduce((sum, payment) => sum + numeric(payment.amount), 0);
@@ -196,6 +203,8 @@ export function FinanceDashboardPage() {
     const deduction = Number(payrollForm.advanceDeduction || 0);
     const gross = payrollForm.compensationMode === 'session' ? sessionCount * sessionRate : payrollForm.compensationMode === 'monthly' ? monthlySalary : hours * hourlyRate;
     if (!payrollForm.teacherId || !payrollForm.periodStart || !payrollForm.periodEnd || payrollForm.periodEnd < payrollForm.periodStart || ![hours,hourlyRate,sessionCount,sessionRate,monthlySalary,deduction,gross].every(Number.isFinite) || [hours,hourlyRate,sessionCount,sessionRate,monthlySalary,deduction].some((value) => value < 0) || deduction > gross) { setError('Vérifiez le formateur, la période et les montants. La déduction ne peut pas dépasser la rémunération brute. Le solde réel des avances sera vérifié par la base de données.'); return; }
+    const overlapping = findOverlappingPayroll(Number(payrollForm.teacherId), payrollForm.periodStart, payrollForm.periodEnd, editingPayrollId ?? undefined);
+    if (overlapping) { setError(overlappingPayrollMessage + ' Paie concernée : ' + overlapping.period_start + ' → ' + overlapping.period_end + ' (' + overlapping.status + ').'); return; }
     setSaving(true); setError(null); setNotice(null);
     try {
       const client = getSupabaseClient();
@@ -238,6 +247,10 @@ export function FinanceDashboardPage() {
 
   async function changePayrollStatus(item: Payroll, status: 'approved' | 'cancelled') {
     if (!profile?.centreId) return;
+    if (status === 'approved') {
+      const overlapping = findOverlappingPayroll(item.teacher_id, item.period_start, item.period_end, item.id);
+      if (overlapping) { setError(overlappingPayrollMessage + ' Paie concernée : ' + overlapping.period_start + ' → ' + overlapping.period_end + ' (' + overlapping.status + ').'); return; }
+    }
     const prompt = status === 'cancelled' ? 'Annuler cette rémunération ?' : 'Valider cette rémunération ?';
     if (!window.confirm(prompt)) return;
     setSaving(true); setError(null); setNotice(null);
