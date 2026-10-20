@@ -126,6 +126,8 @@ export function NotesBulletinsPage() {
     finally { setBusy(false); }
   }
 
+  const barremeMaxNumber = Math.max(1, numeric(barremeMax, 20));
+
   async function submitBulletins() {
     if (!evaluations.length || !students.length) { setError('Il faut au moins une évaluation et un étudiant.'); return; }
     setBusy(true); setError(null);
@@ -133,7 +135,7 @@ export function NotesBulletinsPage() {
       const db = getSupabaseClient();
       const rows = students.map((student) => {
         const studentEntries = grades.filter((g) => g.student_id === String(student.id));
-        const relevant = studentEntries.map((g) => ({ grade: g, evaluation: evaluations.find((e) => e.id === g.evaluation_id) })).filter((x) => x.evaluation);
+        const relevant = studentEntries.map((g) => ({ grade: g, evaluation: evaluations.find((e) => e.id === g.evaluation_id) })).filter((x) => x.evaluation && x.evaluation.periode === periode);
         const latestByEvaluation = new Map<string, { grade: Grade; evaluation: Evaluation }>();
         for (const item of relevant as { grade: Grade; evaluation: Evaluation }[]) {
           const prev = latestByEvaluation.get(item.evaluation.id);
@@ -155,8 +157,6 @@ export function NotesBulletinsPage() {
     } catch (cause) { setError(errText(cause)); }
     finally { setBusy(false); }
   }
-  const barremeMaxNumber = Math.max(1, numeric(barremeMax, 20));
-
   async function changeBulletinStatus(bulletin: Bulletin, status: 'valide' | 'publie') {
     setBusy(true); setError(null);
     try {
