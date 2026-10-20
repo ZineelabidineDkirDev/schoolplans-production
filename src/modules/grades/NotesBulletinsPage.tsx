@@ -23,7 +23,8 @@ export function NotesBulletinsPage() {
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
-  const [bulletins, setBulletins] = useState<Bulletin[]>([]);\n  const [currentStudentId, setCurrentStudentId] = useState<string | null>(null);
+  const [bulletins, setBulletins] = useState<Bulletin[]>([]);
+  const [currentStudentId, setCurrentStudentId] = useState<string | null>(null);
   const [selectedEvaluation, setSelectedEvaluation] = useState('');
   const [titre, setTitre] = useState('');
   const [periode, setPeriode] = useState('Semestre 1');
@@ -51,7 +52,8 @@ export function NotesBulletinsPage() {
       ]);
       for (const result of [ev, st, gr, bu]) if (result.error) throw result.error;
       setEvaluations((ev.data ?? []) as Evaluation[]);
-      setStudents((st.data ?? []) as Student[]);\n      setCurrentStudentId(st.data?.[0]?.id == null ? null : String(st.data[0].id));
+      setStudents((st.data ?? []) as Student[]);
+      setCurrentStudentId(st.data?.[0]?.id == null ? null : String(st.data[0].id));
       setGrades((gr.data ?? []) as Grade[]);
       setBulletins((bu.data ?? []) as Bulletin[]);
       if (!selectedEvaluation && ev.data?.[0]?.id) setSelectedEvaluation(ev.data[0].id);
