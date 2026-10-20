@@ -78,6 +78,7 @@ const CENTRE_RIGHTS = [
   ['seances', 'Gestion des séances'],
   ['cours_en_ligne', 'Cours en ligne'],
   ['gestion_financiere', 'Gestion financière'],
+  ['notes_bulletins', 'Notes & Bulletins'],
 ] as const;
 
 type CentreConfigForm = {
