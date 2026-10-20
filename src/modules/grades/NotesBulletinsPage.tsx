@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthProvider';
 
 type Evaluation = { id: string; titre: string; periode: string; cours_id: string; note_max: number; coefficient: number; statut: string };
 type Student = { id: string; nom: string; prenom: string | null; groupe_id: string | null };
+type Course = { id: string; label: string };
 type Grade = { id: string; evaluation_id: string; student_id: string; note: number; tentative: number; note_initiale_id: string | null };
 type Bulletin = { id: string; student_id: string; periode: string; formation_id: string | null; moyenne: number | null; statut: string; contenu: Record<string, unknown> };
 
@@ -22,6 +23,7 @@ export function NotesBulletinsPage() {
   const [error, setError] = useState<string | null>(null);
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [bulletins, setBulletins] = useState<Bulletin[]>([]);
   const [currentStudentId, setCurrentStudentId] = useState<string | null>(null);
@@ -54,6 +56,11 @@ export function NotesBulletinsPage() {
       setEvaluations((ev.data ?? []) as Evaluation[]);
       setStudents((st.data ?? []) as Student[]);
       setCurrentStudentId(st.data?.[0]?.id == null ? null : String(st.data[0].id));
+      if (role !== 'etudiant') {
+        const { data: courseRows, error: courseError } = await db.from('cours').select('id').eq('centre_id', centreId).order('id');
+        if (courseError) throw courseError;
+        setCourses((courseRows ?? []).map((row) => ({ id: String(row.id), label: 'Cours #' + String(row.id) })));
+      }
       setGrades((gr.data ?? []) as Grade[]);
       setBulletins((bu.data ?? []) as Bulletin[]);
       if (!selectedEvaluation && ev.data?.[0]?.id) setSelectedEvaluation(ev.data[0].id);
@@ -66,7 +73,6 @@ export function NotesBulletinsPage() {
   const activeEvaluation = evaluations.find((e) => e.id === selectedEvaluation) ?? null;
   const currentGrades = useMemo(() => grades.filter((g) => g.evaluation_id === selectedEvaluation), [grades, selectedEvaluation]);
   const gradeByStudent = useMemo(() => new Map(currentGrades.map((g) => [g.student_id, g])), [currentGrades]);
-  const visibleStudents = useMemo(() => students, [students]);
 
   async function createEvaluation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -168,11 +174,11 @@ export function NotesBulletinsPage() {
     <PageHeader eyebrow="Suivi pédagogique" title="Notes & Bulletins" description="Saisissez les évaluations, conservez les rattrapages et soumettez les bulletins au Directeur." />
     {error && <Alert tone="error">{error}</Alert>}
     {role === 'etudiant' ? <Panel title="Mes bulletins"><div className="space-y-3">{bulletins.filter((b) => b.statut === 'publie' && String(b.student_id) === currentStudentId).map((b) => <article key={b.id} className="rounded-xl border p-4"><h3 className="font-semibold">{b.periode}</h3><p>Moyenne : {b.moyenne == null ? 'Non calculée' : Number(b.moyenne).toFixed(2)}</p><Button onClick={() => window.print()} type="button">Imprimer / PDF</Button></article>)}{!bulletins.some((b) => b.statut === 'publie' && String(b.student_id) === currentStudentId) && <EmptyState title="Aucun bulletin publié" description="Vos bulletins validés apparaîtront ici." />}</div></Panel> : <>
-      {canEdit && <Panel title="Créer une évaluation" description="Le barème maximal est configurable. Utilisez l’identifiant du cours existant dans SchoolPlans.">
+      {canEdit && <Panel title="Créer une évaluation" description="Le barème maximal est configurable. Sélectionnez un cours déjà créé dans SchoolPlans.">
         <form className="grid gap-3 md:grid-cols-2" onSubmit={(event) => void createEvaluation(event)}>
           <Field label="Titre de l’évaluation"><input className="sp-input" value={titre} onChange={(e) => setTitre(e.target.value)} required placeholder="Ex. Examen final" /></Field>
           <Field label="Période du bulletin"><input className="sp-input" value={periode} onChange={(e) => setPeriode(e.target.value)} required placeholder="Semestre 1" /></Field>
-          <Field label="ID du cours existant"><input className="sp-input" value={coursId} onChange={(e) => setCoursId(e.target.value)} required placeholder="Identifiant du cours" /></Field>
+          <Field label="Cours"><select className="sp-input" value={coursId} onChange={(e) => setCoursId(e.target.value)} required><option value="">Choisir un cours</option>{courses.map((course) => <option key={course.id} value={course.id}>{course.label}</option>)}</select></Field>
           <Field label="Note maximale"><input className="sp-input" type="number" min="1" step="0.25" value={noteMax} onChange={(e) => setNoteMax(e.target.value)} required /></Field>
           <Field label="Coefficient"><input className="sp-input" type="number" min="0.01" step="0.01" value={coefficient} onChange={(e) => setCoefficient(e.target.value)} required /></Field>
           <Button disabled={busy} type="submit">Créer l’évaluation</Button>
