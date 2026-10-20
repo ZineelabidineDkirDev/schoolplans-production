@@ -76,6 +76,8 @@ const CENTRE_RIGHTS = [
   ['import_excel', 'Import Excel'],
   ['export_excel', 'Export Excel'],
   ['seances', 'Gestion des séances'],
+  ['cours_en_ligne', 'Cours en ligne'],
+  ['gestion_financiere', 'Gestion financière'],
 ] as const;
 
 type CentreConfigForm = {
@@ -87,7 +89,7 @@ type CentreConfigForm = {
 };
 
 const DEFAULT_CENTRE_RIGHTS = Object.fromEntries(
-  CENTRE_RIGHTS.map(([key]) => [key, true]),
+  CENTRE_RIGHTS.map(([key]) => [key, false]),
 ) as Record<string, boolean>;
 
 const emptyForm: CentreForm = {
@@ -387,7 +389,7 @@ export function CentreManagementPage() {
         ? subscriptionResult.data.date_expiration
         : '',
       rights: Object.fromEntries(
-        CENTRE_RIGHTS.map(([key]) => [key, storedRights[key] !== false]),
+        CENTRE_RIGHTS.map(([key]) => [key, storedRights[key] === true]),
       ),
     });
     setConfigLoading(false);
