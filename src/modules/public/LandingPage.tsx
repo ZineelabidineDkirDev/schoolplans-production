@@ -181,6 +181,14 @@ export function LandingPage() {
     return () => window.removeEventListener('scroll', syncScroll);
   }, []);
 
+  function syncPricingIndex() {
+    const viewport = pricingViewport.current;
+    const card = viewport?.querySelector<HTMLElement>('.sp-landing-plan');
+    if (!viewport || !card) return;
+    const step = card.offsetWidth + 16;
+    setPricingIndex(Math.max(0, Math.min(plans.length - 1, Math.round(viewport.scrollLeft / step))));
+  }
+
   function movePricing(direction: -1 | 1) {
     const viewport = pricingViewport.current;
     if (!viewport) return;
@@ -205,6 +213,17 @@ export function LandingPage() {
 
   return (
     <main className="sp-landing" id="landing">
+      <style>{`
+#lp-pricing .sp-landing-pricing-viewport{overflow-x:auto;overflow-y:visible;perspective:1400px;scroll-snap-type:x mandatory;scrollbar-width:none;padding:34px max(8px,calc((100% - 340px)/2)) 42px;margin:-18px 0;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+#lp-pricing .sp-landing-pricing-viewport::-webkit-scrollbar{display:none}
+#lp-pricing .sp-landing-pricing-track{display:flex;align-items:stretch;gap:16px;width:max-content;transform-style:preserve-3d}
+#lp-pricing .sp-landing-plan{flex:0 0 min(340px,calc(100vw - 56px));scroll-snap-align:center;transform:rotateY(-7deg) scale(.94) translateZ(-24px);transform-origin:center;opacity:.76;filter:saturate(.82);transition:transform .55s cubic-bezier(.2,.75,.25,1),opacity .4s ease,filter .4s ease,box-shadow .4s ease;backface-visibility:hidden}
+#lp-pricing .sp-landing-plan:nth-child(even){transform:rotateY(7deg) scale(.94) translateZ(-24px)}
+#lp-pricing .sp-landing-plan.is-active{transform:rotateY(0) scale(1.035) translateZ(28px);opacity:1;filter:none;box-shadow:0 28px 65px -30px rgba(25,55,120,.48);z-index:2}
+#lp-pricing .sp-landing-plan.is-featured.is-active{transform:rotateY(0) scale(1.045) translateZ(36px)}
+@media(max-width:600px){#lp-pricing .sp-landing-pricing-viewport{padding-inline:calc((100vw - min(340px,100vw - 56px))/2)}#lp-pricing .sp-landing-plan{transform:rotateY(-4deg) scale(.96)}#lp-pricing .sp-landing-plan:nth-child(even){transform:rotateY(4deg) scale(.96)}#lp-pricing .sp-landing-plan.is-active{transform:rotateY(0) scale(1.015) translateZ(12px)}}
+@media(prefers-reduced-motion:reduce){#lp-pricing .sp-landing-plan{transition:none!important}}
+`}</style>
       <header
         className={`sp-landing-nav${menuOpen ? ' menu-open' : ''}${scrolled ? ' is-scrolled' : ''}`}
       >
@@ -622,11 +641,11 @@ export function LandingPage() {
             <span>FACTURATION ANNUELLE</span>
             <b>14 jours d’essai gratuit</b>
           </div>
-          <div className="sp-landing-pricing-viewport" ref={pricingViewport}>
+          <div className="sp-landing-pricing-viewport" onScroll={syncPricingIndex} ref={pricingViewport}>
             <div className="sp-landing-pricing-track">
               {plans.map((plan) => (
                 <article
-                  className={`sp-landing-plan${plan.featured ? ' is-featured' : ''}`}
+                  className={`sp-landing-plan${plan.featured ? ' is-featured' : ''}${plans[pricingIndex]?.name === plan.name ? ' is-active' : ''}`}
                   key={plan.name}
                 >
                   {plan.featured && <span className="sp-landing-plan-badge">Le plus choisi</span>}
