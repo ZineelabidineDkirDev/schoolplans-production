@@ -9,6 +9,15 @@ security invoker
 set search_path = public, pg_temp
 as $$
 begin
+  if tg_op = 'UPDATE'
+     and new.centre_id is not distinct from old.centre_id
+     and new.teacher_id is not distinct from old.teacher_id
+     and new.period_start is not distinct from old.period_start
+     and new.period_end is not distinct from old.period_end
+     and new.status is not distinct from old.status then
+    return new;
+  end if;
+
   if new.status is distinct from 'cancelled' and exists (
     select 1
     from public.finance_teacher_payroll existing
@@ -31,7 +40,7 @@ drop trigger if exists finance_teacher_payroll_no_overlap
   on public.finance_teacher_payroll;
 
 create trigger finance_teacher_payroll_no_overlap
-before insert or update of centre_id, teacher_id, period_start, period_end, status
+before insert or update
 on public.finance_teacher_payroll
 for each row
 execute function public.finance_prevent_overlapping_teacher_payroll();
