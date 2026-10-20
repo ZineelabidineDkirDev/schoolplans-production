@@ -1,8 +1,24 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
-import { deleteCourseSupport, getCourseSupports, uploadCourseSupport } from './supportRepository';
+import { createLinkCourseSupport, deleteCourseSupport, getCourseSupports, uploadCourseSupport } from './supportRepository';
 
 describe('support repository', () => {
+
+  it('rejects unsafe external resource URLs before database access', async () => {
+    const from = vi.fn();
+    const client = { from } as unknown as SupabaseClient;
+    await expect(
+      createLinkCourseSupport(client, {
+        centreId: 'centre-a',
+        courseId: 5,
+        title: 'Vidéo',
+        description: '',
+        url: 'javascript:alert(1)',
+      }),
+    ).rejects.toThrow('https://');
+    expect(from).not.toHaveBeenCalled();
+  });
+
   it('skips a query when the student has no enrolled courses', async () => {
     const from = vi.fn();
     const client = { from } as unknown as SupabaseClient;
@@ -38,10 +54,13 @@ describe('support repository', () => {
           courseId: 12,
           title: 'Support',
           description: null,
+          resourceType: 'file',
           filePath: '12/support.pdf',
           fileName: 'support.pdf',
           size: 10,
           mimeType: 'application/pdf',
+          externalUrl: null,
+          sortOrder: 1,
           createdAt: '2026-01-01',
         },
         [13],
@@ -75,10 +94,13 @@ describe('support repository', () => {
           courseId: 12,
           title: 'Support',
           description: null,
+          resourceType: 'file',
           filePath: '12/support.pdf',
           fileName: 'support.pdf',
           size: 10,
           mimeType: 'application/pdf',
+          externalUrl: null,
+          sortOrder: 1,
           createdAt: '2026-01-01',
         },
         [12],
@@ -116,10 +138,13 @@ describe('support repository', () => {
           courseId: 12,
           title: 'Support',
           description: null,
+          resourceType: 'file',
           filePath: '12/support.pdf',
           fileName: 'support.pdf',
           size: 10,
           mimeType: 'application/pdf',
+          externalUrl: null,
+          sortOrder: 1,
           createdAt: '2026-01-01',
         },
         [12],
