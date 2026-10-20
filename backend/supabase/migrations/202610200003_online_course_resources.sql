@@ -84,3 +84,31 @@ create policy documents_teacher_update_own_course
         and p.centre_id = documents.centre_id
     )
   );
+
+-- Explicitly allow a teacher to add a URL resource without a Storage object,
+-- while retaining strict centre and assigned-course checks.
+drop policy if exists documents_teacher_insert_link_own_course on public.documents;
+create policy documents_teacher_insert_link_own_course
+  on public.documents
+  for insert
+  to authenticated
+  with check (
+    resource_type = 'link'
+    and fichier_path is null
+    and external_url is not null
+    and external_url ~* '^https?://'
+    and exists (
+      select 1
+      from public.profiles p
+      join public.formateurs f
+        on f.profile_id = p.id
+       and f.centre_id = p.centre_id
+      join public.cours c
+        on c.formateur_id = f.id
+       and c.centre_id = f.centre_id
+       and c.id = documents.cours_id
+      where p.id = auth.uid()
+        and p.role = 'formateur'
+        and p.centre_id = documents.centre_id
+    )
+  );
