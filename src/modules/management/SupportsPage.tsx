@@ -98,17 +98,36 @@ export function SupportsPage() {
           // celles des cours auxquels il est individuellement inscrit.
           // getCourseSupports filtre explicitement sur profile.centreId.
           const documents = await getCourseSupports(client, profile.centreId);
-          const courseById = new Map(
-            workspace.courses.map((course) => [String(course.id), course]),
+          // Récupérer les noms des modules de tout le centre afin d'afficher
+          // correctement les ressources même si l'étudiant n'est pas inscrit au cours.
+          const { data: centreCourses, error: centreCoursesError } = await client
+            .from('cours')
+            .select('id,matiere_id')
+            .eq('centre_id', profile.centreId);
+          if (centreCoursesError) throw centreCoursesError;
+          const moduleIds = [...new Set(
+            (centreCourses ?? [])
+              .map((course) => course.matiere_id)
+              .filter((id): id is string | number => typeof id === 'string' || typeof id === 'number'),
+          )];
+          const { data: modules, error: modulesError } = moduleIds.length
+            ? await client.from('matieres').select('id,nom').in('id', moduleIds)
+            : { data: [], error: null };
+          if (modulesError) throw modulesError;
+          const moduleNames = new Map(
+            (modules ?? []).map((module) => [String(module.id), String(module.nom ?? 'Module')]),
           );
+          const courses: SupportCourse[] = (centreCourses ?? []).map((course) => ({
+            id: course.id as StudentIdentifier,
+            label: course.matiere_id == null
+              ? 'Module du centre'
+              : (moduleNames.get(String(course.matiere_id)) ?? 'Module du centre'),
+          }));
           if (active) {
             setState({
               status: 'loaded',
               documents,
-              courses: [...courseById.values()].map((course) => ({
-                id: course.id,
-                label: course.subject,
-              })),
+              courses,
               studentFound: true,
             });
           }
