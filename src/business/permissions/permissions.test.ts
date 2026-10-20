@@ -83,8 +83,15 @@ describe('centralized section permissions', () => {
     expect(visible.filter((section) => section === 'vk')).toHaveLength(1);
   });
 
+  it('gates Notes & Bulletins by the centre permission for staff and students', () => {
+    expect(canAccessSection('director', 'vnotes', {})).toBe(false);
+    expect(canAccessSection('director', 'vnotes', { notes_bulletins: true })).toBe(true);
+    expect(canAccessSection('formateur', 'vnotes', { notes_bulletins: true })).toBe(true);
+    expect(canAccessSection('etudiant', 'vnotes', { notes_bulletins: true })).toBe(true);
+  });
+
   it('allows super-admin sections without centre feature flags', () => {
-    expect(getVisibleSections('super_admin', {})).toEqual(['vcal', 'vr', 'vz', 'vd']);
+    expect(getVisibleSections('super_admin', {})).toEqual(['vcal', 'vr', 'vz', 'vd', 'vnotes']);
   });
 
   it('enables migrated centre modules only when their central permission is true', () => {
