@@ -7737,3 +7737,60 @@ textarea.sp-field,
     text-align: left;
   }
 }
+
+ 
+/* En-tête multi-centres : identité du centre connecté et badge de forfait compact. */
+.sp-app-brand {
+  min-width: 0;
+  max-width: min(52vw, 620px);
+  gap: 10px;
+}
+.sp-app-centre-logo {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--card);
+  color: var(--brand);
+}
+.sp-app-centre-logo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.sp-app-brand-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sp-app-pack-badge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  max-width: 140px;
+  overflow: hidden;
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--lang) 28%, var(--line));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--lang) 10%, var(--card));
+  color: var(--lang);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 700px) {
+  .sp-app-header { gap: 8px; padding-inline: 12px; }
+  .sp-app-brand { max-width: min(52vw, 360px); gap: 7px; font-size: 14px; }
+  .sp-app-centre-logo { width: 32px; height: 32px; flex-basis: 32px; border-radius: 9px; }
+  .sp-app-pack-badge { max-width: 82px; padding: 3px 6px; font-size: 9px; }
+}
+@media (max-width: 420px) {
+  .sp-app-pack-badge { display: none; }
+  .sp-app-brand { max-width: 42vw; }
+}
