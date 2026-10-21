@@ -7,6 +7,7 @@ import type {
   DashboardPresence,
   DashboardRegistrationRequest,
   DashboardSubject,
+  DashboardStudentCity,
   DashboardTeacher,
 } from '../../types/dashboard';
 import type { StudentIdentifier } from '../../types/students';
@@ -125,6 +126,20 @@ function parseEnrollments(value: unknown): DashboardEnrollment[] {
   }));
 }
 
+function parseStudentCities(value: unknown): DashboardStudentCity[] {
+  const counts = new Map<string, number>();
+  for (const row of rows(value, 'villes des étudiants')) {
+    const city = optionalString(row.ville)?.trim();
+    if (!city) continue;
+    const key = city.toLocaleLowerCase('fr');
+    const existing = [...counts.keys()].find((name) => name.toLocaleLowerCase('fr') === key);
+    counts.set(existing ?? city, (counts.get(existing ?? city) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([city, studentCount]) => ({ city, studentCount }))
+    .sort((left, right) => right.studentCount - left.studentCount || left.city.localeCompare(right.city, 'fr'));
+}
+
 function parsePresences(value: unknown): DashboardPresence[] {
   return rows(value, 'présences').map((row) => ({
     courseId: identifier(row.cours_id, 'cours de présence'),
@@ -181,6 +196,7 @@ export async function getDashboardData(
         teachers: [],
         studentIds: [],
         enrollments: [],
+        studentCities: [],
         presences: [],
         requests: [],
         formationCount: null,
@@ -235,12 +251,14 @@ export async function getDashboardData(
         ? client
             .from('inscriptions')
             .select('cours_id,etudiant_id,created_at')
+            .eq('centre_id', centreId)
             .in('cours_id', courseIds)
         : Promise.resolve({ data: [], error: null }),
       courseIds.length
         ? client
             .from('presences')
             .select('cours_id,date,statut')
+            .eq('centre_id', centreId)
             .in('cours_id', courseIds)
             .limit(10000)
         : Promise.resolve({ data: [], error: null }),
@@ -250,13 +268,25 @@ export async function getDashboardData(
     if (presencesResult.error) throw presencesResult.error;
     if (subjectsResult.error) throw subjectsResult.error;
 
+    const teacherEnrollments = parseEnrollments(enrollmentsResult.data);
+    const uniqueStudentIds = [...new Map(teacherEnrollments.map((enrollment) => [String(enrollment.studentId), enrollment.studentId])).values()];
+    const studentsResult = uniqueStudentIds.length
+      ? await client
+          .from('etudiants')
+          .select('id,ville')
+          .eq('centre_id', centreId)
+          .in('id', uniqueStudentIds)
+      : { data: [], error: null };
+    if (studentsResult.error) throw studentsResult.error;
+
     return {
       linkedTeacher,
       courses,
       subjects: parseSubjects(subjectsResult.data),
       teachers: linkedTeacher ? [linkedTeacher] : [],
       studentIds: [],
-      enrollments: parseEnrollments(enrollmentsResult.data),
+      enrollments: teacherEnrollments,
+      studentCities: parseStudentCities(studentsResult.data), 
       presences: parsePresences(presencesResult.data),
       requests: [],
       formationCount: null,
