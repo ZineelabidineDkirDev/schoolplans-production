@@ -7868,3 +7868,5 @@ textarea.sp-field,
   .dashboard-student-map-heading { flex-direction: column; }
   .dashboard-student-map-total { text-align: left; }
 }
+
+.dashboard-morocco-marker .dashboard-morocco-city-label { fill: var(--ink); font-size: 9px; font-weight: 700; text-anchor: start; paint-order: stroke; stroke: var(--card); stroke-width: 3px; stroke-linejoin: round; }
