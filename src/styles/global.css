@@ -7870,3 +7870,97 @@ textarea.sp-field,
 }
 
 .dashboard-morocco-marker .dashboard-morocco-city-label { fill: var(--ink); font-size: 9px; font-weight: 700; text-anchor: start; paint-order: stroke; stroke: var(--card); stroke-width: 3px; stroke-linejoin: round; }
+
+
+/* Connexion : panneau de marque clair, motifs discrets et logo identique au site */
+.sp-login-aside {
+  position: relative;
+  isolation: isolate;
+  min-width: 0;
+  overflow: hidden;
+  justify-content: space-between;
+  gap: clamp(28px, 6vh, 64px);
+  padding: clamp(28px, 5vw, 64px);
+  background:
+    radial-gradient(ellipse at 8% 92%, rgb(48 125 239 / 13%) 0, transparent 34%),
+    radial-gradient(ellipse at 96% 8%, rgb(71 151 255 / 16%) 0, transparent 32%),
+    linear-gradient(135deg, #f8fbff 0%, #edf5ff 52%, #f7faff 100%);
+  color: #102747;
+}
+.sp-login-aside::before {
+  position: absolute;
+  z-index: -1;
+  top: -145px;
+  right: -130px;
+  width: 350px;
+  height: 350px;
+  border: 1px solid rgb(42 119 232 / 16%);
+  border-radius: 50%;
+  background: linear-gradient(145deg, rgb(50 132 244 / 13%), rgb(50 132 244 / 2%));
+  content: "";
+}
+.sp-login-aside::after {
+  position: absolute;
+  z-index: -1;
+  right: 34px;
+  bottom: 28px;
+  width: 112px;
+  height: 88px;
+  background-image: radial-gradient(#78a9ed 1.5px, transparent 1.5px);
+  background-size: 15px 15px;
+  content: "";
+  opacity: .5;
+  pointer-events: none;
+}
+.sp-login-brand {
+  position: relative;
+  z-index: 1;
+  gap: 12px;
+  color: #102747;
+  font-size: clamp(20px, 2vw, 27px);
+  letter-spacing: -.045em;
+}
+.sp-login-brand-accent { color: #1769e8; }
+.sp-login-site-mark {
+  display: inline-flex;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 13px;
+  background: #1769e8;
+  box-shadow: 0 8px 20px rgb(23 105 232 / 22%);
+}
+.sp-login-site-mark i { background: #fff; }
+.sp-login-aside > div:nth-child(2) { position: relative; z-index: 1; }
+.sp-login-aside h1 {
+  max-width: 12ch;
+  margin-bottom: 18px;
+  color: #102747;
+  font-size: clamp(36px, 4.2vw, 58px);
+  font-weight: 850;
+  letter-spacing: -.055em;
+  line-height: 1.04;
+}
+.sp-login-aside h1::first-line { color: #102747; }
+.sp-login-aside p {
+  max-width: 36ch;
+  color: #496583;
+  font-size: clamp(16px, 1.45vw, 20px);
+  line-height: 1.65;
+  opacity: 1;
+}
+.sp-login-poles { position: relative; z-index: 1; gap: 10px; }
+.sp-login-poles span {
+  border: 1px solid rgb(55 119 202 / 13%);
+  background: rgb(255 255 255 / 76%);
+  color: #315477;
+  box-shadow: 0 5px 18px rgb(31 75 128 / 5%);
+  backdrop-filter: blur(8px);
+}
+@media (max-width: 760px) {
+  .sp-login-aside { gap: 28px; padding: 30px 24px; }
+  .sp-login-aside h1 { font-size: clamp(34px, 8vw, 46px); }
+  .sp-login-aside::before { width: 220px; height: 220px; top: -95px; right: -95px; }
+}
