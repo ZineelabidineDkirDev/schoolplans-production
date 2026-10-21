@@ -214,6 +214,21 @@ function ApplicationShell() {
           {activeCentre?.type_abonnement && (
             <span className="sp-app-pack-badge" title="Forfait du centre">{activeCentre.type_abonnement}</span>
           )}
+          {activeCentre?.date_expiration && (() => {
+            const expiration = new Date(`${activeCentre.date_expiration}T12:00:00`);
+            const today = new Date();
+            const localToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const days = Math.ceil((expiration.getTime() - localToday.getTime()) / 86400000);
+            return (
+              <span
+                className={`sp-app-expiry-badge${days < 0 ? ' is-expired' : days <= 30 ? ' is-expiring' : ''}`}
+                title={days < 0 ? `Forfait expiré depuis ${-days} jour(s)` : `Expiration dans ${days} jour(s)`}
+              >
+                <span aria-hidden="true">⌛</span>
+                {activeCentre.date_expiration.split('-').reverse().join('/')}
+              </span>
+            );
+          })()}
         </Link>
         <div aria-label="Utilisateur connecté" className="sp-user">
           <strong>{profile.fullName || session?.user.email}</strong>
