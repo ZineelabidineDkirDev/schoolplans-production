@@ -58,6 +58,7 @@ export const APP_SECTIONS = [
   'vpcentre',
   'vz',
   'vnotes',
+  'vhelp',
 ] as const;
 
 export type AppSection = (typeof APP_SECTIONS)[number];
