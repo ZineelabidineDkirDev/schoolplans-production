@@ -3,6 +3,7 @@ import type { DashboardData } from '../../types/dashboard';
 import { getDashboardDateRange, getNextCourseDates, summarizeDashboard } from './dashboardMetrics';
 
 const data: DashboardData = {
+  studentCities: [],
   linkedTeacher: null,
   courses: [
     {
