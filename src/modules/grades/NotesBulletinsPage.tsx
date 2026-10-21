@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Alert, Button, EmptyState, Field, LoadingState, PageHeader, Panel, notify } from '../../components/ui';
+import { Alert, Button, EmptyState, LoadingState, PageHeader, Panel, notify } from '../../components/ui';
 import { getSupabaseClient } from '../../data/supabase/client';
 import { useAuth } from '../auth/AuthProvider';
 
