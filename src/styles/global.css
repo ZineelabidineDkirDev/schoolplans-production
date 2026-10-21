@@ -7833,3 +7833,38 @@ textarea.sp-field,
 @media (max-width: 420px) {
   .sp-app-expiry-badge { max-width: 90px; overflow: hidden; padding: 3px 5px; font-size: 9px; text-overflow: ellipsis; }
 }
+
+
+/* Carte des villes étudiantes — tableau de bord formateur uniquement */
+.dashboard-student-map-panel { min-width: 0; }
+.dashboard-student-map-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 16px; }
+.dashboard-student-map-heading h2 { margin: 0 0 6px; }
+.dashboard-student-map-heading p { margin: 0; color: var(--mute); font-size: .88rem; line-height: 1.5; }
+.dashboard-student-map-total { display: grid; flex: 0 0 auto; gap: 2px; text-align: right; }
+.dashboard-student-map-total strong { color: var(--brand); font-size: 1.8rem; line-height: 1.1; }
+.dashboard-student-map-total span { color: var(--mute); font-size: .75rem; }
+.dashboard-student-map-layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(220px, .75fr); align-items: center; gap: 22px; }
+.dashboard-morocco-map-wrap { min-width: 0; padding: 8px; border-radius: 16px; background: color-mix(in srgb, var(--brand) 4%, var(--card)); }
+.dashboard-morocco-map { display: block; width: 100%; max-height: 410px; overflow: visible; }
+.dashboard-morocco-map .dashboard-morocco-land { fill: color-mix(in srgb, var(--brand) 12%, var(--card)); }
+.dashboard-morocco-map .dashboard-morocco-border { fill: none; stroke: color-mix(in srgb, var(--brand) 55%, var(--line)); stroke-width: 2.2; stroke-linejoin: round; }
+.dashboard-morocco-marker circle { fill: var(--brand); stroke: var(--card); stroke-width: 2; }
+.dashboard-morocco-marker text { fill: white; font-size: 10px; font-weight: 800; text-anchor: middle; }
+.dashboard-map-caption { margin: 0; color: var(--mute); font-size: .72rem; text-align: center; }
+.dashboard-city-list { display: grid; align-content: start; gap: 0; max-height: 360px; overflow-y: auto; }
+.dashboard-city-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 2px; border-bottom: 1px solid var(--line); }
+.dashboard-city-row:last-child { border-bottom: 0; }
+.dashboard-city-row span { display: flex; align-items: center; gap: 9px; min-width: 0; overflow-wrap: anywhere; font-size: .88rem; }
+.dashboard-city-row span i { width: 8px; height: 8px; flex: 0 0 8px; border-radius: 50%; background: var(--brand); }
+.dashboard-city-row strong { flex: 0 0 auto; min-width: 28px; padding: 3px 8px; border-radius: 999px; background: color-mix(in srgb, var(--brand) 10%, var(--card)); color: var(--brand); text-align: center; }
+.dashboard-student-map-empty { display: grid; justify-items: center; gap: 8px; padding: 32px 16px; border: 1px dashed var(--line); border-radius: 14px; text-align: center; }
+.dashboard-student-map-empty > span { font-size: 1.8rem; }
+.dashboard-student-map-empty p { max-width: 52ch; margin: 0; color: var(--mute); font-size: .88rem; }
+@media (max-width: 760px) {
+  .dashboard-student-map-layout { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .dashboard-city-list { max-height: 260px; }
+}
+@media (max-width: 480px) {
+  .dashboard-student-map-heading { flex-direction: column; }
+  .dashboard-student-map-total { text-align: left; }
+}
