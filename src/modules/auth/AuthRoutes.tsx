@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, NavLink, Navigate, Outlet, useParams } from 'react-router-dom';
+import { Link, NavLink, Navigate, Outlet, useLocation, useParams } from 'react-router-dom';
 import {
   canAccessSection,
   getVisibleSections,
@@ -70,6 +70,15 @@ function AuthenticatedContent() {
 }
 
 function ApplicationShell() {
+  const location = useLocation();
+  const [openNavGroups, setOpenNavGroups] = useState({ students: false, teachers: false });
+  useEffect(() => {
+    const section = location.pathname.split('/')[2] ?? '';
+    setOpenNavGroups((current) => ({
+      students: current.students || ['vs', 'vp', 'vi', 'vnotes'].includes(section),
+      teachers: current.teachers || ['vf', 'vk', 'vl', 'vfg', 'vhelp', 'vc'].includes(section),
+    }));
+  }, [location.pathname]);
   const {
     profile,
     session,
@@ -292,17 +301,23 @@ function ApplicationShell() {
             <span className="sp-nav-label">Accueil</span>
           </NavLink>
           {profile.role === 'super_admin' && (
-            <NavLink
-              className={({ isActive }) => navItemClass(isActive)}
-              to="/app/vz"
-            >
+            <NavLink className={({ isActive }) => navItemClass(isActive)} to="/app/vz">
               <NavIcon section="vz" />
               <span className="sp-nav-label">Gérer les centres</span>
             </NavLink>
           )}
-          {visibleSections
-            .filter((section) => !(profile.role === 'super_admin' && section === 'vz'))
-            .map((section) => (
+          {(() => {
+            const studentItems = visibleSections.filter((section) =>
+              ['vs', 'vp', 'vi', 'vnotes'].includes(section),
+            );
+            const teacherItems = visibleSections.filter((section) =>
+              ['vf', 'vk', 'vl', 'vfg', 'vhelp', 'vc'].includes(section),
+            );
+            const grouped = new Set([...studentItems, ...teacherItems]);
+            const directItems = visibleSections.filter(
+              (section) => !(profile.role === 'super_admin' && section === 'vz') && !grouped.has(section),
+            );
+            const renderItem = (section: AppSection) => (
               <NavLink
                 className={({ isActive }) => navItemClass(isActive)}
                 key={section}
@@ -311,7 +326,42 @@ function ApplicationShell() {
                 <NavIcon section={section} />
                 <span className="sp-nav-label">{SECTION_LABELS[section]}</span>
               </NavLink>
-            ))}
+            );
+            const renderGroup = (
+              id: 'students' | 'teachers',
+              label: string,
+              items: AppSection[],
+              iconSection: AppSection,
+            ) => {
+              if (!items.length) return null;
+              const expanded = openNavGroups[id];
+              const active = items.some((section) => location.pathname === `/app/${section}`);
+              return (
+                <div className="sp-nav-group" key={id}>
+                  <button
+                    aria-expanded={expanded}
+                    className={`sp-nav-group-toggle${active ? ' active' : ''}`}
+                    onClick={() => setOpenNavGroups((current) => ({ ...current, [id]: !current[id] }))}
+                    type="button"
+                  >
+                    <NavIcon section={iconSection} />
+                    <span className="sp-nav-label">{label}</span>
+                    <svg aria-hidden="true" className={`sp-nav-chevron${expanded ? ' is-open' : ''}`} viewBox="0 0 24 24">
+                      <path d="m7 10 5 5 5-5" />
+                    </svg>
+                  </button>
+                  {expanded && <div className="sp-nav-submenu">{items.map(renderItem)}</div>}
+                </div>
+              );
+            };
+            return (
+              <>
+                {renderGroup('students', 'Étudiants', studentItems, 'vs')}
+                {renderGroup('teachers', 'Formateurs & pédagogie', teacherItems, 'vf')}
+                {directItems.map(renderItem)}
+              </>
+            );
+          })()}
         </nav>
 
         <main className="sp-app-content">
@@ -407,6 +457,7 @@ export function SectionPlaceholder() {
   if (section === 'vfg') return <FormationGroupsPage />;
   if (section === 'vpcentre') return <CentreProfilePage />;
   if (section === 'vk') return <SupportsPage />;
+  if (section === 'vhelp') return <section className="sp-page"><p className="sp-page-eyebrow">Assistance</p><h1 className="sp-page-title">Support</h1><p className="sp-muted">L’espace Support est séparé des cours en ligne. Le système de demandes d’assistance sera ajouté dans une prochaine étape.</p></section>;
   if (section === 'vm') return <StudentWorkspacePage view="courses" />;
   if (section === 'vq') return <StudentWorkspacePage view="attendance" />;
   if (section === 'vc') return <CertificatesPage />;
