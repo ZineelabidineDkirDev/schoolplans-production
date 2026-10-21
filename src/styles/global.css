@@ -7794,3 +7794,42 @@ textarea.sp-field,
   .sp-app-pack-badge { display: none; }
   .sp-app-brand { max-width: 42vw; }
 }
+
+
+/* Badge d'expiration compact dans l'en-tête du centre. */
+.sp-app-expiry-badge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--mute);
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+.sp-app-expiry-badge.is-expiring {
+  border-color: color-mix(in srgb, var(--bur) 45%, var(--line));
+  background: color-mix(in srgb, var(--bur) 10%, var(--card));
+  color: var(--bur);
+}
+.sp-app-expiry-badge.is-expired {
+  border-color: color-mix(in srgb, #dc2626 35%, var(--line));
+  background: color-mix(in srgb, #dc2626 9%, var(--card));
+  color: #dc2626;
+}
+.dashboard-popular-caption { margin: -6px 0 18px; font-size: .82rem; }
+.dashboard-popular-bars { display: grid; gap: 17px; margin: 0; padding: 0; list-style: none; }
+.dashboard-popular-bars li { display: grid; min-width: 0; gap: 7px; }
+.dashboard-popular-bar-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; min-width: 0; font-size: .84rem; }
+.dashboard-popular-bar-heading span { overflow: hidden; min-width: 0; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.dashboard-popular-bar-heading strong { flex: 0 0 auto; color: var(--mute); font-size: .76rem; }
+.dashboard-popular-bar-track { height: 11px; overflow: hidden; border-radius: 999px; background: color-mix(in srgb, var(--brand) 10%, var(--line)); }
+.dashboard-popular-bar-track span { display: block; height: 100%; min-width: 2px; border-radius: inherit; background: linear-gradient(90deg, var(--lang), var(--brand)); transition: width .25s ease; }
+@media (max-width: 420px) {
+  .sp-app-expiry-badge { max-width: 90px; overflow: hidden; padding: 3px 5px; font-size: 9px; text-overflow: ellipsis; }
+}
