@@ -105,7 +105,7 @@ function ApplicationShell() {
   const [centresError, setCentresError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!profile || !['super_admin', 'admin', 'director'].includes(profile.role)) return;
+    if (!profile) return;
     const currentProfile = profile;
     let active = true;
 
@@ -143,7 +143,8 @@ function ApplicationShell() {
         const available = (data ?? []).filter(
           (centre) => typeof centre.id === 'string' && typeof centre.nom === 'string',
         ) as CentreHeaderInfo[];
-        if (!available.some((centre) => centre.id === currentProfile.centreId)) {
+        const preferredCentreId = activeCentreId ?? currentProfile.centreId;
+        if (!available.some((centre) => centre.id === preferredCentreId)) {
           const firstId = available[0]?.id ?? null;
           setActiveCentreId(firstId);
           if (!firstId) {
@@ -153,8 +154,8 @@ function ApplicationShell() {
             return;
           }
         }
-        const selectedId = available.some((centre) => centre.id === currentProfile.centreId)
-          ? currentProfile.centreId
+        const selectedId = available.some((centre) => centre.id === preferredCentreId)
+          ? preferredCentreId
           : available[0]?.id ?? null;
         const selected = available.find((centre) => centre.id === selectedId) ?? null;
         setCentres(available);
@@ -190,7 +191,7 @@ function ApplicationShell() {
     return () => {
       active = false;
     };
-  }, [profile, setActiveCentreId]);
+  }, [profile, activeCentreId, setActiveCentreId]);
 
   if (!profile) return null;
 
@@ -199,9 +200,20 @@ function ApplicationShell() {
   return (
     <div className="sp-app">
       <header className="sp-app-header">
-        <Link className="sp-app-brand" to="/app">
-          <b className="sp-app-brand-mark">I</b>
-          <span>SchoolPlans</span>
+        <Link aria-label={`Accueil — ${activeCentre?.nom ?? 'centre'}`} className="sp-app-brand" to="/app">
+          <span className="sp-app-brand-mark sp-app-centre-logo">
+            {activeCentre?.logo_url ? (
+              <img alt="" src={activeCentre.logo_url} />
+            ) : (
+              <span aria-hidden="true">⌂</span>
+            )}
+          </span>
+          <span className="sp-app-brand-name" title={activeCentre?.nom ?? undefined}>
+            {activeCentre?.nom ?? (centresLoading ? 'Chargement du centre…' : 'Centre non défini')}
+          </span>
+          {activeCentre?.type_abonnement && (
+            <span className="sp-app-pack-badge" title="Forfait du centre">{activeCentre.type_abonnement}</span>
+          )}
         </Link>
         <div aria-label="Utilisateur connecté" className="sp-user">
           <strong>{profile.fullName || session?.user.email}</strong>
@@ -227,7 +239,7 @@ function ApplicationShell() {
           Déconnexion
         </Button>
       </header>
-        {['super_admin', 'admin', 'director'].includes(profile.role) && (
+        {profile.role === 'super_admin' && (
           <div aria-label="Informations du centre actif" className="sp-centre-banner" tabIndex={0}>
             <div className="sp-centre-banner-logo">
               {activeCentre?.logo_url ? (
