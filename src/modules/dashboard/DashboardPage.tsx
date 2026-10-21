@@ -324,6 +324,87 @@ function EnrollmentChart({
   );
 }
 
+const MOROCCO_CITY_POSITIONS: Record<string, { x: number; y: number; label: string }> = {
+  tanger: { x: 177, y: 58, label: 'Tanger' },
+  tetouan: { x: 218, y: 69, label: 'Tétouan' },
+  oujda: { x: 375, y: 119, label: 'Oujda' },
+  kenitra: { x: 190, y: 126, label: 'Kénitra' },
+  rabat: { x: 205, y: 145, label: 'Rabat' },
+  sale: { x: 214, y: 139, label: 'Salé' },
+  casablanca: { x: 188, y: 177, label: 'Casablanca' },
+  fes: { x: 285, y: 132, label: 'Fès' },
+  meknes: { x: 253, y: 125, label: 'Meknès' },
+  marrakech: { x: 216, y: 244, label: 'Marrakech' },
+  safi: { x: 152, y: 221, label: 'Safi' },
+  beni mellal: { x: 276, y: 204, label: 'Béni Mellal' },
+  agadir: { x: 161, y: 306, label: 'Agadir' },
+  laayoune: { x: 137, y: 370, label: 'Laâyoune' },
+  errachidia: { x: 337, y: 224, label: 'Errachidia' },
+  essaouira: { x: 166, y: 267, label: 'Essaouira' },
+  el jadida: { x: 163, y: 194, label: 'El Jadida' },
+  khouribga: { x: 235, y: 191, label: 'Khouribga' },
+  nador: { x: 331, y: 92, label: 'Nador' },
+};
+
+function normalizeCity(city: string): string {
+  return city.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLocaleLowerCase('fr');
+}
+
+function TeacherStudentCityMap({ values }: { values: DashboardData['studentCities'] }) {
+  const total = values.reduce((sum, item) => sum + item.studentCount, 0);
+  const cityByKey = new Map(values.map((item) => [normalizeCity(item.city), item]));
+  const markers = Object.entries(MOROCCO_CITY_POSITIONS).flatMap(([key, position]) => {
+    const value = cityByKey.get(key);
+    return value ? [{ ...position, city: value.city, count: value.studentCount, key }] : [];
+  });
+  return (
+    <Panel className="dashboard-panel dashboard-student-map-panel">
+      <div className="dashboard-student-map-heading">
+        <div>
+          <h2>Mes étudiants par ville</h2>
+          <p>Répartition des étudiants inscrits à vos cours au Maroc.</p>
+        </div>
+        <div className="dashboard-student-map-total">
+          <strong>{total}</strong>
+          <span>étudiants uniques</span>
+        </div>
+      </div>
+      {total === 0 ? (
+        <div className="dashboard-student-map-empty">
+          <span aria-hidden="true">📍</span>
+          <strong>Aucune ville disponible</strong>
+          <p>Les villes des étudiants inscrits à vos cours apparaîtront ici dès qu’elles seront renseignées.</p>
+        </div>
+      ) : (
+        <div className="dashboard-student-map-layout">
+          <div className="dashboard-morocco-map-wrap">
+            <svg className="dashboard-morocco-map" viewBox="0 0 470 420" role="img" aria-label={`Carte schématique du Maroc avec ${markers.length} villes repérées`}>
+              <path className="dashboard-morocco-land" d="M105 25 L171 35 L193 55 L231 53 L250 70 L282 76 L304 93 L346 83 L380 105 L399 128 L377 153 L359 176 L344 198 L351 226 L324 248 L308 278 L284 304 L265 333 L241 354 L225 394 L188 380 L171 345 L158 315 L147 282 L133 256 L126 222 L111 194 L116 165 L99 139 L112 110 L98 84 L105 25 Z" />
+              <path className="dashboard-morocco-border" d="M105 25 L171 35 L193 55 L231 53 L250 70 L282 76 L304 93 L346 83 L380 105 L399 128 L377 153 L359 176 L344 198 L351 226 L324 248 L308 278 L284 304 L265 333 L241 354 L225 394 L188 380 L171 345 L158 315 L147 282 L133 256 L126 222 L111 194 L116 165 L99 139 L112 110 L98 84 Z" />
+              {markers.map((marker) => (
+                <g key={marker.key} className="dashboard-morocco-marker">
+                  <circle cx={marker.x} cy={marker.y} r="13" />
+                  <text x={marker.x} y={marker.y + 4}>{marker.count}</text>
+                  <title>{marker.label}: {marker.count} étudiant(s)</title>
+                </g>
+              ))}
+            </svg>
+            <p className="dashboard-map-caption">Carte schématique · chiffres = effectifs par ville</p>
+          </div>
+          <div className="dashboard-city-list">
+            {values.map((item) => (
+              <div className="dashboard-city-row" key={normalizeCity(item.city)}>
+                <span><i aria-hidden="true" />{item.city}</span>
+                <strong>{item.studentCount}</strong>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </Panel>
+  );
+}
+
 function TeacherDashboard({ data }: { data: DashboardData }) {
   if (!data.linkedTeacher) {
     return (
@@ -377,13 +458,6 @@ function TeacherDashboard({ data }: { data: DashboardData }) {
           value={data.courses.length}
         />
         <DashboardMetric
-          description="Étudiants inscrits à mes cours"
-          detailIcon="users"
-          icon="users"
-          title="Mes étudiants"
-          value={students.size}
-        />
-        <DashboardMetric
           description="Sur mes cours"
           detailIcon="check"
           icon="check"
@@ -398,6 +472,8 @@ function TeacherDashboard({ data }: { data: DashboardData }) {
           value={presences.length}
         />
       </div>
+
+      <TeacherStudentCityMap values={data.studentCities} />
 
       <div className="dashboard-columns">
         <Panel>
@@ -512,7 +588,8 @@ export function DashboardPage() {
                 teachers: [],
                 studentIds: [],
                 enrollments: [],
-                presences: [],
+                studentCities: [],
+                presences: []
                 requests: [],
                 formationCount: null,
                 groupCount: null,
