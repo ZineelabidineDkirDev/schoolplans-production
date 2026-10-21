@@ -12,6 +12,7 @@ const input: StudentRecordInput = {
   lastName: ' Benali ',
   email: ' amina@example.test ',
   telephone: '',
+  parentTelephone: '',
   city: ' Rabat ',
   address: '',
   educationLevel: ' Supérieur ',
