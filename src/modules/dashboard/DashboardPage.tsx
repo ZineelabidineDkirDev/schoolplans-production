@@ -840,14 +840,28 @@ export function DashboardPage() {
         </Panel>
         <Panel className="dashboard-panel">
           <h2>Formations les plus populaires</h2>
+          <p className="sp-muted dashboard-popular-caption">Classement par nombre d’étudiants inscrits</p>
           {data.popularFormations.length ? (
-            <ol className="dashboard-popular">
-              {data.popularFormations.map((formation) => (
-                <li key={formation.name}>
-                  <span>{formation.name}</span>
-                  <strong>{formation.studentCount}</strong>
-                </li>
-              ))}
+            <ol className="dashboard-popular-bars">
+              {data.popularFormations.map((formation) => {
+                const maxStudents = Math.max(1, ...data.popularFormations.map((item) => item.studentCount));
+                const percentage = Math.round((formation.studentCount / maxStudents) * 100);
+                return (
+                  <li key={formation.name}>
+                    <div className="dashboard-popular-bar-heading">
+                      <span title={formation.name}>{formation.name}</span>
+                      <strong>{formation.studentCount} étudiant{formation.studentCount === 1 ? '' : 's'}</strong>
+                    </div>
+                    <div
+                      aria-label={`${formation.name} : ${formation.studentCount} étudiant(s)`}
+                      className="dashboard-popular-bar-track"
+                      role="img"
+                    >
+                      <span style={{ width: `${percentage}%` }} />
+                    </div>
+                  </li>
+                );
+              })}
             </ol>
           ) : (
             <Alert>Aucune formation trouvée.</Alert>
