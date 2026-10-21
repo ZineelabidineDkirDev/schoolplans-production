@@ -336,18 +336,18 @@ const MOROCCO_CITY_POSITIONS: Record<string, { x: number; y: number; label: stri
   meknes: { x: 253, y: 125, label: 'Meknès' },
   marrakech: { x: 216, y: 244, label: 'Marrakech' },
   safi: { x: 152, y: 221, label: 'Safi' },
-  beni mellal: { x: 276, y: 204, label: 'Béni Mellal' },
+  'beni mellal': { x: 276, y: 204, label: 'Béni Mellal' },
   agadir: { x: 161, y: 306, label: 'Agadir' },
   laayoune: { x: 137, y: 370, label: 'Laâyoune' },
   errachidia: { x: 337, y: 224, label: 'Errachidia' },
   essaouira: { x: 166, y: 267, label: 'Essaouira' },
-  el jadida: { x: 163, y: 194, label: 'El Jadida' },
+  'el jadida': { x: 163, y: 194, label: 'El Jadida' },
   khouribga: { x: 235, y: 191, label: 'Khouribga' },
   nador: { x: 331, y: 92, label: 'Nador' },
 };
 
 function normalizeCity(city: string): string {
-  return city.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLocaleLowerCase('fr');
+  return city.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLocaleLowerCase('fr');
 }
 
 function TeacherStudentCityMap({ values }: { values: DashboardData['studentCities'] }) {
@@ -385,6 +385,7 @@ function TeacherStudentCityMap({ values }: { values: DashboardData['studentCitie
                 <g key={marker.key} className="dashboard-morocco-marker">
                   <circle cx={marker.x} cy={marker.y} r="13" />
                   <text x={marker.x} y={marker.y + 4}>{marker.count}</text>
+                  <text className="dashboard-morocco-city-label" x={marker.x + 15} y={marker.y - 10}>{marker.label}</text>
                   <title>{marker.label}: {marker.count} étudiant(s)</title>
                 </g>
               ))}
@@ -419,7 +420,6 @@ function TeacherDashboard({ data }: { data: DashboardData }) {
   const enrollments = data.enrollments.filter((enrollment) =>
     courseIds.has(String(enrollment.courseId)),
   );
-  const students = new Set(enrollments.map((enrollment) => String(enrollment.studentId)));
   const presences = data.presences.filter((presence) => courseIds.has(String(presence.courseId)));
   const presentCount = presences.filter(
     (presence) => presence.status === 'present' || presence.status === 'retard',
