@@ -589,7 +589,7 @@ export function DashboardPage() {
                 studentIds: [],
                 enrollments: [],
                 studentCities: [],
-                presences: []
+                presences: [],
                 requests: [],
                 formationCount: null,
                 groupCount: null,
