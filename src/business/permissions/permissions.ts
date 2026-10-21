@@ -25,6 +25,7 @@ const ROLE_SECTIONS: Record<SourceRole, readonly AppSection[]> = {
     'vc',
     'vfinance',
     'vnotes',
+    'vhelp',
   ],
   director: [
     ...COMMON_SECTIONS,
@@ -60,6 +61,7 @@ const SECTION_REQUIREMENTS: Partial<Record<AppSection, readonly CentrePermission
   vc: ['certificats'],
   vfinance: ['gestion_financiere'],
   vnotes: ['notes_bulletins'],
+  vhelp: ['supports'],
 };
 
 export const SECTION_LABELS: Record<AppSection, string> = {
@@ -68,6 +70,7 @@ export const SECTION_LABELS: Record<AppSection, string> = {
   vrapport: 'Mon rapport',
   vfinance: 'Tableau de bord financier',
   vnotes: 'Notes & Bulletins',
+  vhelp: 'Support',
   vl: 'Séances',
   vr: 'Salles',
   vk: 'Cours en ligne',
