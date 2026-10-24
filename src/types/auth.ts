@@ -58,6 +58,7 @@ export const APP_SECTIONS = [
   'vpcentre',
   'vz',
   'vnotes',
+  'vsub',
   'vhelp',
 ] as const;
 
