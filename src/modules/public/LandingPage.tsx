@@ -774,9 +774,16 @@ export function LandingPage() {
                       <li key={item}>{item}</li>
                     ))}
                   </ul>
-                  <a className="sp-landing-plan-cta" href="#lp-ct">
-                    {plan.name === 'ENTERPRISE' ? 'Nous contacter' : 'Demander une démo'}
-                  </a>
+                  <button
+                    className="sp-landing-plan-cta"
+                    onClick={() => {
+                      setSubscriptionMessage('');
+                      setSubscriptionPlan(plan);
+                    }}
+                    type="button"
+                  >
+                    {plan.name === 'ENTERPRISE' ? 'Nous contacter' : 'Choisir ce pack →'}
+                  </button>
                   <small className="sp-landing-plan-note">
                     Sans engagement pendant la démonstration
                   </small>
