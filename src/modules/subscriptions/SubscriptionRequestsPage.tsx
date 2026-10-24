@@ -100,9 +100,9 @@ export function SubscriptionRequestsPage() {
                     <td className="p-3"><StatusBadge>{statusLabels[request.status] ?? request.status}</StatusBadge></td>
                     <td className="p-3">
                       <div className="flex flex-wrap gap-2">
-                        <Button disabled={savingId === request.id || request.status === 'contacted'} onClick={() => void updateStatus(request, 'contacted')} size="sm" type="button" variant="secondary">Contacté</Button>
-                        <Button disabled={savingId === request.id || request.status === 'paid'} onClick={() => void updateStatus(request, 'paid')} size="sm" type="button">Paiement confirmé</Button>
-                        <Button disabled={savingId === request.id || request.status === 'rejected'} onClick={() => void updateStatus(request, 'rejected')} size="sm" type="button" variant="danger">Refuser</Button>
+                        <Button disabled={savingId === request.id || request.status === 'contacted'} onClick={() => void updateStatus(request, 'contacted')} type="button" variant="secondary">Contacté</Button>
+                        <Button disabled={savingId === request.id || request.status === 'paid'} onClick={() => void updateStatus(request, 'paid')} type="button">Paiement confirmé</Button>
+                        <Button disabled={savingId === request.id || request.status === 'rejected'} onClick={() => void updateStatus(request, 'rejected')} type="button" variant="danger">Refuser</Button>
                       </div>
                     </td>
                   </tr>
