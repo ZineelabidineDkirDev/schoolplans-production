@@ -146,6 +146,20 @@ const plans = [
   },
 ];
 
+const comparisonFeatures = [
+  { label: 'Étudiants & formateurs', available: [true, true, true, true] },
+  { label: 'Formations, groupes & matières', available: [true, true, true, true] },
+  { label: 'Cours, planning & salles', available: [true, true, true, true] },
+  { label: 'Import / export Excel', available: [true, true, true, true] },
+  { label: 'Gestion et suivi des séances', available: [false, true, true, true] },
+  { label: 'Présences & assiduité', available: [false, true, true, true] },
+  { label: 'Supports, documents & certificats PDF', available: [false, true, true, true] },
+  { label: 'Rapports & statistiques', available: [false, false, true, true] },
+  { label: 'Cours en ligne', available: [false, false, true, true] },
+  { label: 'Gestion financière', available: [false, false, true, true] },
+  { label: 'Gestion multi-centres', available: [false, false, false, true] },
+];
+
 const questions = [
   [
     'Qu’est-ce que Madrassa-Ti ?',
@@ -279,6 +293,22 @@ export function LandingPage() {
 #lp-pricing .sp-landing-plan.is-featured.is-active{transform:rotateY(0) scale(1.045) translateZ(36px)}
 @media(max-width:600px){#lp-pricing .sp-landing-pricing-viewport{padding-inline:calc((100vw - min(340px,100vw - 56px))/2)}#lp-pricing .sp-landing-plan{transform:rotateY(-4deg) scale(.96)}#lp-pricing .sp-landing-plan:nth-child(even){transform:rotateY(4deg) scale(.96)}#lp-pricing .sp-landing-plan.is-active{transform:rotateY(0) scale(1.015) translateZ(12px)}}
 @media(prefers-reduced-motion:reduce){#lp-pricing .sp-landing-plan{transition:none!important}}
+#lp-pricing .sp-landing-comparison{margin:34px auto 0;max-width:1080px;border:1px solid var(--sp-border,#e5eaf3);border-radius:18px;overflow:hidden;background:var(--sp-card,#fff);box-shadow:0 12px 35px rgba(26,48,90,.05)}
+#lp-pricing .sp-landing-comparison-heading{padding:22px 24px 16px}
+#lp-pricing .sp-landing-comparison-heading h3{margin:0 0 6px;color:var(--sp-heading,#172554);font-size:1.2rem}
+#lp-pricing .sp-landing-comparison-heading p{margin:0;color:var(--sp-muted,#64748b);font-size:.92rem}
+#lp-pricing .sp-landing-comparison-scroll{overflow-x:auto}
+#lp-pricing .sp-landing-comparison table{width:100%;border-collapse:collapse;min-width:650px;text-align:center}
+#lp-pricing .sp-landing-comparison th,#lp-pricing .sp-landing-comparison td{padding:13px 16px;border-top:1px solid var(--sp-border,#e5eaf3)}
+#lp-pricing .sp-landing-comparison thead th{font-size:.82rem;color:var(--sp-heading,#172554);font-weight:750;background:var(--sp-soft,#f8fafc)}
+#lp-pricing .sp-landing-comparison th:first-child,#lp-pricing .sp-landing-comparison td:first-child{text-align:left;width:42%}
+#lp-pricing .sp-landing-comparison tbody th{font-weight:550;font-size:.9rem;color:var(--sp-text,#334155)}
+#lp-pricing .sp-landing-comparison .sp-compare-check{color:var(--sp-primary,#2563eb);font-size:1.1rem;font-weight:800}
+#lp-pricing .sp-landing-comparison .sp-compare-no{color:var(--sp-muted,#94a3b8)}
+#lp-pricing .sp-landing-comparison .sp-compare-featured{color:var(--sp-primary,#2563eb);background:rgba(37,99,235,.045)}
+#lp-pricing .sp-landing-comparison thead .sp-compare-featured{background:rgba(37,99,235,.08)}
+@media(max-width:640px){#lp-pricing .sp-landing-comparison{margin-top:24px;border-radius:14px}#lp-pricing .sp-landing-comparison-heading{padding:18px 16px 14px}#lp-pricing .sp-landing-comparison th,#lp-pricing .sp-landing-comparison td{padding:12px 13px}}
+
 `}</style>
       <header
         className={`sp-landing-nav${menuOpen ? ' menu-open' : ''}${scrolled ? ' is-scrolled' : ''}`}
@@ -784,6 +814,40 @@ export function LandingPage() {
             14 jours d’essai gratuit · Facturation annuelle · Sans engagement pendant la période de
             démonstration.
           </p>
+          <div className="sp-landing-comparison">
+            <div className="sp-landing-comparison-heading">
+              <h3>Comparer les fonctionnalités</h3>
+              <p>Retrouvez en un coup d’œil les fonctions incluses dans chaque formule.</p>
+            </div>
+            <div className="sp-landing-comparison-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Fonctionnalités</th>
+                    {plans.map((plan) => (
+                      <th className={plan.featured ? 'sp-compare-featured' : ''} key={plan.name} scope="col">
+                        {plan.name === 'PROFESSIONAL' ? 'Professional' : plan.name.charAt(0) + plan.name.slice(1).toLowerCase()}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {comparisonFeatures.map((feature) => (
+                    <tr key={feature.label}>
+                      <th scope="row">{feature.label}</th>
+                      {feature.available.map((included, index) => (
+                        <td className={plans[index].featured ? 'sp-compare-featured' : ''} key={plans[index].name}>
+                          <span aria-label={included ? 'Inclus' : 'Non inclus'} className={included ? 'sp-compare-check' : 'sp-compare-no'}>
+                            {included ? '✓' : '—'}
+                          </span>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </section>
 
