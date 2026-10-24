@@ -93,6 +93,30 @@ const DEFAULT_CENTRE_RIGHTS = Object.fromEntries(
   CENTRE_RIGHTS.map(([key]) => [key, false]),
 ) as Record<string, boolean>;
 
+/** Droits inclus par pack, alignés sur la grille tarifaire publique. */
+const PACK_RIGHTS: Record<string, readonly string[]> = {
+  STARTER: [
+    'etudiants', 'formateurs', 'cours', 'planning', 'formations', 'groupes',
+    'salles', 'import_excel', 'export_excel',
+  ],
+  STANDARD: [
+    'etudiants', 'formateurs', 'cours', 'planning', 'formations', 'groupes',
+    'salles', 'import_excel', 'export_excel', 'presences', 'certificats',
+    'supports', 'documents', 'seances',
+  ],
+  PROFESSIONAL: [
+    'etudiants', 'formateurs', 'cours', 'planning', 'formations', 'groupes',
+    'salles', 'import_excel', 'export_excel', 'presences', 'certificats',
+    'supports', 'documents', 'seances', 'statistiques', 'rapports',
+    'cours_en_ligne', 'gestion_financiere',
+  ],
+};
+
+function rightsForPack(pack: string): Record<string, boolean> {
+  const enabled = new Set(PACK_RIGHTS[pack] ?? []);
+  return Object.fromEntries(CENTRE_RIGHTS.map(([key]) => [key, enabled.has(key)]));
+}
+
 const emptyForm: CentreForm = {
   name: '',
   slug: '',
@@ -586,12 +610,11 @@ export function CentreManagementPage() {
             <div className="grid gap-4 rounded-xl border border-line p-4 md:col-span-2 md:grid-cols-2">
               <label className="sp-form-field">
                 Pack choisi
-                <select className="sp-field" onChange={(event) => setForm((current) => ({ ...current, pack: event.target.value }))} value={form.pack}>
+                <select className="sp-field" onChange={(event) => { const pack = event.target.value; setForm((current) => ({ ...current, pack, rights: rightsForPack(pack) })); }} value={form.pack}>
                   <option value="">Choisir un pack…</option>
                   <option value="STARTER">STARTER</option>
                   <option value="STANDARD">STANDARD</option>
                   <option value="PROFESSIONAL">PROFESSIONAL</option>
-                  <option value="ENTERPRISE">ENTERPRISE — Grand École</option>
                 </select>
               </label>
               <label className="sp-form-field">
