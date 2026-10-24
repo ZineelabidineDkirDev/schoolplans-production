@@ -1,4 +1,4 @@
-﻿import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter } from 'react-router-dom';
 import { App } from './App';
 import { AuthenticatedRoutes, SectionPlaceholder } from '../modules/auth/AuthRoutes';
 import { DashboardPage } from '../modules/dashboard/DashboardPage';
@@ -13,6 +13,12 @@ function HomeByRole() {
   return <DashboardPage />;
 }
 import { LandingPage } from '../modules/public/LandingPage';
+
+const routerBasename =
+  window.location.pathname === '/react-app.html' ||
+  window.location.pathname.startsWith('/react-app.html/')
+    ? '/react-app.html'
+    : '/';
 
 export const router = createBrowserRouter(
   [
@@ -48,7 +54,7 @@ export const router = createBrowserRouter(
           <h1 className="m-0 text-3xl font-bold text-brand-900">Page introuvable</h1>
           <a
             className="w-fit font-semibold text-brand-900 underline-offset-4 hover:underline"
-            href="/react-app.html"
+            href="/"
           >
             Retourner à l'accueil
           </a>
@@ -56,5 +62,5 @@ export const router = createBrowserRouter(
       ),
     },
   ],
-  { basename: '/react-app.html' },
+  { basename: routerBasename },
 );
