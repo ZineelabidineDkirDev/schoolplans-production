@@ -130,18 +130,19 @@ const plans = [
     ],
     featured: true,
   },
+];
 
 const comparisonFeatures = [
-  { label: 'Étudiants & formateurs', available: [true, true, true, true] },
-  { label: 'Formations, groupes & matières', available: [true, true, true, true] },
-  { label: 'Cours, planning & salles', available: [true, true, true, true] },
-  { label: 'Import / export Excel', available: [true, true, true, true] },
-  { label: 'Gestion et suivi des séances', available: [false, true, true, true] },
-  { label: 'Présences & assiduité', available: [false, true, true, true] },
-  { label: 'Supports, documents & certificats PDF', available: [false, true, true, true] },
-  { label: 'Rapports & statistiques', available: [false, false, true, true] },
-  { label: 'Cours en ligne', available: [false, false, true, true] },
-  { label: 'Gestion financière', available: [false, false, true, true] },
+  { label: 'Étudiants & formateurs', available: [true, true, true] },
+  { label: 'Formations, groupes & matières', available: [true, true, true] },
+  { label: 'Cours, planning & salles', available: [true, true, true] },
+  { label: 'Import / export Excel', available: [true, true, true] },
+  { label: 'Gestion et suivi des séances', available: [false, true, true] },
+  { label: 'Présences & assiduité', available: [false, true, true] },
+  { label: 'Supports, documents & certificats PDF', available: [false, true, true] },
+  { label: 'Rapports & statistiques', available: [false, false, true] },
+  { label: 'Cours en ligne', available: [false, false, true] },
+  { label: 'Gestion financière', available: [false, false, true] },
 ];
 
 const questions = [
