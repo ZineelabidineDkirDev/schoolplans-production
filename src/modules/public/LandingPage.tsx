@@ -148,8 +148,8 @@ const plans = [
 
 const questions = [
   [
-    'Qu’est-ce que SchoolPlans ?',
-    'SchoolPlans est une plateforme de gestion destinée aux centres de formation pour centraliser le planning, les étudiants, les formateurs, les salles, les présences et les documents.',
+    'Qu’est-ce que Madrassa-Ti ?',
+    'Madrassa-Ti est une plateforme de gestion destinée aux centres de formation pour centraliser le planning, les étudiants, les formateurs, les salles, les présences et les documents.',
   ],
   [
     'Les données de chaque centre sont-elles séparées ?',
@@ -165,7 +165,7 @@ const questions = [
   ],
   [
     'Y a-t-il une période d’essai ?',
-    'Oui. Le modèle de SchoolPlans prévoit une période de démonstration gratuite de 14 jours.',
+    'Oui. Le modèle de Madrassa-Ti prévoit une période de démonstration gratuite de 14 jours.',
   ],
 ];
 
@@ -260,7 +260,7 @@ export function LandingPage() {
     const data = new FormData(event.currentTarget);
     const name = String(data.get('name') ?? '').trim();
     const phone = String(data.get('phone') ?? '').trim();
-    const formation = String(data.get('subject') ?? 'Démonstration SchoolPlans');
+    const formation = String(data.get('subject') ?? 'Démonstration Madrassa-Ti');
     const text = String(data.get('message') ?? '').trim();
     const body = `Nom : ${name}\nTéléphone : ${phone}\nFormation : ${formation}\n\n${text}`;
     setContactMessage('Votre application de messagerie va s’ouvrir avec la demande préremplie.');
@@ -283,7 +283,7 @@ export function LandingPage() {
       <header
         className={`sp-landing-nav${menuOpen ? ' menu-open' : ''}${scrolled ? ' is-scrolled' : ''}`}
       >
-        <Link aria-label="SchoolPlans, accueil" className="sp-landing-brand" to="/">
+        <Link aria-label="Madrassa-Ti, accueil" className="sp-landing-brand" to="/">
           <span className="sp-landing-mark">
             <i />
             <i />
@@ -308,7 +308,7 @@ export function LandingPage() {
           {[
             ['Fonctionnalités', '#lp-dom'],
             ['Comment ça marche', '#lp-app'],
-            ['Pourquoi SchoolPlans', '#lp-why'],
+            ['Pourquoi Madrassa-Ti', '#lp-why'],
             ['Tarifs', '#lp-pricing'],
             ['FAQ', '#lp-faq'],
           ].map(([label, href]) => (
@@ -332,7 +332,7 @@ export function LandingPage() {
         </nav>
       </header>
 
-      <section aria-label="Présentation de SchoolPlans" className="sp-landing-hero">
+      <section aria-label="Présentation de Madrassa-Ti" className="sp-landing-hero">
         <div className="sp-landing-hero-inner">
           <div className="sp-landing-hero-copy">
             <span className="sp-landing-pill">
@@ -345,7 +345,7 @@ export function LandingPage() {
               <span>Simplement.</span>
             </h1>
             <p>
-              SchoolPlans centralise les étudiants, formateurs, cours, salles, formations, présences
+              Madrassa-Ti centralise les étudiants, formateurs, cours, salles, formations, présences
               et documents dans un seul espace clair et professionnel.
             </p>
             <div className="sp-landing-actions">
@@ -382,7 +382,7 @@ export function LandingPage() {
                     <i />
                     <i />
                   </span>
-                  <b>SchoolPlans</b>
+                  <b>Madrassa-Ti</b>
                 </div>
                 <span className="sp-landing-window-user">
                   <i />
@@ -570,7 +570,7 @@ export function LandingPage() {
               <span>au pilotage quotidien.</span>
             </h2>
             <p className="sp-landing-muted">
-              SchoolPlans garde les flux simples : chacun se connecte, retrouve son espace et
+              Madrassa-Ti garde les flux simples : chacun se connecte, retrouve son espace et
               travaille avec les informations utiles à son rôle.
             </p>
             <div className="sp-landing-steps">
@@ -689,14 +689,14 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section aria-label="Tarifs SchoolPlans" className="sp-landing-section" id="lp-pricing">
+      <section aria-label="Tarifs Madrassa-Ti" className="sp-landing-section" id="lp-pricing">
         <div className="sp-landing-container">
           <p className="sp-landing-kicker">DES OFFRES SIMPLES</p>
           <div className="sp-landing-section-heading">
             <h2>
               Choisissez votre
               <br />
-              <span>formule SchoolPlans.</span>
+              <span>formule Madrassa-Ti.</span>
             </h2>
             <p>
               Commencez avec 14 jours d’essai gratuit et choisissez ensuite l’offre adaptée à votre
@@ -808,7 +808,7 @@ export function LandingPage() {
         <div>
           <p className="sp-landing-kicker">PRÊT À STRUCTURER VOTRE CENTRE ?</p>
           <h2>
-            Faites de SchoolPlans
+            Faites de Madrassa-Ti
             <br />
             <span>votre espace de gestion.</span>
           </h2>
@@ -831,7 +831,7 @@ export function LandingPage() {
               <span>centre de formation.</span>
             </h2>
             <p className="sp-landing-muted">
-              Une question sur SchoolPlans, une demande de démonstration ou un besoin spécifique ?
+              Une question sur Madrassa-Ti, une demande de démonstration ou un besoin spécifique ?
               Écrivez-nous.
             </p>
             <div className="sp-landing-contact-details">
@@ -889,7 +889,7 @@ export function LandingPage() {
             <label>
               Sujet
               <select name="subject">
-                <option>Démonstration SchoolPlans</option>
+                <option>Démonstration Madrassa-Ti</option>
                 <option>Informations générales</option>
                 <option>Offre pour mon centre</option>
                 <option>Autre</option>
@@ -917,7 +917,7 @@ export function LandingPage() {
       </section>
 
       <footer className="sp-landing-footer">
-        <Link aria-label="SchoolPlans, retour en haut" className="sp-landing-brand" to="/">
+        <Link aria-label="Madrassa-Ti, retour en haut" className="sp-landing-brand" to="/">
           <span className="sp-landing-mark">
             <i />
             <i />
@@ -935,7 +935,7 @@ export function LandingPage() {
           <a href="#lp-ct">Contact</a>
           <Link to="/login">Connexion</Link>
         </nav>
-        <small>© {new Date().getFullYear()} SchoolPlans. Tous droits réservés.</small>
+        <small>© {new Date().getFullYear()} Madrassa-Ti. Tous droits réservés.</small>
       </footer>
     </main>
   );
