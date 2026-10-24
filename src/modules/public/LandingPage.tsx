@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
+import { getSupabaseClient } from '../../data/supabase/client';
 
 const features = [
   [
@@ -218,6 +219,9 @@ export function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const [pricingIndex, setPricingIndex] = useState(2);
   const [contactMessage, setContactMessage] = useState('');
+  const [subscriptionPlan, setSubscriptionPlan] = useState<(typeof plans)[number] | null>(null);
+  const [subscriptionMessage, setSubscriptionMessage] = useState('');
+  const [subscriptionSubmitting, setSubscriptionSubmitting] = useState(false);
   const pricingViewport = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -254,7 +258,7 @@ export function LandingPage() {
     viewport.scrollTo({ left: nextIndex * step, behavior: 'smooth' });
   }
 
-  function submitContact(event: FormEvent<HTMLFormElement>) {
+  async function submitSubscription(event: FormEvent<HTMLFormElement>) {\n    event.preventDefault();\n    if (!subscriptionPlan) return;\n    setSubscriptionSubmitting(true);\n    setSubscriptionMessage('');\n    const form = new FormData(event.currentTarget);\n    const { error } = await getSupabaseClient().from('subscription_requests').insert({\n      contact_name: String(form.get('contact_name') ?? '').trim(),\n      centre_name: String(form.get('centre_name') ?? '').trim(),\n      email: String(form.get('email') ?? '').trim(),\n      phone: String(form.get('phone') ?? '').trim(),\n      plan: subscriptionPlan.name,\n      annual_price_mad: Number(subscriptionPlan.price.replace(/\\s/g, '')),\n    });\n    if (error) {\n      setSubscriptionMessage('Impossible d’envoyer la demande pour le moment. Vérifiez la configuration Supabase et réessayez.');\n    } else {\n      setSubscriptionMessage('Votre demande a bien été enregistrée. Notre équipe vous contactera pour la suite du paiement.');\n      event.currentTarget.reset();\n    }\n    setSubscriptionSubmitting(false);\n  }\n\n  function submitContact(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const name = String(data.get('name') ?? '').trim();
@@ -965,6 +969,28 @@ export function LandingPage() {
         </div>
       </section>
 
+      {subscriptionPlan && (
+        <div role="presentation" onClick={(event) => { if (event.target === event.currentTarget) setSubscriptionPlan(null); }} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,.68)', display: 'grid', placeItems: 'center', padding: 16, overflowY: 'auto' }}>
+          <section aria-labelledby="subscription-title" aria-modal="true" role="dialog" style={{ width: 'min(100%, 560px)', maxHeight: '90vh', overflowY: 'auto', background: 'var(--sp-card, #fff)', color: 'var(--sp-text, #172554)', borderRadius: 20, padding: 24, boxShadow: '0 24px 80px rgba(0,0,0,.25)' }}>
+            <button type="button" onClick={() => setSubscriptionPlan(null)} aria-label="Fermer" style={{ float: 'right', fontSize: 24, padding: '0 8px' }}>×</button>
+            <p className="sp-landing-kicker">DEMANDE D’ABONNEMENT</p>
+            <h2 id="subscription-title">Pack {subscriptionPlan.name}</h2>
+            <p style={{ marginBottom: 18, fontWeight: 700 }}>{subscriptionPlan.price} DH / an</p>
+            <form className="sp-landing-contact-form" onSubmit={submitSubscription}>
+              <label>Nom complet du responsable<input name="contact_name" required minLength={2} maxLength={100} autoComplete="name" placeholder="Votre nom complet" /></label>
+              <label>Nom du centre<input name="centre_name" required minLength={2} maxLength={150} placeholder="Nom de votre centre" /></label>
+              <label>E-mail<input name="email" type="email" required maxLength={254} autoComplete="email" placeholder="vous@exemple.ma" /></label>
+              <label>Téléphone<input name="phone" type="tel" required minLength={6} maxLength={30} autoComplete="tel" placeholder="+212 ..." /></label>
+              <div style={{ padding: 14, borderRadius: 12, background: 'var(--sp-soft, #f8fafc)' }}>
+                <strong>Pack {subscriptionPlan.name}</strong><br />Abonnement annuel : {subscriptionPlan.price} DH
+                <p style={{ marginTop: 8, fontSize: 13 }}>Aucune carte bancaire n’est demandée ici. Le paiement sera vérifié manuellement avant l’activation.</p>
+              </div>
+              <button className="sp-landing-submit" disabled={subscriptionSubmitting} type="submit">{subscriptionSubmitting ? 'Envoi en cours…' : 'Demander mon abonnement →'}</button>
+              {subscriptionMessage && <p role="status">{subscriptionMessage}</p>}
+            </form>
+          </section>
+        </div>
+      )}
       <footer className="sp-landing-footer">
         <Link aria-label="Madrassa-Ti, retour en haut" className="sp-landing-brand" to="/">
           <span className="sp-landing-mark">
