@@ -258,7 +258,31 @@ export function LandingPage() {
     viewport.scrollTo({ left: nextIndex * step, behavior: 'smooth' });
   }
 
-  async function submitSubscription(event: FormEvent<HTMLFormElement>) {\n    event.preventDefault();\n    if (!subscriptionPlan) return;\n    setSubscriptionSubmitting(true);\n    setSubscriptionMessage('');\n    const formElement = event.currentTarget;\n    const form = new FormData(formElement);\n    const { error } = await getSupabaseClient().from('subscription_requests').insert({\n      contact_name: String(form.get('contact_name') ?? '').trim(),\n      centre_name: String(form.get('centre_name') ?? '').trim(),\n      email: String(form.get('email') ?? '').trim(),\n      phone: String(form.get('phone') ?? '').trim(),\n      plan: subscriptionPlan.name,\n      annual_price_mad: Number(subscriptionPlan.price.replace(/\\s/g, '')),\n    });\n    if (error) {\n      setSubscriptionMessage('Impossible d’envoyer la demande pour le moment. Vérifiez la configuration Supabase et réessayez.');\n    } else {\n      setSubscriptionMessage('Votre demande a bien été enregistrée. Notre équipe vous contactera pour la suite du paiement.');\n      formElement.reset();\n    }\n    setSubscriptionSubmitting(false);\n  }\n\n  function submitContact(event: FormEvent<HTMLFormElement>) {
+  async function submitSubscription(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!subscriptionPlan) return;
+    setSubscriptionSubmitting(true);
+    setSubscriptionMessage('');
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const { error } = await getSupabaseClient().from('subscription_requests').insert({
+      contact_name: String(form.get('contact_name') ?? '').trim(),
+      centre_name: String(form.get('centre_name') ?? '').trim(),
+      email: String(form.get('email') ?? '').trim(),
+      phone: String(form.get('phone') ?? '').trim(),
+      plan: subscriptionPlan.name,
+      annual_price_mad: Number(subscriptionPlan.price.replace(/\s/g, '')),
+    });
+    if (error) {
+      setSubscriptionMessage('Impossible d’envoyer la demande pour le moment. Vérifiez la configuration Supabase et réessayez.');
+    } else {
+      setSubscriptionMessage('Votre demande a bien été enregistrée. Notre équipe vous contactera pour la suite du paiement.');
+      formElement.reset();
+    }
+    setSubscriptionSubmitting(false);
+  }
+
+  function submitContact(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const name = String(data.get('name') ?? '').trim();
