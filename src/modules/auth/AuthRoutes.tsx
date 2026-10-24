@@ -16,6 +16,7 @@ import { RapportCentrePage } from '../dashboard/RapportCentrePage';
 import { PlanningPage } from '../planning/PlanningPage';
 import { Alert, Button, LoadingState, ThemeToggle } from '../../components/ui';
 import { CentreManagementPage } from '../centres/CentreManagementPage';
+import { SubscriptionRequestsPage } from '../subscriptions/SubscriptionRequestsPage';
 import { EnrollmentRequestsPage } from '../enrollments/EnrollmentRequestsPage';
 import {
   AttendancePage,
@@ -342,7 +343,7 @@ function ApplicationShell() {
             );
             const grouped = new Set([...studentItems, ...teacherItems]);
             const directItems = visibleSections.filter(
-              (section) => !(profile.role === 'super_admin' && section === 'vz') && !grouped.has(section),
+              (section) => !(profile.role === 'super_admin' && (section === 'vz' || section === 'vsub')) && !grouped.has(section),
             );
             const renderItem = (section: AppSection) => (
               <NavLink
@@ -477,6 +478,7 @@ export function SectionPlaceholder() {
   if (section === 'vl') return <PlanningPage view="sessions" />;
   if (section === 'vi') return <EnrollmentRequestsPage />;
   if (section === 'vz') return <CentreManagementPage />;
+  if (section === 'vsub') return <SubscriptionRequestsPage />;
   if (section === 'vr') return profile?.role === 'etudiant' ? <StudentWorkspacePage view="rooms" /> : <RoomsPage />;
   if (section === 'vf') return <TeachersPage />;
   if (section === 'vp') return <AttendancePage />;
