@@ -43,7 +43,7 @@ export const router = createBrowserRouter(
       element: (
         <main className="grid min-h-screen content-center gap-3 bg-canvas px-6 py-10">
           <p className="m-0 text-xs font-bold tracking-[.12em] text-accent-600 uppercase">
-            SchoolPlans
+            Madrassa-Ti
           </p>
           <h1 className="m-0 text-3xl font-bold text-brand-900">Page introuvable</h1>
           <a
