@@ -1,4 +1,4 @@
-# SchoolPlans
+# Madrassa-Ti
 
 Le workspace contient l'application HTML/JavaScript historique et une nouvelle amorce React destinée à une migration progressive.
 
