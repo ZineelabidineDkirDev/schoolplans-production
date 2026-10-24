@@ -734,7 +734,7 @@ export function LandingPage() {
                   <h3>{plan.name}</h3>
                   <p className="sp-landing-price">
                     <strong>
-                      {'pricePrefix' in plan ? plan.pricePrefix : ''}
+                      {plan.name === 'ENTERPRISE' ? 'À partir de ' : ''}
                       {plan.price}
                     </strong>
                     <span>DH / an</span>
