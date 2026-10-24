@@ -290,7 +290,7 @@ export function LandingPage() {
             <i />
           </span>
           <span>
-            School<span>Plans</span>
+            Madrassa<span>-Ti</span>
           </span>
         </Link>
         <button
@@ -924,7 +924,7 @@ export function LandingPage() {
             <i />
           </span>
           <span>
-            School<span>Plans</span>
+            Madrassa<span>-Ti</span>
           </span>
         </Link>
         <p>La plateforme de gestion pensée pour les centres de formation.</p>
