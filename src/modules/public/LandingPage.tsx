@@ -130,21 +130,6 @@ const plans = [
     ],
     featured: true,
   },
-  {
-    name: 'ENTERPRISE',
-    label: 'Pour les grandes structures',
-    price: '9 990',
-    pricePrefix: 'À partir de ',
-    description: 'Une formule personnalisée pour les écoles et organisations aux besoins avancés.',
-    includes: 'Une offre sur mesure',
-    items: [
-      'Toutes les fonctions Professional',
-      'Gestion multi-centres et coordination',
-      'Paramétrage selon vos besoins',
-      'Accompagnement au déploiement',
-    ],
-  },
-];
 
 const comparisonFeatures = [
   { label: 'Étudiants & formateurs', available: [true, true, true, true] },
@@ -157,7 +142,6 @@ const comparisonFeatures = [
   { label: 'Rapports & statistiques', available: [false, false, true, true] },
   { label: 'Cours en ligne', available: [false, false, true, true] },
   { label: 'Gestion financière', available: [false, false, true, true] },
-  { label: 'Gestion multi-centres', available: [false, false, false, true] },
 ];
 
 const questions = [
