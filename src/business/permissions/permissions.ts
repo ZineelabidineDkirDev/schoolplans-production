@@ -44,7 +44,7 @@ const ROLE_SECTIONS: Record<SourceRole, readonly AppSection[]> = {
     'vnotes',
     'vhelp',
   ],
-  super_admin: [...COMMON_SECTIONS, 'vz', 'vd', 'vnotes'],
+  super_admin: [...COMMON_SECTIONS, 'vz', 'vsub', 'vd', 'vnotes'],
   formateur: [...COMMON_SECTIONS, 'vl', 'vn', 'vp', 'vk', 'vnotes', 'vhelp', 'vrapport'],
   etudiant: ['vcal', 'vr', 'vm', 'vq', 'vk', 'vnotes', 'vrapport'],
 };
@@ -87,6 +87,7 @@ export const SECTION_LABELS: Record<AppSection, string> = {
   vh: 'Historique',
   vpcentre: 'Profil du centre',
   vz: 'Gérer les centres',
+  vsub: 'Demandes d’abonnement',
 };
 
 export function getRoleLabel(role: SourceRole): string {
