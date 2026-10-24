@@ -74,7 +74,7 @@ export function LoginPage() {
       <aside className="sp-login-aside">
         <div className="sp-login-brand">
           <span aria-hidden="true" className="sp-landing-mark sp-login-site-mark"><i /><i /><i /></span>
-          <span>School<span className="sp-login-brand-accent">Plans</span></span>
+          <span>Madrassa<span className="sp-login-brand-accent">-Ti</span></span>
         </div>
         <div>
           <h1>Votre planning, clair et à jour.</h1>
