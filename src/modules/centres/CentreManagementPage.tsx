@@ -892,7 +892,6 @@ export function CentreManagementPage() {
                     <option value="STARTER">STARTER</option>
                     <option value="STANDARD">STANDARD</option>
                     <option value="PROFESSIONAL">PROFESSIONAL</option>
-                    <option value="ENTERPRISE">ENTERPRISE — Grand École</option>
                   </select>
                 </label>
                 <label className="sp-form-field">
