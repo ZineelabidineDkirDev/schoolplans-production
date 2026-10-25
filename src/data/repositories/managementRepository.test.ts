@@ -61,6 +61,7 @@ describe('management repository', () => {
         lastName: 'Benali',
         email: 'amina@example.test',
         telephone: null,
+        parentTelephone: null,
         city: 'Rabat',
         address: null,
         educationLevel: 'Supérieur',
