@@ -906,6 +906,7 @@ export function LandingPage() {
           </p>
           <div className="sp-landing-comparison">
             <div className="sp-landing-comparison-heading">
+              <p className="sp-landing-kicker text-upper" >Retrouvez en un coup d’œil les fonctions incluses dans chaque formule.</p>
               <div className="sp-landing-section-heading">
               <h2>
                 Comparer les
@@ -913,7 +914,6 @@ export function LandingPage() {
                 <span>fonctionnalités.</span>
               </h2>
             </div>
-              <p>Retrouvez en un coup d’œil les fonctions incluses dans chaque formule.</p>
             </div>
             <div className="sp-landing-comparison-scroll">
               <table>
