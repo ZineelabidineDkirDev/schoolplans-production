@@ -310,13 +310,26 @@ export function LandingPage() {
   function submitContact(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
+    const type = String(data.get('type') ?? 'Demande d’information').trim();
     const name = String(data.get('name') ?? '').trim();
+    const email = String(data.get('email') ?? '').trim();
     const phone = String(data.get('phone') ?? '').trim();
-    const formation = String(data.get('subject') ?? 'Démonstration Madrassa-Ti');
-    const text = String(data.get('message') ?? '').trim();
-    const body = `Nom : ${name}\nTéléphone : ${phone}\nFormation : ${formation}\n\n${text}`;
-    setContactMessage('Votre application de messagerie va s’ouvrir avec la demande préremplie.');
-    window.location.href = `mailto:contact@test-formation.ma?subject=${encodeURIComponent(`Demande d'information - ${formation}`)}&body=${encodeURIComponent(body)}`;
+    const subject = String(data.get('subject') ?? 'Informations générales').trim();
+    const message = String(data.get('message') ?? '').trim();
+    const body = [
+      'Bonjour Madrassa-Ti,',
+      '',
+      `Type de message : ${type}`,
+      `Nom : ${name}`,
+      `E-mail : ${email || 'Non renseigné'}`,
+      `Téléphone : ${phone || 'Non renseigné'}`,
+      `Sujet : ${subject}`,
+      '',
+      'Message :',
+      message,
+    ].join('\n');
+    setContactMessage('WhatsApp va s’ouvrir avec votre demande préremplie. Vérifiez le message puis appuyez sur Envoyer.');
+    window.open(`https://wa.me/212624438140?text=${encodeURIComponent(body)}`, '_blank', 'noopener,noreferrer');
   }
 
   return (
@@ -1131,7 +1144,7 @@ export function LandingPage() {
             </div>
             <a
               className="sp-landing-whatsapp"
-              href="https://wa.me/212600000000"
+              href="https://wa.me/212624438140"
               rel="noreferrer"
               target="_blank"
             >
@@ -1143,22 +1156,39 @@ export function LandingPage() {
               <b>Demande d’information</b>
               <span>Réponse rapide</span>
             </div>
+            <label>
+              Type de message
+              <select name="type" required>
+                <option>Demande de démonstration</option>
+                <option>Question sur les offres</option>
+                <option>Informations générales</option>
+                <option>Assistance technique</option>
+                <option>Partenariat</option>
+                <option>Autre demande</option>
+              </select>
+            </label>
             <div className="sp-landing-form-row">
               <label>
                 Nom complet
-                <input maxLength={60} name="name" placeholder="Votre nom" required />
+                <input autoComplete="name" maxLength={100} name="name" placeholder="Votre nom" required />
               </label>
               <label>
                 Téléphone
-                <input maxLength={20} name="phone" placeholder="+212 ..." type="tel" />
+                <input autoComplete="tel" maxLength={30} name="phone" placeholder="+212 ..." type="tel" required />
               </label>
             </div>
             <label>
+              E-mail
+              <input autoComplete="email" maxLength={254} name="email" placeholder="vous@exemple.ma" type="email" required />
+            </label>
+            <label>
               Sujet
-              <select name="subject">
+              <select name="subject" required>
                 <option>Démonstration Madrassa-Ti</option>
                 <option>Informations générales</option>
                 <option>Offre pour mon centre</option>
+                <option>Fonctionnalités de la plateforme</option>
+                <option>Assistance technique</option>
                 <option>Autre</option>
               </select>
             </label>
@@ -1177,7 +1207,7 @@ export function LandingPage() {
             </button>
             <p>
               {contactMessage ||
-                'Votre application de messagerie s’ouvrira avec le message prêt à envoyer.'}
+                'Votre demande sera préparée dans WhatsApp pour être envoyée à notre équipe.'}
             </p>
           </form>
         </div>
