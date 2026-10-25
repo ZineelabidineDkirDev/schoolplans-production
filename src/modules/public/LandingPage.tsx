@@ -321,6 +321,27 @@ export function LandingPage() {
   return (
     <main className="sp-landing" id="landing">
       <style>{`
+#lp-pricing .sp-landing-demo-card{position:relative;isolation:isolate;overflow:hidden;max-width:900px;margin:0 auto 30px;border:1px solid rgba(59,130,246,.22);border-radius:24px;background:linear-gradient(120deg,var(--sp-card,#fff) 0%,#f5f8ff 58%,#eef5ff 100%);box-shadow:0 18px 55px -32px rgba(37,99,235,.38)}
+#lp-pricing .sp-landing-demo-card-glow{position:absolute;z-index:-1;width:280px;height:280px;right:-70px;top:-145px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,.2),rgba(59,130,246,0) 70%);pointer-events:none}
+#lp-pricing .sp-landing-demo-card-content{padding:clamp(22px,4vw,34px)}
+#lp-pricing .sp-landing-demo-eyebrow{display:inline-flex;align-items:center;gap:9px;padding:7px 12px;border:1px solid rgba(37,99,235,.16);border-radius:999px;background:rgba(255,255,255,.78);color:#2458b8;font-size:.72rem;font-weight:800;letter-spacing:.1em}
+#lp-pricing .sp-landing-demo-dot{width:7px;height:7px;border-radius:50%;background:#3b82f6;box-shadow:0 0 0 4px rgba(59,130,246,.12)}
+#lp-pricing .sp-landing-demo-main{display:flex;align-items:center;justify-content:space-between;gap:24px;margin:22px 0}
+#lp-pricing .sp-landing-demo-main h3{margin:0;color:var(--sp-heading,#172554);font-size:clamp(1.45rem,3vw,2rem);font-weight:800;letter-spacing:-.035em;line-height:1.2}
+#lp-pricing .sp-landing-demo-main h3 span{color:#2563eb}
+#lp-pricing .sp-landing-demo-main p{max-width:540px;margin:10px 0 0;color:var(--sp-muted,#64748b);line-height:1.65}
+#lp-pricing .sp-landing-demo-price{display:flex;align-items:baseline;gap:7px;flex-shrink:0;color:#1d4ed8}
+#lp-pricing .sp-landing-demo-price strong{font-size:clamp(2.8rem,6vw,4rem);font-weight:850;letter-spacing:-.07em;line-height:1}
+#lp-pricing .sp-landing-demo-price span{font-size:1.05rem;font-weight:800}
+#lp-pricing .sp-landing-demo-bottom{display:flex;align-items:center;justify-content:space-between;gap:20px;padding-top:20px;border-top:1px solid rgba(59,130,246,.14)}
+#lp-pricing .sp-landing-demo-bottom p{display:flex;align-items:flex-start;gap:9px;margin:0;color:var(--sp-muted,#64748b);font-size:.9rem;line-height:1.55}
+#lp-pricing .sp-landing-demo-bottom p span{display:grid;place-items:center;flex:0 0 20px;width:20px;height:20px;border-radius:50%;background:#dbeafe;color:#1d4ed8;font-size:.75rem;font-weight:900}
+#lp-pricing .sp-landing-demo-cta{display:inline-flex;align-items:center;justify-content:center;gap:12px;flex-shrink:0;padding:13px 18px;border:0;border-radius:12px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;font-weight:750;box-shadow:0 8px 20px rgba(37,99,235,.23);transition:transform .2s ease,box-shadow .2s ease}
+#lp-pricing .sp-landing-demo-cta:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(37,99,235,.3)}
+#lp-pricing .sp-landing-demo-cta:focus-visible{outline:3px solid #93c5fd;outline-offset:3px}
+@media(max-width:640px){#lp-pricing .sp-landing-demo-main{align-items:flex-start;gap:14px}#lp-pricing .sp-landing-demo-price strong{font-size:2.8rem}#lp-pricing .sp-landing-demo-bottom{align-items:stretch;flex-direction:column}#lp-pricing .sp-landing-demo-cta{width:100%}}
+@media(prefers-reduced-motion:reduce){#lp-pricing .sp-landing-demo-cta{transition:none}}
+
 #lp-pricing .sp-landing-pricing-viewport{overflow-x:auto;overflow-y:visible;perspective:1400px;scroll-snap-type:x mandatory;scrollbar-width:none;padding:34px max(8px,calc((100% - 340px)/2)) 42px;margin:-18px 0;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
 #lp-pricing .sp-landing-pricing-viewport::-webkit-scrollbar{display:none}
 #lp-pricing .sp-landing-pricing-track{display:flex;align-items:stretch;gap:16px;width:max-content;transform-style:preserve-3d}
@@ -774,11 +795,22 @@ export function LandingPage() {
             <span>FACTURATION ANNUELLE</span>
             <b>Choisissez une formule annuelle</b>
           </div>
-          <article style={{ maxWidth: 760, margin: '0 auto 24px', padding: 24, border: '1px solid var(--sp-border, #e5eaf3)', borderRadius: 18, background: 'var(--sp-card, #fff)', textAlign: 'center', boxShadow: '0 12px 35px rgba(26,48,90,.05)' }}>
-            <p className="sp-landing-kicker">OFFRE DE DÉCOUVERTE</p>
-            <h3 style={{ margin: '0 0 8px', fontSize: '1.45rem' }}>Démo gratuite pendant 14 jours</h3>
-            <p style={{ margin: '0 0 16px', color: 'var(--sp-muted, #64748b)' }}>0 DH · Accès activé uniquement après validation de votre demande par notre Super Admin.</p>
-            <button className="sp-landing-plan-cta" onClick={() => { setDemoMessage(''); setDemoOpen(true); }} type="button">Demander la démo gratuite →</button>
+          <article className="sp-landing-demo-card">
+            <div className="sp-landing-demo-card-glow" aria-hidden="true" />
+            <div className="sp-landing-demo-card-content">
+              <span className="sp-landing-demo-eyebrow"><span className="sp-landing-demo-dot" /> OFFRE DE DÉCOUVERTE</span>
+              <div className="sp-landing-demo-main">
+                <div>
+                  <h3>Démo gratuite pendant <span>14 jours</span></h3>
+                  <p>Découvrez Madrassa-Ti et ses outils de gestion avant de choisir votre formule.</p>
+                </div>
+                <div className="sp-landing-demo-price"><strong>0</strong><span>DH</span></div>
+              </div>
+              <div className="sp-landing-demo-bottom">
+                <p><span aria-hidden="true">✓</span> Accès activé après validation de votre demande par notre Super Admin.</p>
+                <button className="sp-landing-demo-cta" onClick={() => { setDemoMessage(''); setDemoOpen(true); }} type="button">Demander la démo gratuite <span aria-hidden="true">→</span></button>
+              </div>
+            </div>
           </article>
           <div className="sp-landing-pricing-viewport" onScroll={syncPricingIndex} ref={pricingViewport}>
             <div className="sp-landing-pricing-track">
