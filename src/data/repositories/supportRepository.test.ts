@@ -157,10 +157,17 @@ describe('support repository', () => {
     const query = {
       insert: vi.fn(),
       select: vi.fn(),
+      eq: vi.fn(),
+      order: vi.fn(),
+      limit: vi.fn(),
+      maybeSingle: vi.fn(async () => ({ data: null, error: null })),
       single: vi.fn(async () => ({ data: null, error: new Error('metadata rejected') })),
     };
     query.insert.mockReturnValue(query);
     query.select.mockReturnValue(query);
+    query.eq.mockReturnValue(query);
+    query.order.mockReturnValue(query);
+    query.limit.mockReturnValue(query);
     const remove = vi.fn(async () => ({ error: null }));
     const upload = vi.fn(async () => ({ error: null }));
     const storageFrom = vi.fn(() => ({ upload, remove }));
