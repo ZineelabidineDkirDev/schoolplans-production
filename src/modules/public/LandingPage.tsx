@@ -323,13 +323,13 @@ export function LandingPage() {
     <main className="sp-landing" id="landing">
       <style>{`
 .sp-landing .sp-landing-hero{background:linear-gradient(to bottom right,#020617 0%,#172554 52%,#1e40af 100%)}
-.sp-landing .sp-landing-stats{gap:16px}
-.sp-landing .sp-landing-stat-card{display:flex;min-width:0;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px 18px;border:1px solid rgba(147,197,253,.28);border-radius:20px;background:linear-gradient(135deg,#020617 0%,#172554 52%,#1e40af 100%);color:#fff;text-align:center;box-shadow:0 16px 36px -24px rgba(30,64,175,.65);transition:transform .2s ease,box-shadow .2s ease}
-.sp-landing .sp-landing-stat-card:hover{transform:translateY(-3px);box-shadow:0 20px 42px -22px rgba(30,64,175,.8)}
-.sp-landing .sp-landing-stat-icon{display:grid;width:44px;height:44px;place-items:center;border:1px solid rgba(186,230,253,.3);border-radius:14px;background:rgba(255,255,255,.1);color:#7dd3fc;font-size:22px}
-.sp-landing .sp-landing-stat-card strong{color:#fff;font-size:clamp(2rem,3vw,2.7rem);font-weight:850;line-height:1;letter-spacing:-.04em}
+.sp-landing .sp-landing-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:center;gap:24px;padding:42px max(24px,calc((100% - 1180px)/2));background:linear-gradient(115deg,#020617 0%,#172554 48%,#1e40af 100%);color:#fff;position:relative;isolation:isolate;overflow:hidden}
+.sp-landing .sp-landing-stats:before{content:"";position:absolute;z-index:-1;inset:0;background:radial-gradient(circle at 15% 0%,rgba(56,189,248,.2),transparent 36%),radial-gradient(circle at 90% 100%,rgba(96,165,250,.2),transparent 34%)}
+.sp-landing .sp-landing-stat-card{display:flex;min-width:0;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:8px 12px;background:transparent;border:0;border-radius:0;box-shadow:none;color:#fff;text-align:center}
+.sp-landing .sp-landing-stat-icon{display:inline-flex;align-items:center;justify-content:center;color:#7dd3fc;font-size:26px;line-height:1}
+.sp-landing .sp-landing-stat-card strong{color:#fff;font-size:clamp(2rem,3.2vw,2.8rem);font-weight:850;line-height:1;letter-spacing:-.04em}
 .sp-landing .sp-landing-stat-label{color:#dbeafe;font-size:.92rem;font-weight:650;line-height:1.4}
-@media(max-width:640px){.sp-landing .sp-landing-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.sp-landing .sp-landing-stat-card{padding:18px 10px}.sp-landing .sp-landing-stat-icon{width:38px;height:38px;font-size:19px}.sp-landing .sp-landing-stat-label{font-size:.82rem}}
+@media(max-width:640px){.sp-landing .sp-landing-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 10px;padding:32px 18px}.sp-landing .sp-landing-stat-card{padding:6px}.sp-landing .sp-landing-stat-icon{font-size:22px}.sp-landing .sp-landing-stat-label{font-size:.82rem}}
 
 #lp-pricing .sp-landing-pricing-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.78fr);align-items:center;gap:clamp(22px,4vw,48px);margin:0 0 28px}
 #lp-pricing .sp-landing-pricing-hero .sp-landing-section-heading{margin:0}
