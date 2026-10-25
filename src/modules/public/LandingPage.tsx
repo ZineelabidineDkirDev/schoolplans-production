@@ -452,7 +452,7 @@ export function LandingPage() {
             </p>
             <div className="sp-landing-actions">
               <Link className="sp-landing-button sp-landing-button-primary" to="/login">
-                Accéder à mon espace <span>→</span>
+                Demander une démo de 14 jours <span>→</span>
               </Link>
               <a className="sp-landing-button sp-landing-button-text" href="#lp-dom">
                 Découvrir la plateforme <span>↓</span>
