@@ -977,7 +977,6 @@ export function LandingPage() {
         <div className="grid items-center gap-10 px-6 py-12 sm:px-10 sm:py-16 lg:grid-cols-[1.05fr_.95fr] lg:gap-8 lg:px-14 lg:py-20">
           <div className="relative z-10">
             <p className="mb-6 inline-flex items-center gap-3 rounded-full border border-blue-200 bg-white/70 px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-blue-700 shadow-sm">
-              <span aria-hidden="true" className="grid h-8 w-8 place-items-center rounded-full bg-blue-100 text-lg">✦</span>
               Prêt à structurer votre centre ?
             </p>
             <h2 className="max-w-2xl text-4xl font-extrabold leading-[1.08] tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
