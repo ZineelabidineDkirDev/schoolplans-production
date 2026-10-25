@@ -23,6 +23,10 @@ describe('student workspace repository', () => {
       calls.push(args as [string, unknown]);
       return query;
     }) as (...args: never[]) => unknown;
+    query.ilike = ((...args: unknown[]) => {
+      calls.push(args as [string, unknown]);
+      return query;
+    }) as (...args: never[]) => unknown;
     query.maybeSingle = vi.fn(async () => ({ data: null, error: null }));
     const client = { from: vi.fn(() => query) } as unknown as SupabaseClient;
 
@@ -30,6 +34,8 @@ describe('student workspace repository', () => {
       studentFound: false,
       courses: [],
       attendance: [],
+      realizedSessions: [],
+      formation: null,
     });
     expect(calls).toEqual([
       ['centre_id', 'centre-a'],
