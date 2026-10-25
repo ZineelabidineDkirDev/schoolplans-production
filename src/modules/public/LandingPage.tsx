@@ -989,7 +989,7 @@ export function LandingPage() {
               Une plateforme intelligente pour votre équipe.
             </p>
      
-            <button className="sp-landing-demo-cta" onClick={() => { setDemoMessage(''); setDemoOpen(true); }} type="button">Demander la démo <span aria-hidden="true">→</span></button>
+            <button className="sp-landing-demo-cta" onClick={() => { setDemoMessage(''); setDemoOpen(true); }} type="button">Demander une démo de 14 jours <span aria-hidden="true">→</span></button>
 
           </div>
           <div aria-label="Aperçu du tableau de bord Madrassa-Ti" className="relative mx-auto w-full max-w-2xl lg:translate-x-3">
