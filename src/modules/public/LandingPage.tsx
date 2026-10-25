@@ -968,7 +968,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="sp-landing-section" aria-label="Accès à Madrassa-Ti">
+      <section className="sp-landing-demo-card sp-landing-demo-card-compact" aria-label="Accès à Madrassa-Ti">
         <div className="sp-landing-container">
           <div className="sp-landing-section-heading">
             <h2>
