@@ -307,29 +307,31 @@ export function LandingPage() {
     setDemoSubmitting(false);
   }
 
-  function submitContact(event: FormEvent<HTMLFormElement>) {
+  async function submitContact(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const type = String(data.get('type') ?? 'Demande d’information').trim();
-    const name = String(data.get('name') ?? '').trim();
-    const email = String(data.get('email') ?? '').trim();
-    const phone = String(data.get('phone') ?? '').trim();
-    const subject = String(data.get('subject') ?? 'Informations générales').trim();
-    const message = String(data.get('message') ?? '').trim();
-    const body = [
-      'Bonjour Madrassa-Ti,',
-      '',
-      `Type de message : ${type}`,
-      `Nom : ${name}`,
-      `E-mail : ${email || 'Non renseigné'}`,
-      `Téléphone : ${phone || 'Non renseigné'}`,
-      `Sujet : ${subject}`,
-      '',
-      'Message :',
-      message,
-    ].join('\n');
-    setContactMessage('WhatsApp va s’ouvrir avec votre demande préremplie. Vérifiez le message puis appuyez sur Envoyer.');
-    window.open(`https://wa.me/212624438140?text=${encodeURIComponent(body)}`, '_blank', 'noopener,noreferrer');
+    const formElement = event.currentTarget;
+    const data = new FormData(formElement);
+    setContactMessage('');
+    const payload = {
+      type: String(data.get('type') ?? '').trim(),
+      name: String(data.get('name') ?? '').trim(),
+      email: String(data.get('email') ?? '').trim(),
+      phone: String(data.get('phone') ?? '').trim(),
+      subject: String(data.get('subject') ?? '').trim(),
+      message: String(data.get('message') ?? '').trim(),
+    };
+
+    try {
+      const { error } = await getSupabaseClient().functions.invoke('send-contact-email', {
+        body: payload,
+      });
+      if (error) throw error;
+      setContactMessage('Votre demande a bien été envoyée. Notre équipe vous répondra prochainement.');
+      formElement.reset();
+    } catch (error) {
+      console.error('Contact form submission failed:', error);
+      setContactMessage('L’envoi a échoué. Veuillez réessayer dans quelques instants ou nous contacter par WhatsApp.');
+    }
   }
 
   return (
@@ -1207,7 +1209,7 @@ export function LandingPage() {
             </button>
             <p>
               {contactMessage ||
-                'Votre demande sera préparée dans WhatsApp pour être envoyée à notre équipe.'}
+                'Votre demande sera envoyée par e-mail à notre équipe.'}
             </p>
           </form>
         </div>
