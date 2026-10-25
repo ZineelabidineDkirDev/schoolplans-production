@@ -970,25 +970,25 @@ export function LandingPage() {
 
       <section
         aria-label="Accès à Madrassa-Ti"
-        className="relative isolate mx-4 mb-12 overflow-hidden border border-blue-100 bg-gradient-to-br from-sky-50 via-blue-50 to-blue-200 shadow-xl shadow-blue-900/10 sm:mx-6 lg:mx-auto lg:my-20 lg:max-w-8xl"
+        className="relative isolate mx-4 mb-12 overflow-hidden rounded-[2rem] border border-blue-800/60 bg-gradient-to-br from-slate-950 via-blue-950 to-blue-800 shadow-2xl shadow-blue-950/25 sm:mx-6 lg:mx-auto lg:my-20 lg:max-w-7xl"
       >
-        <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-28 -z-10 h-96 w-96 rounded-full bg-blue-400/25 blur-3xl" />
-        <div aria-hidden="true" className="pointer-events-none absolute -bottom-40 left-1/4 -z-10 h-80 w-80 rounded-full bg-cyan-300/25 blur-3xl" />
+        <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-28 -z-10 h-96 w-96 rounded-full bg-sky-400/20 blur-3xl" />
+        <div aria-hidden="true" className="pointer-events-none absolute -bottom-40 left-1/4 -z-10 h-80 w-80 rounded-full bg-blue-400/20 blur-3xl" />
         <div className="grid items-center gap-10 px-6 py-12 sm:px-10 sm:py-16 lg:grid-cols-[1.05fr_.95fr] lg:gap-8 lg:px-14 lg:py-20">
           <div className="relative z-10">
-            <p className="mb-6 inline-flex items-center gap-3 rounded-full border border-blue-200 bg-white/70 px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-blue-700 shadow-sm">
+            <p className="mb-6 inline-flex items-center gap-3 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-blue-100 shadow-sm backdrop-blur">
               Prêt à structurer votre centre ?
             </p>
-            <h2 className="max-w-2xl text-4xl font-extrabold leading-[1.08] tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
+            <h2 className="max-w-2xl text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-6xl">
               Madrassa-Ti
               <br />
-              <span className="bg-gradient-to-r from-blue-700 via-blue-500 to-sky-400 bg-clip-text text-transparent">votre espace de gestion.</span>
+              <span className="text-sky-300">votre espace de gestion.</span>
             </h2>
-            <p className="mt-6 max-w-xl text-lg leading-8 text-slate-600 sm:text-xl">
+            <p className="mt-6 max-w-xl text-lg leading-8 text-blue-100/90 sm:text-xl">
               Une plateforme intelligente pour votre équipe.
             </p>
             <Link
-              className="group mt-8 inline-flex items-center justify-center text-white gap-4 rounded-2xl bg-blue-600 px-7 py-4 font-bold shadow-lg shadow-blue-600/25 transition duration-200 hover:-translate-y-1 hover:bg-blue-700 hover:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600"
+              className="group mt-8 inline-flex items-center justify-center !text-white gap-4 rounded-2xl border border-white/15 bg-blue-600 px-7 py-4 font-bold shadow-lg shadow-blue-950/30 transition duration-200 hover:-translate-y-1 hover:bg-blue-500 hover:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-300"
               to="/login"
             >
               Accéder à mon espace
