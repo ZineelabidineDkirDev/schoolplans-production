@@ -109,7 +109,10 @@ export function canAccessSection(
   if (!APP_SECTIONS.includes(section as AppSection)) return false;
   const appSection = section as AppSection;
   if (appSection === 'vfinance') return (role === 'admin' || role === 'director') && permissions.gestion_financiere === true;
-  if (appSection === 'vnotes') return ['admin', 'director', 'formateur', 'etudiant'].includes(role) && permissions.notes_bulletins === true;
+  if (appSection === 'vnotes') {
+    if (role === 'super_admin') return true;
+    return ['admin', 'director', 'formateur', 'etudiant'].includes(role) && permissions.notes_bulletins === true;
+  }
   if (role === 'super_admin' && appSection === 'vpcentre') return false;
   if (role === 'super_admin') return true;
 
