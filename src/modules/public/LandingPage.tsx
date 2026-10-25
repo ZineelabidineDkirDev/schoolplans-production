@@ -221,6 +221,9 @@ export function LandingPage() {
   const [contactMessage, setContactMessage] = useState('');
   const [subscriptionPlan, setSubscriptionPlan] = useState<(typeof plans)[number] | null>(null);
   const [subscriptionMessage, setSubscriptionMessage] = useState('');
+  const [demoOpen, setDemoOpen] = useState(false);
+  const [demoMessage, setDemoMessage] = useState('');
+  const [demoSubmitting, setDemoSubmitting] = useState(false);
   const [subscriptionSubmitting, setSubscriptionSubmitting] = useState(false);
   const pricingViewport = useRef<HTMLDivElement>(null);
 
@@ -280,6 +283,27 @@ export function LandingPage() {
       formElement.reset();
     }
     setSubscriptionSubmitting(false);
+  }
+
+  async function submitDemo(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setDemoSubmitting(true);
+    setDemoMessage('');
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    const { error } = await getSupabaseClient().from('demo_requests').insert({
+      contact_name: String(form.get('contact_name') ?? '').trim(),
+      centre_name: String(form.get('centre_name') ?? '').trim(),
+      email: String(form.get('email') ?? '').trim(),
+      phone: String(form.get('phone') ?? '').trim(),
+    });
+    if (error) {
+      setDemoMessage('Impossible d’envoyer la demande pour le moment. Vérifiez la configuration Supabase et réessayez.');
+    } else {
+      setDemoMessage('Votre demande de démo a été envoyée. La période de 14 jours commencera uniquement après validation par notre Super Admin.');
+      formElement.reset();
+    }
+    setDemoSubmitting(false);
   }
 
   function submitContact(event: FormEvent<HTMLFormElement>) {
@@ -748,8 +772,14 @@ export function LandingPage() {
           </div>
           <div className="sp-landing-price-intro">
             <span>FACTURATION ANNUELLE</span>
-            <b>14 jours d’essai gratuit</b>
+            <b>Choisissez une formule annuelle</b>
           </div>
+          <article style={{ maxWidth: 760, margin: '0 auto 24px', padding: 24, border: '1px solid var(--sp-border, #e5eaf3)', borderRadius: 18, background: 'var(--sp-card, #fff)', textAlign: 'center', boxShadow: '0 12px 35px rgba(26,48,90,.05)' }}>
+            <p className="sp-landing-kicker">OFFRE DE DÉCOUVERTE</p>
+            <h3 style={{ margin: '0 0 8px', fontSize: '1.45rem' }}>Démo gratuite pendant 14 jours</h3>
+            <p style={{ margin: '0 0 16px', color: 'var(--sp-muted, #64748b)' }}>0 DH · Accès activé uniquement après validation de votre demande par notre Super Admin.</p>
+            <button className="sp-landing-plan-cta" onClick={() => { setDemoMessage(''); setDemoOpen(true); }} type="button">Demander la démo gratuite →</button>
+          </article>
           <div className="sp-landing-pricing-viewport" onScroll={syncPricingIndex} ref={pricingViewport}>
             <div className="sp-landing-pricing-track">
               {plans.map((plan) => (
@@ -831,8 +861,7 @@ export function LandingPage() {
             </button>
           </div>
           <p className="sp-landing-pricing-note">
-            14 jours d’essai gratuit · Facturation annuelle · Sans engagement pendant la période de
-            démonstration.
+            Facturation annuelle · Les demandes de démo sont soumises à validation.
           </p>
           <div className="sp-landing-comparison">
             <div className="sp-landing-comparison-heading">
@@ -999,6 +1028,25 @@ export function LandingPage() {
           </form>
         </div>
       </section>
+
+      {demoOpen && (
+        <div role="presentation" onClick={(event) => { if (event.target === event.currentTarget) setDemoOpen(false); }} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,.68)', display: 'grid', placeItems: 'center', padding: 16, overflowY: 'auto' }}>
+          <section aria-labelledby="demo-title" aria-modal="true" role="dialog" style={{ width: 'min(100%, 560px)', maxHeight: '90vh', overflowY: 'auto', background: 'var(--sp-card, #fff)', color: 'var(--sp-text, #172554)', borderRadius: 20, padding: 24, boxShadow: '0 24px 80px rgba(0,0,0,.25)' }}>
+            <button type="button" onClick={() => setDemoOpen(false)} aria-label="Fermer" style={{ float: 'right', fontSize: 24, padding: '0 8px' }}>×</button>
+            <p className="sp-landing-kicker">DEMANDE DE DÉMO GRATUITE</p>
+            <h2 id="demo-title">14 jours · 0 DH</h2>
+            <p>Remplissez les informations de votre centre. La période d’essai ne démarre qu’après approbation par le Super Admin.</p>
+            <form className="sp-landing-contact-form" onSubmit={submitDemo}>
+              <label>Nom complet du responsable<input name="contact_name" required minLength={2} maxLength={100} autoComplete="name" placeholder="Votre nom complet" /></label>
+              <label>Nom du centre<input name="centre_name" required minLength={2} maxLength={150} placeholder="Nom de votre centre" /></label>
+              <label>E-mail<input name="email" type="email" required maxLength={254} autoComplete="email" placeholder="vous@exemple.ma" /></label>
+              <label>Téléphone<input name="phone" type="tel" required minLength={6} maxLength={30} autoComplete="tel" placeholder="+212 ..." /></label>
+              <button className="sp-landing-submit" disabled={demoSubmitting} type="submit">{demoSubmitting ? 'Envoi en cours…' : 'Envoyer ma demande de démo →'}</button>
+              {demoMessage && <p role="status">{demoMessage}</p>}
+            </form>
+          </section>
+        </div>
+      )}
 
       {subscriptionPlan && (
         <div role="presentation" onClick={(event) => { if (event.target === event.currentTarget) setSubscriptionPlan(null); }} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,.68)', display: 'grid', placeItems: 'center', padding: 16, overflowY: 'auto' }}>
