@@ -804,7 +804,7 @@ export function LandingPage() {
             <article className="sp-landing-demo-card sp-landing-demo-card-compact">
               <div className="sp-landing-demo-card-glow" aria-hidden="true" />
               <div className="sp-landing-demo-card-content">
-                <span className="sp-landing-demo-eyebrow"><span className="sp-landing-demo-dot" /> OFFRE DE DÉCOUVERTE</span>
+               
                 <div className="sp-landing-demo-main">
                   <div>
                     <h3>Démo gratuite <span>14 jours</span></h3>
