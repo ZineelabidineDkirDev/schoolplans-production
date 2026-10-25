@@ -452,7 +452,7 @@ export function LandingPage() {
             </p>
             <div className="sp-landing-actions">
               <Link className="sp-landing-button sp-landing-button-primary" to="/login">
-                Demander une démo de 14 jours <span>→</span>
+                Accéder à mon espace <span>→</span>
               </Link>
               <a className="sp-landing-button sp-landing-button-text" href="#lp-dom">
                 Découvrir la plateforme <span>↓</span>
@@ -813,7 +813,7 @@ export function LandingPage() {
                   </div>
                 </div>
                 <div className="sp-landing-demo-bottom">
-                  <button className="sp-landing-demo-cta" onClick={() => { setDemoMessage(''); setDemoOpen(true); }} type="button">Demander la démo <span aria-hidden="true">→</span></button>
+                  <button className="sp-landing-demo-cta" onClick={() => { setDemoMessage(''); setDemoOpen(true); }} type="button">Demander une démo de 14 jours <span aria-hidden="true">→</span></button>
                 </div>
               </div>
             </article>
