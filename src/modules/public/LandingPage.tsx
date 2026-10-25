@@ -688,13 +688,13 @@ export function LandingPage() {
       <section aria-label="Chiffres clés" className="sp-landing-stats">
         {(
           [
-            [5, 'rôles gérés', 'users'],
-            [6, 'jours de planning', 'calendar-days'],
-            [14, 'jours d’essai', 'gift'],
-            [1, 'plateforme multi-centres', 'layers'],
+            [5, 'Rôles gérés'],
+            [6, 'Jours de planning'],
+            [14, 'Jours d’essai'],
+            [40, 'Centres'],
           ] as const
-        ).map(([value, label, icon]) => (
-          <AnimatedMetric key={label} label={label} value={value} icon={{users: '♙', 'calendar-days': '▦', gift: '✦', layers: '▤'}[icon]} />
+        ).map(([value, label]) => (
+          <AnimatedMetric key={label} label={label} value={value} />
         ))}
       </section>
 
