@@ -1075,8 +1075,7 @@ export function LandingPage() {
           <section aria-labelledby="demo-title" aria-modal="true" role="dialog" style={{ width: 'min(100%, 560px)', maxHeight: '90vh', overflowY: 'auto', background: 'var(--sp-card, #fff)', color: 'var(--sp-text, #172554)', borderRadius: 20, padding: 24, boxShadow: '0 24px 80px rgba(0,0,0,.25)' }}>
             <button type="button" onClick={() => setDemoOpen(false)} aria-label="Fermer" style={{ float: 'right', fontSize: 24, padding: '0 8px' }}>×</button>
             <p className="sp-landing-kicker">DEMANDE DE DÉMO GRATUITE</p>
-            <h2 id="demo-title">14 jours · 0 DH</h2>
-            <p>Remplissez les informations de votre centre. La période d’essai ne démarre qu’après approbation par le Super Admin.</p>
+            <h2 id="demo-title"><b>14 jours · 0 DH</b></h2>
             <form className="sp-landing-contact-form" onSubmit={submitDemo}>
               <label>Nom complet du responsable<input name="contact_name" required minLength={2} maxLength={100} autoComplete="name" placeholder="Votre nom complet" /></label>
               <label>Nom du centre<input name="centre_name" required minLength={2} maxLength={150} placeholder="Nom de votre centre" /></label>
