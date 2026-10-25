@@ -1239,6 +1239,9 @@ export function LandingPage() {
           <a href="#lp-pricing">Offres</a>
           <a href="#lp-faq">FAQ</a>
           <a href="#lp-ct">Contact</a>
+          <Link to="/politique-confidentialite">Confidentialité</Link>
+          <Link to="/conditions-generales-utilisation">CGU</Link>
+          <Link to="/mentions-legales">Mentions légales</Link>
           <Link to="/login">Connexion</Link>
         </nav>
         <small>© {new Date().getFullYear()} Madrassa-Ti. Tous droits réservés.</small>
