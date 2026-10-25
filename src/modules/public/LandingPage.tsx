@@ -981,12 +981,12 @@ export function LandingPage() {
               Prêt à structurer votre centre ?
             </p>
             <h2 className="max-w-2xl text-4xl font-extrabold leading-[1.08] tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
-              Faites de Madrassa-Ti
+              Madrassa-Ti
               <br />
               <span className="bg-gradient-to-r from-blue-700 via-blue-500 to-sky-400 bg-clip-text text-transparent">votre espace de gestion.</span>
             </h2>
             <p className="mt-6 max-w-xl text-lg leading-8 text-slate-600 sm:text-xl">
-              Une plateforme claire pour votre équipe.
+              Une plateforme intelligente pour votre équipe.
             </p>
             <Link
               className="group mt-8 inline-flex items-center justify-center gap-4 rounded-2xl bg-blue-600 px-7 py-4 font-bold text-white shadow-lg shadow-blue-600/25 transition duration-200 hover:-translate-y-1 hover:bg-blue-700 hover:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600"
