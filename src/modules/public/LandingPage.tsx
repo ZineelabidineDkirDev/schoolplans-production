@@ -321,7 +321,7 @@ export function LandingPage() {
   return (
     <main className="sp-landing" id="landing">
       <style>{`
-#lp-pricing .sp-landing-pricing-hero{display:grid;grid-template-columns:minmax(260px,.78fr) minmax(0,1.22fr);align-items:center;gap:clamp(22px,4vw,48px);margin:0 0 28px}
+#lp-pricing .sp-landing-pricing-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.78fr);align-items:center;gap:clamp(22px,4vw,48px);margin:0 0 28px}
 #lp-pricing .sp-landing-pricing-hero .sp-landing-section-heading{margin:0}
 #lp-pricing .sp-landing-demo-card{position:relative;isolation:isolate;overflow:hidden;max-width:900px;margin:0 auto 30px;border:1px solid rgba(59,130,246,.22);border-radius:24px;background:linear-gradient(120deg,var(--sp-card,#fff) 0%,#f5f8ff 58%,#eef5ff 100%);box-shadow:0 18px 55px -32px rgba(37,99,235,.38)}
 #lp-pricing .sp-landing-demo-card-compact{width:100%;max-width:none;margin:0}
@@ -794,6 +794,13 @@ export function LandingPage() {
         <div className="sp-landing-container">
           <p className="sp-landing-kicker">DES OFFRES SIMPLES</p>
           <div className="sp-landing-pricing-hero">
+            <div className="sp-landing-section-heading">
+              <h2>
+                Choisissez votre
+                <br />
+                <span>formule Madrassa-Ti.</span>
+              </h2>
+            </div>
             <article className="sp-landing-demo-card sp-landing-demo-card-compact">
               <div className="sp-landing-demo-card-glow" aria-hidden="true" />
               <div className="sp-landing-demo-card-content">
@@ -811,17 +818,6 @@ export function LandingPage() {
                 </div>
               </div>
             </article>
-            <div className="sp-landing-section-heading">
-              <h2>
-                Choisissez votre
-                <br />
-                <span>formule Madrassa-Ti.</span>
-              </h2>
-              <p>
-                Commencez avec 14 jours d’essai gratuit et choisissez ensuite l’offre adaptée à votre
-                centre.
-              </p>
-            </div>
           </div>
           <div className="sp-landing-price-intro">
             <span>FACTURATION ANNUELLE</span>
