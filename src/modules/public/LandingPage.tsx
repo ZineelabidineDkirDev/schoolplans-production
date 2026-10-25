@@ -813,7 +813,7 @@ export function LandingPage() {
                   </div>
                 </div>
                 <div className="sp-landing-demo-bottom">
-                  <button className="sp-landing-demo-cta" onClick={() => { setDemoMessage(''); setDemoOpen(true); }} type="button">Demander une démo de 14 jours <span aria-hidden="true">→</span></button>
+                  <button className="mt-6 inline-flex min-h-12 items-center justify-center gap-3 rounded-xl bg-sky-400 px-6 py-3 font-bold text-slate-950 shadow-lg shadow-blue-950/30 transition hover:-translate-y-0.5 hover:bg-sky-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white" onClick={() => { setDemoMessage(''); setDemoOpen(true); }} type="button">Demander une démo de 14 jours <span aria-hidden="true">→</span></button>
                 </div>
               </div>
             </article>
