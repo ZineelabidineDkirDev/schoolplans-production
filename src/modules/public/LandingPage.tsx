@@ -169,7 +169,7 @@ const questions = [
   ],
 ];
 
-function AnimatedMetric({ label, value }: { label: string; value: number }) {
+function AnimatedMetric({ label, value, icon }: { label: string; value: number; icon: string }) {
   const [count, setCount] = useState(0);
   const metricRef = useRef<HTMLDivElement>(null);
 
@@ -204,9 +204,10 @@ function AnimatedMetric({ label, value }: { label: string; value: number }) {
   }, [value]);
 
   return (
-    <div ref={metricRef}>
+    <div className="sp-landing-stat-card" ref={metricRef}>
+      <span aria-hidden="true" className="sp-landing-stat-icon">{icon}</span>
       <strong>{count}</strong>
-      <span>{label}</span>
+      <span className="sp-landing-stat-label">{label}</span>
     </div>
   );
 }
@@ -322,6 +323,14 @@ export function LandingPage() {
     <main className="sp-landing" id="landing">
       <style>{`
 .sp-landing .sp-landing-hero{background:linear-gradient(to bottom right,#020617 0%,#172554 52%,#1e40af 100%)}
+.sp-landing .sp-landing-stats{gap:16px}
+.sp-landing .sp-landing-stat-card{display:flex;min-width:0;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px 18px;border:1px solid rgba(147,197,253,.28);border-radius:20px;background:linear-gradient(135deg,#020617 0%,#172554 52%,#1e40af 100%);color:#fff;text-align:center;box-shadow:0 16px 36px -24px rgba(30,64,175,.65);transition:transform .2s ease,box-shadow .2s ease}
+.sp-landing .sp-landing-stat-card:hover{transform:translateY(-3px);box-shadow:0 20px 42px -22px rgba(30,64,175,.8)}
+.sp-landing .sp-landing-stat-icon{display:grid;width:44px;height:44px;place-items:center;border:1px solid rgba(186,230,253,.3);border-radius:14px;background:rgba(255,255,255,.1);color:#7dd3fc;font-size:22px}
+.sp-landing .sp-landing-stat-card strong{color:#fff;font-size:clamp(2rem,3vw,2.7rem);font-weight:850;line-height:1;letter-spacing:-.04em}
+.sp-landing .sp-landing-stat-label{color:#dbeafe;font-size:.92rem;font-weight:650;line-height:1.4}
+@media(max-width:640px){.sp-landing .sp-landing-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.sp-landing .sp-landing-stat-card{padding:18px 10px}.sp-landing .sp-landing-stat-icon{width:38px;height:38px;font-size:19px}.sp-landing .sp-landing-stat-label{font-size:.82rem}}
+
 #lp-pricing .sp-landing-pricing-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.78fr);align-items:center;gap:clamp(22px,4vw,48px);margin:0 0 28px}
 #lp-pricing .sp-landing-pricing-hero .sp-landing-section-heading{margin:0}
 #lp-pricing .sp-landing-demo-card{position:relative;isolation:isolate;overflow:hidden;max-width:900px;margin:0 auto 30px;border:1px solid rgba(59,130,246,.22);border-radius:24px;background:linear-gradient(120deg,var(--sp-card,#fff) 0%,#f5f8ff 58%,#eef5ff 100%);box-shadow:0 18px 55px -32px rgba(37,99,235,.38)}
@@ -655,13 +664,13 @@ export function LandingPage() {
       <section aria-label="Chiffres clés" className="sp-landing-stats">
         {(
           [
-            [5, 'rôles gérés'],
-            [6, 'jours de planning'],
-            [14, 'jours d’essai'],
-            [1, 'plateforme multi-centres'],
+            [5, 'rôles gérés', 'users'],
+            [6, 'jours de planning', 'calendar-days'],
+            [14, 'jours d’essai', 'gift'],
+            [1, 'plateforme multi-centres', 'layers'],
           ] as const
-        ).map(([value, label]) => (
-          <AnimatedMetric key={label} label={label} value={value} />
+        ).map(([value, label, icon]) => (
+          <AnimatedMetric key={label} label={label} value={value} icon={{users: '♙', 'calendar-days': '▦', gift: '✦', layers: '▤'}[icon]} />
         ))}
       </section>
 
