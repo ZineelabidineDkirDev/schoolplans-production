@@ -52,6 +52,7 @@ describe('student management CRUD repository', () => {
         nom: 'Benali',
         email: 'amina@example.test',
         telephone: null,
+        telephone_parent: null,
         ville: 'Rabat',
         adresse: null,
         niveau_etudes: 'Supérieur',
