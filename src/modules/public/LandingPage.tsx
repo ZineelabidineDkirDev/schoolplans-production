@@ -981,7 +981,6 @@ export function LandingPage() {
             </p>
             <Link
               className="sp-landing-plan-cta"
-              style={{ display: 'inline-flex', width: 'auto', marginTop: 20, background: 'transparent', color: 'inherit', border: '1px solid var(--sp-border, #dbe3ef)', boxShadow: 'none' }}
               to="/login"
             >
               Accéder à mon espace →
