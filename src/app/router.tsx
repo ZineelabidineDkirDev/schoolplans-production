@@ -13,6 +13,7 @@ function HomeByRole() {
   return <DashboardPage />;
 }
 import { LandingPage } from '../modules/public/LandingPage';
+import { LegalPage } from '../modules/public/LegalPage';
 
 const routerBasename =
   window.location.pathname === '/react-app.html' ||
@@ -25,6 +26,18 @@ export const router = createBrowserRouter(
     {
       path: '/',
       element: <LandingPage />,
+    },
+    {
+      path: '/politique-confidentialite',
+      element: <LegalPage />,
+    },
+    {
+      path: '/conditions-generales-utilisation',
+      element: <LegalPage />,
+    },
+    {
+      path: '/mentions-legales',
+      element: <LegalPage />,
     },
     {
       path: '/login',
