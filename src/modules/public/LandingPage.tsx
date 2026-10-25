@@ -978,7 +978,7 @@ export function LandingPage() {
       >
         <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-28 -z-10 h-96 w-96 rounded-full bg-sky-400/20 blur-3xl" />
         <div aria-hidden="true" className="pointer-events-none absolute -bottom-40 left-1/4 -z-10 h-80 w-80 rounded-full bg-blue-400/20 blur-3xl" />
-        <div className="grid h-full items-center gap-6 px-6 py-6 sm:px-10 lg:grid-cols-[1.05fr_.95fr] lg:gap-8 lg:px-14 lg:py-6">
+        <div className="sp-landing-container grid h-full items-center gap-6 py-6 lg:grid-cols-[1.05fr_.95fr] lg:gap-8">
           <div className="relative z-10">
             <p className="mb-6 inline-flex items-center gap-3 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-blue-100 shadow-sm backdrop-blur">
               Prêt à structurer votre centre ?
