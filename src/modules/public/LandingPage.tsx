@@ -323,6 +323,19 @@ export function LandingPage() {
     <main className="sp-landing" id="landing">
       <style>{`
 .sp-landing .sp-landing-hero{background:linear-gradient(to bottom right,#020617 0%,#172554 52%,#1e40af 100%)}
+
+/* Footer professionnel : même dégradé bleu que les bannières. */
+.sp-landing .sp-landing-footer{position:relative;isolation:isolate;display:grid;grid-template-columns:minmax(220px,1.2fr) minmax(220px,1fr);align-items:start;gap:28px 48px;width:100%;box-sizing:border-box;margin:0;padding:48px clamp(20px,5vw,80px) 24px;background:linear-gradient(115deg,#020617 0%,#172554 48%,#1e40af 100%);color:#dbeafe;border-top:1px solid rgba(147,197,253,.24);overflow:hidden}
+.sp-landing .sp-landing-footer:before{content:"";position:absolute;z-index:-1;inset:0;background:radial-gradient(circle at 12% 0%,rgba(56,189,248,.16),transparent 34%),radial-gradient(circle at 92% 100%,rgba(96,165,250,.18),transparent 32%);pointer-events:none}
+.sp-landing .sp-landing-footer>.sp-landing-brand{display:inline-flex;align-items:center;gap:12px;width:max-content;max-width:100%;color:#fff;text-decoration:none;font-size:1.25rem;font-weight:850;letter-spacing:-.03em}
+.sp-landing .sp-landing-footer>.sp-landing-brand>span:last-child span{color:#7dd3fc}
+.sp-landing .sp-landing-footer>p{grid-column:1;max-width:420px;margin:-12px 0 0;color:#bfdbfe;font-size:.95rem;line-height:1.7}
+.sp-landing .sp-landing-footer>nav{grid-column:2;grid-row:1 / span 2;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:12px 24px;margin:4px 0 0}
+.sp-landing .sp-landing-footer>nav a{color:#dbeafe;text-decoration:none;font-size:.9rem;font-weight:650;transition:color .2s ease}
+.sp-landing .sp-landing-footer>nav a:hover,.sp-landing .sp-landing-footer>nav a:focus-visible{color:#7dd3fc}
+.sp-landing .sp-landing-footer>small{grid-column:1 / -1;display:block;margin-top:8px;padding-top:20px;border-top:1px solid rgba(191,219,254,.18);color:#93c5fd;font-size:.8rem;line-height:1.6}
+@media(max-width:700px){.sp-landing .sp-landing-footer{grid-template-columns:minmax(0,1fr);gap:18px;padding:34px 22px 20px}.sp-landing .sp-landing-footer>p{grid-column:1;margin:-8px 0 0}.sp-landing .sp-landing-footer>nav{grid-column:1;grid-row:auto;justify-content:flex-start;gap:14px 20px;margin:4px 0}.sp-landing .sp-landing-footer>small{grid-column:1;margin-top:4px;padding-top:16px}}
+
 /* Navigation pleine largeur : transparente au chargement, dégradé uniquement après scroll. */
 .sp-landing .sp-landing-nav{position:fixed;top:0;left:0;right:0;width:100%;max-width:none;min-width:0;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:16px clamp(20px,4vw,64px);margin:0;background:transparent;border-bottom:1px solid transparent;box-shadow:none;z-index:100;transition:background .25s ease,border-color .25s ease,box-shadow .25s ease}
 .sp-landing .sp-landing-nav.is-scrolled{background:linear-gradient(115deg,#020617 0%,#172554 48%,#1e40af 100%);border-bottom-color:rgba(147,197,253,.22);box-shadow:0 8px 28px rgba(2,6,23,.16);backdrop-filter:none;-webkit-backdrop-filter:none}
