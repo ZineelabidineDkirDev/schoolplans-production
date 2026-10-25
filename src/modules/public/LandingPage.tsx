@@ -351,6 +351,9 @@ export function LandingPage() {
 #lp-pricing .sp-landing-demo-bottom p{display:flex;align-items:flex-start;gap:9px;margin:0;color:var(--sp-muted,#64748b);font-size:.9rem;line-height:1.55}
 #lp-pricing .sp-landing-demo-bottom p span{display:grid;place-items:center;flex:0 0 20px;width:20px;height:20px;border-radius:50%;background:#dbeafe;color:#1d4ed8;font-size:.75rem;font-weight:900}
 #lp-pricing .sp-landing-demo-cta{display:inline-flex;align-items:center;justify-content:center;gap:12px;flex-shrink:0;padding:13px 18px;border:0;border-radius:12px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;font-weight:750;box-shadow:0 8px 20px rgba(37,99,235,.23);transition:transform .2s ease,box-shadow .2s ease}
+.sp-landing .sp-landing-demo-cta{display:inline-flex;align-items:center;justify-content:center;gap:12px;flex-shrink:0;padding:13px 18px;border:0;border-radius:12px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;font-weight:750;box-shadow:0 8px 20px rgba(37,99,235,.23);transition:transform .2s ease,box-shadow .2s ease;position:relative;z-index:10;visibility:visible;opacity:1}
+.sp-landing .sp-landing-demo-cta:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(37,99,235,.3)}
+.sp-landing .sp-landing-demo-cta:focus-visible{outline:3px solid #93c5fd;outline-offset:3px}
 #lp-pricing .sp-landing-demo-cta:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(37,99,235,.3)}
 #lp-pricing .sp-landing-demo-cta:focus-visible{outline:3px solid #93c5fd;outline-offset:3px}
 @media(max-width:640px){#lp-pricing .sp-landing-demo-main{align-items:flex-start;gap:14px}#lp-pricing .sp-landing-demo-price strong{font-size:2.8rem}#lp-pricing .sp-landing-demo-bottom{align-items:stretch;flex-direction:column}#lp-pricing .sp-landing-demo-cta{width:100%}}
@@ -813,7 +816,7 @@ export function LandingPage() {
                   </div>
                 </div>
                 <div className="sp-landing-demo-bottom">
-                  <button style={{ display: "inline-flex", visibility: "visible", opacity: 1, position: "relative", zIndex: 50, alignItems: "center", justifyContent: "center", gap: 12, marginTop: 24, minHeight: 48, padding: "12px 24px", border: "2px solid #ffffff", borderRadius: 12, background: "#38bdf8", color: "#082f49", fontSize: 16, fontWeight: 800, lineHeight: 1.4, cursor: "pointer", boxShadow: "0 8px 24px rgba(0,0,0,.35)" }} onClick={() => { setDemoMessage(''); setDemoOpen(true); }} type="button">Demander une démo de 14 jours <span aria-hidden="true">→</span></button>
+                  <button className="sp-landing-demo-cta" onClick={() => { setDemoMessage(''); setDemoOpen(true); }} type="button">Demander une démo de 14 jours <span aria-hidden="true">→</span></button>
                 </div>
               </div>
             </article>
