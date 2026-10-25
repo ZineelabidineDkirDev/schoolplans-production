@@ -810,7 +810,6 @@ export function LandingPage() {
                     <h3>Démo gratuite <span>14 jours</span></h3>
                     <p>Découvrez Madrassa-Ti avant de choisir votre formule.</p>
                   </div>
-                  <div className="sp-landing-demo-price"><strong>0</strong><span>DH</span></div>
                 </div>
                 <div className="sp-landing-demo-bottom">
                   <button className="sp-landing-demo-cta" onClick={() => { setDemoMessage(''); setDemoOpen(true); }} type="button">Demander la démo <span aria-hidden="true">→</span></button>
