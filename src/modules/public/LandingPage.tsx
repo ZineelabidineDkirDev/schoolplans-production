@@ -979,12 +979,9 @@ export function LandingPage() {
             <p className="sp-landing-muted">
               Une plateforme claire pour votre équipe.
             </p>
-            <Link
-              className="sp-landing-plan-cta"
-              to="/login"
-            >
-              Accéder à mon espace →
-            </Link>
+            <Link className="sp-landing-button sp-landing-button-primary" to="/login">
+                Accéder à mon espace <span>→</span>
+              </Link>
           </div>
         </div>
       </section>
