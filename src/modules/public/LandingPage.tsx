@@ -967,28 +967,26 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="sp-landing-cta relative isolate mx-4 my-16 grid overflow-hidden rounded-[2rem] border border-white/15 bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-900 px-6 py-10 text-white shadow-2xl shadow-blue-950/20 sm:mx-6 sm:px-10 sm:py-14 lg:mx-auto lg:my-24 lg:max-w-7xl lg:grid-cols-[1.2fr_.8fr] lg:items-center lg:gap-12 lg:px-14">
-        <div aria-hidden="true" className="pointer-events-none absolute -right-20 -top-24 -z-10 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl" />
-        <div aria-hidden="true" className="pointer-events-none absolute -bottom-28 left-1/3 -z-10 h-72 w-72 rounded-full bg-indigo-400/20 blur-3xl" />
-        <div className="relative z-10">
-          <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-cyan-200/25 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-cyan-100">
-            <span aria-hidden="true" className="h-2 w-2 rounded-full bg-cyan-300 shadow-[0_0_0_4px_rgba(103,232,249,0.12)]" />
-            Prêt à structurer votre centre ?
-          </p>
-          <h2 className="max-w-3xl text-3xl font-extrabold leading-tight tracking-tight text-white sm:text-4xl lg:text-5xl">
-            Faites de Madrassa-Ti
-            <br />
-            <span className="bg-gradient-to-r from-cyan-200 via-sky-300 to-indigo-200 bg-clip-text text-transparent">votre espace de gestion.</span>
-          </h2>
-        </div>
-        <div className="relative z-10 mt-8 rounded-2xl border border-white/15 bg-white/[0.07] p-5 backdrop-blur-md sm:p-7 lg:mt-0">
-          <p className="mb-6 max-w-xl text-base leading-7 text-blue-100 sm:text-lg">
-            Une plateforme claire pour votre équipe, vos formateurs et vos étudiants.
-          </p>
-          <Link className="group inline-flex w-full items-center justify-center gap-3 rounded-xl bg-white px-6 py-4 font-bold text-blue-950 shadow-lg shadow-black/10 transition duration-200 hover:-translate-y-0.5 hover:bg-cyan-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-200 sm:w-auto" to="/login">
-            Accéder à mon espace <span aria-hidden="true" className="text-xl transition-transform duration-200 group-hover:translate-x-1">→</span>
-          </Link>
-          <p className="mt-4 text-xs text-blue-200/80">Un seul espace pour mieux piloter votre centre.</p>
+      <section className="sp-landing-section" aria-label="Accès à Madrassa-Ti">
+        <div className="sp-landing-container">
+          <div className="sp-landing-section-heading">
+            <p className="sp-landing-kicker">PRÊT À STRUCTURER VOTRE CENTRE ?</p>
+            <h2>
+              Faites de Madrassa-Ti
+              <br />
+              <span>votre espace de gestion.</span>
+            </h2>
+            <p className="sp-landing-muted">
+              Une plateforme claire pour votre équipe, vos formateurs et vos étudiants.
+            </p>
+            <Link
+              className="sp-landing-plan-cta"
+              style={{ display: 'inline-flex', width: 'auto', marginTop: 20, background: 'transparent', color: 'inherit', border: '1px solid var(--sp-border, #dbe3ef)', boxShadow: 'none' }}
+              to="/login"
+            >
+              Accéder à mon espace →
+            </Link>
+          </div>
         </div>
       </section>
 
