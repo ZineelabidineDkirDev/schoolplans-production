@@ -905,16 +905,16 @@ export function LandingPage() {
             Facturation annuelle · Les demandes de démo sont soumises à validation.
           </p>
           <div className="sp-landing-comparison">
-            <div className="sp-landing-comparison-heading">
-              <p className="sp-landing-kicker text-upper" >Retrouvez en un coup d’œil les fonctions incluses dans chaque formule.</p>
+            <p className="sp-landing-kicker text-upper" >Retrouvez en un coup d’œil les fonctions incluses dans chaque formule.</p>
+             <div className="sp-landing-comparison-heading">
               <div className="sp-landing-section-heading">
               <h2>
                 Comparer les
                 <br />
                 <span>fonctionnalités.</span>
               </h2>
-            </div>
-            </div>
+               </div>
+              </div>
             <div className="sp-landing-comparison-scroll">
               <table>
                 <thead>
