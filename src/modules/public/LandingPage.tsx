@@ -987,13 +987,9 @@ export function LandingPage() {
             <p className="mt-6 max-w-xl text-lg leading-8 text-blue-100/90 sm:text-xl">
               Une plateforme intelligente pour votre équipe.
             </p>
-            <Link
-              className="group mt-8 inline-flex items-center justify-center !text-white gap-4 rounded-2xl border border-white/15 bg-blue-600 px-7 py-4 font-bold shadow-lg shadow-blue-950/30 transition duration-200 hover:-translate-y-1 hover:bg-blue-500 hover:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-300"
-              to="/login"
-            >
-              Accéder à mon espace
-              <span aria-hidden="true" className="text-xl transition-transform duration-200 group-hover:translate-x-1">→</span>
-            </Link>
+     
+            <button className="sp-landing-demo-cta" onClick={() => { setDemoMessage(''); setDemoOpen(true); }} type="button">Demander la démo <span aria-hidden="true">→</span></button>
+
           </div>
           <div aria-label="Aperçu du tableau de bord Madrassa-Ti" className="relative mx-auto w-full max-w-2xl lg:translate-x-3">
             <div aria-hidden="true" className="absolute -left-5 top-12 z-20 grid h-16 w-16 place-items-center rounded-2xl border border-white/80 bg-white/90 text-3xl text-blue-600 shadow-lg sm:-left-7 sm:h-20 sm:w-20">♟</div>
