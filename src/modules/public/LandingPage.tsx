@@ -967,14 +967,13 @@ export function LandingPage() {
       <section className="sp-landing-section" aria-label="Accès à Madrassa-Ti">
         <div className="sp-landing-container">
           <div className="sp-landing-section-heading">
-            <p className="sp-landing-kicker">PRÊT À STRUCTURER VOTRE CENTRE ?</p>
             <h2>
               Faites de Madrassa-Ti
               <br />
               <span>votre espace de gestion.</span>
             </h2>
             <p className="sp-landing-muted">
-              Une plateforme claire pour votre équipe, vos formateurs et vos étudiants.
+              Une plateforme claire pour votre équipe.
             </p>
             <Link
               className="sp-landing-plan-cta"
