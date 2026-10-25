@@ -321,7 +321,20 @@ export function LandingPage() {
   return (
     <main className="sp-landing" id="landing">
       <style>{`
+#lp-pricing .sp-landing-pricing-hero{display:grid;grid-template-columns:minmax(260px,.78fr) minmax(0,1.22fr);align-items:center;gap:clamp(22px,4vw,48px);margin:0 0 28px}
+#lp-pricing .sp-landing-pricing-hero .sp-landing-section-heading{margin:0}
 #lp-pricing .sp-landing-demo-card{position:relative;isolation:isolate;overflow:hidden;max-width:900px;margin:0 auto 30px;border:1px solid rgba(59,130,246,.22);border-radius:24px;background:linear-gradient(120deg,var(--sp-card,#fff) 0%,#f5f8ff 58%,#eef5ff 100%);box-shadow:0 18px 55px -32px rgba(37,99,235,.38)}
+#lp-pricing .sp-landing-demo-card-compact{width:100%;max-width:none;margin:0}
+#lp-pricing .sp-landing-demo-card-compact .sp-landing-demo-card-content{padding:22px}
+#lp-pricing .sp-landing-demo-card-compact .sp-landing-demo-main{display:block;margin:17px 0}
+#lp-pricing .sp-landing-demo-card-compact .sp-landing-demo-main h3{font-size:1.35rem}
+#lp-pricing .sp-landing-demo-card-compact .sp-landing-demo-main p{font-size:.9rem}
+#lp-pricing .sp-landing-demo-card-compact .sp-landing-demo-price{margin-top:14px}
+#lp-pricing .sp-landing-demo-card-compact .sp-landing-demo-price strong{font-size:2.7rem}
+#lp-pricing .sp-landing-demo-card-compact .sp-landing-demo-bottom{display:block;padding-top:16px}
+#lp-pricing .sp-landing-demo-card-compact .sp-landing-demo-bottom p{font-size:.82rem;margin-bottom:14px}
+#lp-pricing .sp-landing-demo-card-compact .sp-landing-demo-cta{width:100%;padding:11px 12px;font-size:.9rem}
+@media(max-width:760px){#lp-pricing .sp-landing-pricing-hero{grid-template-columns:1fr;gap:24px}#lp-pricing .sp-landing-demo-card-compact{max-width:460px;margin:0 auto}#lp-pricing .sp-landing-demo-card-compact .sp-landing-demo-main{display:flex;align-items:center}}
 #lp-pricing .sp-landing-demo-card-glow{position:absolute;z-index:-1;width:280px;height:280px;right:-70px;top:-145px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,.2),rgba(59,130,246,0) 70%);pointer-events:none}
 #lp-pricing .sp-landing-demo-card-content{padding:clamp(22px,4vw,34px)}
 #lp-pricing .sp-landing-demo-eyebrow{display:inline-flex;align-items:center;gap:9px;padding:7px 12px;border:1px solid rgba(37,99,235,.16);border-radius:999px;background:rgba(255,255,255,.78);color:#2458b8;font-size:.72rem;font-weight:800;letter-spacing:.1em}
@@ -780,38 +793,40 @@ export function LandingPage() {
       <section aria-label="Tarifs Madrassa-Ti" className="sp-landing-section" id="lp-pricing">
         <div className="sp-landing-container">
           <p className="sp-landing-kicker">DES OFFRES SIMPLES</p>
-          <div className="sp-landing-section-heading">
-            <h2>
-              Choisissez votre
-              <br />
-              <span>formule Madrassa-Ti.</span>
-            </h2>
-            <p>
-              Commencez avec 14 jours d’essai gratuit et choisissez ensuite l’offre adaptée à votre
-              centre.
-            </p>
+          <div className="sp-landing-pricing-hero">
+            <article className="sp-landing-demo-card sp-landing-demo-card-compact">
+              <div className="sp-landing-demo-card-glow" aria-hidden="true" />
+              <div className="sp-landing-demo-card-content">
+                <span className="sp-landing-demo-eyebrow"><span className="sp-landing-demo-dot" /> OFFRE DE DÉCOUVERTE</span>
+                <div className="sp-landing-demo-main">
+                  <div>
+                    <h3>Démo gratuite <span>14 jours</span></h3>
+                    <p>Découvrez Madrassa-Ti avant de choisir votre formule.</p>
+                  </div>
+                  <div className="sp-landing-demo-price"><strong>0</strong><span>DH</span></div>
+                </div>
+                <div className="sp-landing-demo-bottom">
+                  <p><span aria-hidden="true">✓</span> Accès après validation par notre Super Admin.</p>
+                  <button className="sp-landing-demo-cta" onClick={() => { setDemoMessage(''); setDemoOpen(true); }} type="button">Demander la démo <span aria-hidden="true">→</span></button>
+                </div>
+              </div>
+            </article>
+            <div className="sp-landing-section-heading">
+              <h2>
+                Choisissez votre
+                <br />
+                <span>formule Madrassa-Ti.</span>
+              </h2>
+              <p>
+                Commencez avec 14 jours d’essai gratuit et choisissez ensuite l’offre adaptée à votre
+                centre.
+              </p>
+            </div>
           </div>
           <div className="sp-landing-price-intro">
             <span>FACTURATION ANNUELLE</span>
             <b>Choisissez une formule annuelle</b>
           </div>
-          <article className="sp-landing-demo-card">
-            <div className="sp-landing-demo-card-glow" aria-hidden="true" />
-            <div className="sp-landing-demo-card-content">
-              <span className="sp-landing-demo-eyebrow"><span className="sp-landing-demo-dot" /> OFFRE DE DÉCOUVERTE</span>
-              <div className="sp-landing-demo-main">
-                <div>
-                  <h3>Démo gratuite pendant <span>14 jours</span></h3>
-                  <p>Découvrez Madrassa-Ti et ses outils de gestion avant de choisir votre formule.</p>
-                </div>
-                <div className="sp-landing-demo-price"><strong>0</strong><span>DH</span></div>
-              </div>
-              <div className="sp-landing-demo-bottom">
-                <p><span aria-hidden="true">✓</span> Accès activé après validation de votre demande par notre Super Admin.</p>
-                <button className="sp-landing-demo-cta" onClick={() => { setDemoMessage(''); setDemoOpen(true); }} type="button">Demander la démo gratuite <span aria-hidden="true">→</span></button>
-              </div>
-            </div>
-          </article>
           <div className="sp-landing-pricing-viewport" onScroll={syncPricingIndex} ref={pricingViewport}>
             <div className="sp-landing-pricing-track">
               {plans.map((plan) => (
