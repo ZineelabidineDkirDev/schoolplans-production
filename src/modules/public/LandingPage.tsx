@@ -906,7 +906,7 @@ export function LandingPage() {
           </p>
 
 
-            <div className="sp-landing-section-heading">
+            <div className="mt-5 sp-landing-section-heading">
                 <h2>
                   Comparez les formules
                   <br />
