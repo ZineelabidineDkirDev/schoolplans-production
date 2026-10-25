@@ -1013,13 +1013,13 @@ export function LandingPage() {
                     ))}
                   </div>
                   <div className="min-w-0 p-3 sm:p-5">
-                    <p className="mb-3 text-xs font-extrabold text-slate-800 sm:text-sm">Tableau de bord</p>
+                    <p className="mb-1 text-[9px] font-semibold text-blue-700 sm:text-[10px]">Vue d’ensemble du centre</p><p className="mb-3 text-xs font-extrabold text-slate-800 sm:text-sm">Tableau de bord</p>
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                       {[
-                        ['128','Étudiants','bg-blue-100 text-blue-700'],
-                        ['12','Formateurs','bg-emerald-100 text-emerald-700'],
-                        ['8','Salles','bg-amber-100 text-amber-700'],
-                        ['15','Cours','bg-rose-100 text-rose-700'],
+                        ['—','Total des étudiants','bg-blue-100 text-blue-700'],
+                        ['—','Formations','bg-emerald-100 text-emerald-700'],
+                        ['—','Formateurs','bg-amber-100 text-amber-700'],
+                        ['—','Groupes','bg-rose-100 text-rose-700'],
                       ].map(([value,label,style]) => (
                         <div className="rounded-lg border border-slate-100 bg-white p-2 shadow-sm" key={label}>
                           <span className={`mb-2 grid h-5 w-5 place-items-center rounded-md text-[9px] font-bold ${style}`}>✓</span>
@@ -1030,8 +1030,8 @@ export function LandingPage() {
                     </div>
                     <div className="mt-3 grid grid-cols-[1.15fr_.85fr] gap-2">
                       <div className="rounded-lg border border-slate-100 p-2 sm:p-3">
-                        <p className="mb-2 text-[9px] font-bold text-slate-700 sm:text-xs">Activités récentes</p>
-                        {['Nouvel étudiant inscrit','Cours programmé','Présence enregistrée','Document ajouté'].map((item,index)=>(
+                        <p className="mb-2 text-[9px] font-bold text-slate-700 sm:text-xs">Évolution des inscriptions</p>
+                        {['Inscriptions sur la période','Suivi des étudiants','Indicateurs du centre','Données actualisées'].map((item,index)=>(
                           <div className="flex items-center gap-2 border-t border-slate-50 py-2" key={item}>
                             <span className={`h-2 w-2 shrink-0 rounded-full ${index%2===0?'bg-emerald-400':'bg-blue-500'}`} />
                             <span className="truncate text-[7px] text-slate-500 sm:text-[9px]">{item}</span>
@@ -1039,7 +1039,7 @@ export function LandingPage() {
                         ))}
                       </div>
                       <div className="rounded-lg border border-slate-100 p-2 sm:p-3">
-                        <p className="mb-3 text-[9px] font-bold text-slate-700 sm:text-xs">Planning</p>
+                        <p className="mb-3 text-[9px] font-bold text-slate-700 sm:text-xs">Répartition par domaine</p>
                         <div className="grid grid-cols-7 gap-1 text-center text-[7px] text-slate-400 sm:text-[9px]">
                           {Array.from({length:28},(_,i)=><span className={`rounded py-1 ${i===17?'bg-blue-600 font-bold text-white':'bg-slate-50'}`} key={i}>{i+1}</span>)}
                         </div>
