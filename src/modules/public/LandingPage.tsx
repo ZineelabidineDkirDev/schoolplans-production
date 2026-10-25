@@ -974,11 +974,11 @@ export function LandingPage() {
 
       <section
         aria-label="Accès à Madrassa-Ti"
-        className="relative isolate mx-4 mb-12 overflow-hidden rounded-[2rem] border border-blue-800/60 bg-gradient-to-br from-slate-950 via-blue-950 to-blue-800 shadow-2xl shadow-blue-950/25 sm:mx-6 lg:mx-auto lg:my-20 lg:max-w-7xl"
+        className="relative isolate h-[500px] w-full mb-12 overflow-hidden rounded-none border-y border-blue-800/60 bg-gradient-to-br from-slate-950 via-blue-950 to-blue-800 shadow-2xl shadow-blue-950/25 lg:my-20"
       >
         <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-28 -z-10 h-96 w-96 rounded-full bg-sky-400/20 blur-3xl" />
         <div aria-hidden="true" className="pointer-events-none absolute -bottom-40 left-1/4 -z-10 h-80 w-80 rounded-full bg-blue-400/20 blur-3xl" />
-        <div className="grid items-center gap-10 px-6 py-12 sm:px-10 sm:py-16 lg:grid-cols-[1.05fr_.95fr] lg:gap-8 lg:px-14 lg:py-20">
+        <div className="grid h-full items-center gap-6 px-6 py-6 sm:px-10 lg:grid-cols-[1.05fr_.95fr] lg:gap-8 lg:px-14 lg:py-6">
           <div className="relative z-10">
             <p className="mb-6 inline-flex items-center gap-3 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-blue-100 shadow-sm backdrop-blur">
               Prêt à structurer votre centre ?
