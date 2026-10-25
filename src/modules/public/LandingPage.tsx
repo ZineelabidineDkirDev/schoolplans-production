@@ -970,7 +970,7 @@ export function LandingPage() {
 
       <section
         aria-label="Accès à Madrassa-Ti"
-        className="relative isolate mx-4 my-12 overflow-hidden rounded-[2rem] border border-blue-100 bg-gradient-to-br from-sky-50 via-blue-50 to-blue-200 shadow-xl shadow-blue-900/10 sm:mx-6 lg:mx-auto lg:my-20 lg:max-w-7xl"
+        className="relative isolate mx-4 my-12 overflow-hidden border border-blue-100 bg-gradient-to-br from-sky-50 via-blue-50 to-blue-200 shadow-xl shadow-blue-900/10 sm:mx-6 lg:mx-auto lg:my-20 lg:max-w-8xl"
       >
         <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-28 -z-10 h-96 w-96 rounded-full bg-blue-400/25 blur-3xl" />
         <div aria-hidden="true" className="pointer-events-none absolute -bottom-40 left-1/4 -z-10 h-80 w-80 rounded-full bg-cyan-300/25 blur-3xl" />
@@ -988,7 +988,7 @@ export function LandingPage() {
               Une plateforme intelligente pour votre équipe.
             </p>
             <Link
-              className="group mt-8 inline-flex items-center justify-center gap-4 rounded-2xl bg-blue-600 px-7 py-4 font-bold text-white shadow-lg shadow-blue-600/25 transition duration-200 hover:-translate-y-1 hover:bg-blue-700 hover:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600"
+              className="group mt-8 inline-flex items-center justify-center text-white gap-4 rounded-2xl bg-blue-600 px-7 py-4 font-bold text-white shadow-lg shadow-blue-600/25 transition duration-200 hover:-translate-y-1 hover:bg-blue-700 hover:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600"
               to="/login"
             >
               Accéder à mon espace
