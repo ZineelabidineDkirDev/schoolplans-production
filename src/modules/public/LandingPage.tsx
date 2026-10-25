@@ -1014,7 +1014,6 @@ export function LandingPage() {
               <label>Téléphone<input name="phone" type="tel" required minLength={6} maxLength={30} autoComplete="tel" placeholder="+212 ..." /></label>
               <div style={{ padding: 14, borderRadius: 12, background: 'var(--sp-soft, #f8fafc)' }}>
                 <strong>Pack {subscriptionPlan.name}</strong><br />Abonnement annuel : {subscriptionPlan.price} DH
-                <p style={{ marginTop: 8, fontSize: 13 }}>Aucune carte bancaire n’est demandée ici. Le paiement sera vérifié manuellement avant l’activation.</p>
               </div>
               <button className="sp-landing-submit" disabled={subscriptionSubmitting} type="submit">{subscriptionSubmitting ? 'Envoi en cours…' : 'Demander mon abonnement →'}</button>
               {subscriptionMessage && <p role="status">{subscriptionMessage}</p>}
