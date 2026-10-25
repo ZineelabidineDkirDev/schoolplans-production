@@ -321,6 +321,7 @@ export function LandingPage() {
   return (
     <main className="sp-landing" id="landing">
       <style>{`
+.sp-landing .sp-landing-hero{background:linear-gradient(to bottom right,#020617 0%,#172554 52%,#1e40af 100%)}
 #lp-pricing .sp-landing-pricing-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.78fr);align-items:center;gap:clamp(22px,4vw,48px);margin:0 0 28px}
 #lp-pricing .sp-landing-pricing-hero .sp-landing-section-heading{margin:0}
 #lp-pricing .sp-landing-demo-card{position:relative;isolation:isolate;overflow:hidden;max-width:900px;margin:0 auto 30px;border:1px solid rgba(59,130,246,.22);border-radius:24px;background:linear-gradient(120deg,var(--sp-card,#fff) 0%,#f5f8ff 58%,#eef5ff 100%);box-shadow:0 18px 55px -32px rgba(37,99,235,.38)}
