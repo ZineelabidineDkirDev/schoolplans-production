@@ -813,7 +813,6 @@ export function LandingPage() {
                   <div className="sp-landing-demo-price"><strong>0</strong><span>DH</span></div>
                 </div>
                 <div className="sp-landing-demo-bottom">
-                  <p><span aria-hidden="true">✓</span> Accès après validation par notre Super Admin.</p>
                   <button className="sp-landing-demo-cta" onClick={() => { setDemoMessage(''); setDemoOpen(true); }} type="button">Demander la démo <span aria-hidden="true">→</span></button>
                 </div>
               </div>
