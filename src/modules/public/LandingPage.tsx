@@ -905,8 +905,7 @@ export function LandingPage() {
             Facturation annuelle · Les demandes de démo sont soumises à validation.
           </p>
           <div className="sp-landing-comparison">
-            <div className="sp-landing-comparison-heading">
-              <div className="sp-landing-section-heading">
+             <div className="sp-landing-section-heading">
                 <h2>
                   Comparez les formules
                   <br />
@@ -914,6 +913,8 @@ export function LandingPage() {
                 </h2>
 
               </div>
+            <div className="sp-landing-comparison-heading">
+             
             </div>
             <div className="sp-landing-comparison-scroll">
               <table>
