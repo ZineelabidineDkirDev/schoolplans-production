@@ -968,20 +968,90 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="sp-landing-demo-card sp-landing-demo-card-compact" aria-label="Accès à Madrassa-Ti">
-        <div className="sp-landing-container">
-          <div className="sp-landing-section-heading">
-            <h2>
+      <section
+        aria-label="Accès à Madrassa-Ti"
+        className="relative isolate mx-4 my-12 overflow-hidden rounded-[2rem] border border-blue-100 bg-gradient-to-br from-sky-50 via-blue-50 to-blue-200 shadow-xl shadow-blue-900/10 sm:mx-6 lg:mx-auto lg:my-20 lg:max-w-7xl"
+      >
+        <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-28 -z-10 h-96 w-96 rounded-full bg-blue-400/25 blur-3xl" />
+        <div aria-hidden="true" className="pointer-events-none absolute -bottom-40 left-1/4 -z-10 h-80 w-80 rounded-full bg-cyan-300/25 blur-3xl" />
+        <div className="grid items-center gap-10 px-6 py-12 sm:px-10 sm:py-16 lg:grid-cols-[1.05fr_.95fr] lg:gap-8 lg:px-14 lg:py-20">
+          <div className="relative z-10">
+            <p className="mb-6 inline-flex items-center gap-3 rounded-full border border-blue-200 bg-white/70 px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-blue-700 shadow-sm">
+              <span aria-hidden="true" className="grid h-8 w-8 place-items-center rounded-full bg-blue-100 text-lg">✦</span>
+              Prêt à structurer votre centre ?
+            </p>
+            <h2 className="max-w-2xl text-4xl font-extrabold leading-[1.08] tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
               Faites de Madrassa-Ti
               <br />
-              <span>votre espace de gestion.</span>
+              <span className="bg-gradient-to-r from-blue-700 via-blue-500 to-sky-400 bg-clip-text text-transparent">votre espace de gestion.</span>
             </h2>
-            <p className="sp-landing-muted">
+            <p className="mt-6 max-w-xl text-lg leading-8 text-slate-600 sm:text-xl">
               Une plateforme claire pour votre équipe.
             </p>
-            <Link className="sp-landing-button sp-landing-button-primary" to="/login">
-                Accéder à mon espace <span>→</span>
-              </Link>
+            <Link
+              className="group mt-8 inline-flex items-center justify-center gap-4 rounded-2xl bg-blue-600 px-7 py-4 font-bold text-white shadow-lg shadow-blue-600/25 transition duration-200 hover:-translate-y-1 hover:bg-blue-700 hover:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600"
+              to="/login"
+            >
+              Accéder à mon espace
+              <span aria-hidden="true" className="text-xl transition-transform duration-200 group-hover:translate-x-1">→</span>
+            </Link>
+          </div>
+          <div aria-label="Aperçu du tableau de bord Madrassa-Ti" className="relative mx-auto w-full max-w-2xl lg:translate-x-3">
+            <div aria-hidden="true" className="absolute -left-5 top-12 z-20 grid h-16 w-16 place-items-center rounded-2xl border border-white/80 bg-white/90 text-3xl text-blue-600 shadow-lg sm:-left-7 sm:h-20 sm:w-20">♟</div>
+            <div aria-hidden="true" className="absolute -left-3 bottom-16 z-20 grid h-16 w-16 place-items-center rounded-2xl border border-white/80 bg-white/90 text-3xl text-emerald-500 shadow-lg sm:-left-5 sm:h-20 sm:w-20">⌂</div>
+            <div aria-hidden="true" className="absolute -right-2 top-2 z-20 grid h-14 w-14 place-items-center rounded-2xl border border-white/80 bg-white/90 text-2xl text-violet-600 shadow-lg sm:-right-4 sm:h-16 sm:w-16">▦</div>
+            <div aria-hidden="true" className="absolute -right-1 top-1/2 z-20 grid h-14 w-14 place-items-center rounded-2xl border border-white/80 bg-white/90 text-2xl text-amber-500 shadow-lg sm:-right-5 sm:h-16 sm:w-16">▥</div>
+            <div className="relative rounded-[1.5rem] border-[5px] border-slate-800 bg-slate-800 p-2 shadow-2xl shadow-blue-950/30 sm:rounded-[2rem] sm:border-[7px] sm:p-3">
+              <div className="overflow-hidden rounded-xl bg-white">
+                <div className="flex items-center justify-between border-b border-slate-100 px-3 py-3 sm:px-5">
+                  <div className="flex items-center gap-2 text-xs font-extrabold text-slate-800 sm:text-sm"><span className="grid h-6 w-6 place-items-center rounded-lg bg-blue-600 text-white">M</span>Madrassa-Ti</div>
+                  <span className="text-[9px] font-semibold text-slate-400 sm:text-xs">Espace de gestion</span>
+                </div>
+                <div className="grid grid-cols-[92px_1fr] sm:grid-cols-[125px_1fr]">
+                  <div className="space-y-3 border-r border-slate-100 bg-slate-50 px-2 py-4 sm:px-3">
+                    {['Tableau de bord','Étudiants','Formateurs','Cours & planning','Salles','Présences','Rapports'].map((item,index) => (
+                      <div className={`truncate rounded-md px-1.5 py-1 text-[8px] font-semibold sm:px-2 sm:text-[10px] ${index===0?'bg-blue-100 text-blue-700':'text-slate-500'}`} key={item}>{item}</div>
+                    ))}
+                  </div>
+                  <div className="min-w-0 p-3 sm:p-5">
+                    <p className="mb-3 text-xs font-extrabold text-slate-800 sm:text-sm">Tableau de bord</p>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {[
+                        ['128','Étudiants','bg-blue-100 text-blue-700'],
+                        ['12','Formateurs','bg-emerald-100 text-emerald-700'],
+                        ['8','Salles','bg-amber-100 text-amber-700'],
+                        ['15','Cours','bg-rose-100 text-rose-700'],
+                      ].map(([value,label,style]) => (
+                        <div className="rounded-lg border border-slate-100 bg-white p-2 shadow-sm" key={label}>
+                          <span className={`mb-2 grid h-5 w-5 place-items-center rounded-md text-[9px] font-bold ${style}`}>✓</span>
+                          <strong className="block text-sm font-extrabold text-slate-800 sm:text-lg">{value}</strong>
+                          <span className="text-[8px] text-slate-500 sm:text-[10px]">{label}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-3 grid grid-cols-[1.15fr_.85fr] gap-2">
+                      <div className="rounded-lg border border-slate-100 p-2 sm:p-3">
+                        <p className="mb-2 text-[9px] font-bold text-slate-700 sm:text-xs">Activités récentes</p>
+                        {['Nouvel étudiant inscrit','Cours programmé','Présence enregistrée','Document ajouté'].map((item,index)=>(
+                          <div className="flex items-center gap-2 border-t border-slate-50 py-2" key={item}>
+                            <span className={`h-2 w-2 shrink-0 rounded-full ${index%2===0?'bg-emerald-400':'bg-blue-500'}`} />
+                            <span className="truncate text-[7px] text-slate-500 sm:text-[9px]">{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="rounded-lg border border-slate-100 p-2 sm:p-3">
+                        <p className="mb-3 text-[9px] font-bold text-slate-700 sm:text-xs">Planning</p>
+                        <div className="grid grid-cols-7 gap-1 text-center text-[7px] text-slate-400 sm:text-[9px]">
+                          {Array.from({length:28},(_,i)=><span className={`rounded py-1 ${i===17?'bg-blue-600 font-bold text-white':'bg-slate-50'}`} key={i}>{i+1}</span>)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div aria-hidden="true" className="mx-auto h-3 w-[78%] rounded-b-xl bg-gradient-to-b from-slate-300 to-slate-500 shadow-lg sm:h-4" />
+            <div aria-hidden="true" className="mx-auto h-1.5 w-[32%] rounded-b-lg bg-slate-400" />
           </div>
         </div>
       </section>
