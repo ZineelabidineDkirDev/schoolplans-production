@@ -904,18 +904,15 @@ export function LandingPage() {
           <p className="sp-landing-pricing-note">
             Facturation annuelle · Les demandes de démo sont soumises à validation.
           </p>
-          <div className="sp-landing-comparison">
+          <div className="sp-landing">
             <div className="sp-landing-comparison-heading">
               <div className="sp-landing-section-heading">
-                <p className="sp-landing-kicker">COMPARAISON DES FORMULES</p>
                 <h2>
                   Comparez les formules
                   <br />
                   <span>en un coup d’œil.</span>
                 </h2>
-                <p className="sp-landing-muted">
-                  Retrouvez les fonctionnalités incluses dans chaque formule et choisissez celle qui correspond aux besoins de votre centre.
-                </p>
+
               </div>
             </div>
             <div className="sp-landing-comparison-scroll">
