@@ -330,7 +330,31 @@ export function LandingPage() {
       formElement.reset();
     } catch (error) {
       console.error('Contact form submission failed:', error);
-      setContactMessage('L’envoi a échoué. Veuillez réessayer dans quelques instants ou nous contacter par WhatsApp.');
+
+      // Show a safe diagnostic returned by the Edge Function so the visitor
+      // and developer can distinguish CORS/configuration/provider failures.
+      let detail = '';
+      const context = error && typeof error === 'object' && 'context' in error
+        ? (error as { context?: unknown }).context
+        : undefined;
+      if (context instanceof Response) {
+        try {
+          const responseBody = await context.clone().json() as { error?: unknown; detail?: unknown };
+          if (typeof responseBody.detail === 'string' && responseBody.detail.trim()) {
+            detail = responseBody.detail.trim();
+          } else if (typeof responseBody.error === 'string' && responseBody.error.trim()) {
+            detail = responseBody.error.trim();
+          }
+        } catch {
+          // Keep the generic message if the response isn't JSON.
+        }
+      }
+
+      setContactMessage(
+        detail
+          ? `L’envoi a échoué : ${detail}`
+          : 'L’envoi a échoué. Consultez les logs de la fonction send-contact-email dans Supabase, puis réessayez.'
+      );
     }
   }
 
