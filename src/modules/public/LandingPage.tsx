@@ -323,6 +323,12 @@ export function LandingPage() {
     <main className="sp-landing" id="landing">
       <style>{`
 .sp-landing .sp-landing-hero{background:linear-gradient(to bottom right,#020617 0%,#172554 52%,#1e40af 100%)}
+/* Navigation pleine largeur : le dégradé reste identique pendant le scroll. */
+.sp-landing .sp-landing-nav{position:fixed;top:0;left:0;right:0;width:100%;max-width:none;box-sizing:border-box;background:linear-gradient(115deg,#020617 0%,#172554 48%,#1e40af 100%);background-color:#172554;border-bottom:1px solid rgba(147,197,253,.22);box-shadow:0 8px 28px rgba(2,6,23,.16);z-index:100}
+.sp-landing .sp-landing-nav.is-scrolled{background:linear-gradient(115deg,#020617 0%,#172554 48%,#1e40af 100%);background-color:#172554;backdrop-filter:none;-webkit-backdrop-filter:none}
+.sp-landing .sp-landing-nav .sp-landing-links a{white-space:nowrap}
+@media(max-width:900px){.sp-landing .sp-landing-nav{width:100%;left:0;right:0}.sp-landing .sp-landing-nav .sp-landing-links{background:linear-gradient(115deg,#020617 0%,#172554 48%,#1e40af 100%)}}
+
 .sp-landing .sp-landing-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:center;gap:24px;padding:42px max(24px,calc((100% - 1180px)/2));background:linear-gradient(115deg,#020617 0%,#172554 48%,#1e40af 100%);color:#fff;position:relative;isolation:isolate;overflow:hidden}
 .sp-landing .sp-landing-stats:before{content:"";position:absolute;z-index:-1;inset:0;background:radial-gradient(circle at 15% 0%,rgba(56,189,248,.2),transparent 36%),radial-gradient(circle at 90% 100%,rgba(96,165,250,.2),transparent 34%)}
 .sp-landing .sp-landing-stat-card{display:flex;min-width:0;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:8px 12px;background:transparent;border:0;border-radius:0;box-shadow:none;color:#fff;text-align:center}
