@@ -108,16 +108,20 @@ export function canAccessSection(
 ): section is AppSection {
   if (!APP_SECTIONS.includes(section as AppSection)) return false;
   const appSection = section as AppSection;
+
+  // Le super-admin gère la plateforme, pas le profil d'un centre individuel.
+  if (role === 'super_admin' && appSection === 'vpcentre') return false;
   if (appSection === 'vfinance') return (role === 'admin' || role === 'director') && permissions.gestion_financiere === true;
-  if (appSection === 'vnotes') return ['admin', 'director', 'formateur', 'etudiant'].includes(role) && permissions.notes_bulletins === true;
+  // Le super-admin conserve sa navigation de plateforme sans dépendre des droits d'un centre.
+  if (appSection === 'vnotes') {
+    if (role === 'super_admin') return true;
+    return ['admin', 'director', 'formateur', 'etudiant'].includes(role) && permissions.notes_bulletins === true;
+  }
   if (role === 'super_admin') return true;
 
-  // Les étudiants peuvent toujours consulter leur planning et leurs salles.
-  // Ces deux rubriques restent en lecture seule et ne dépendent pas des droits administratifs du centre.
+  // Les étudiants peuvent toujours consulter leur planning et leurs salles en lecture seule.
   if (role === 'etudiant' && (appSection === 'vcal' || appSection === 'vr')) return true;
-
   if (!ROLE_SECTIONS[role].includes(appSection)) return false;
-  // L’accès aux cours en ligne dépend du droit centre cours_en_ligne.
   if (role === 'formateur' && appSection === 'vp') return true;
 
   return (SECTION_REQUIREMENTS[appSection] ?? []).every((key) => permissions[key] === true);
