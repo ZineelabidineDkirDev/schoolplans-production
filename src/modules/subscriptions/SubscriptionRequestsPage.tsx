@@ -132,7 +132,11 @@ export function SubscriptionRequestsPage() {
           centre_name: request.centre_name,
         });
 
-        if ('found' in existing && existing.found) {
+        if (!('found' in existing)) {
+          throw new Error('La vérification du compte existant a renvoyé une réponse inattendue. Aucune création n’a été lancée.');
+        }
+
+        if (existing.found) {
           centreId = existing.centre_id;
           demoStartedAt = existing.date_debut;
           demoExpiresAt = existing.date_expiration;
