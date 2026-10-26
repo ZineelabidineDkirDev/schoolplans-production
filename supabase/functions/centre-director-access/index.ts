@@ -258,6 +258,79 @@ Deno.serve(async (req: Request) => {
   const action = String(body?.action ?? '');
 
   // ============================================================
+  // ACTION : REUSE EXISTING DIRECTOR/CENTRE FOR A DEMO REQUEST
+  // Never reassign an existing account or reset the centre's trial dates.
+  // ============================================================
+
+  if (action === 'reuse_existing_director') {
+    const email = normalizeEmail(String(body?.email ?? ''));
+    const requestedCentreName = String(body?.centre_name ?? '').trim();
+    if (!EMAIL.test(email) || !requestedCentreName) {
+      return json({ error: 'E-mail ou nom du centre invalide.' }, 400);
+    }
+
+    let existingUser = null;
+    const perPage = 1000;
+    for (let page = 1; page <= 100; page += 1) {
+      const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
+      if (error) {
+        return json({ error: 'Vérification du compte existant impossible : ' + error.message }, 500);
+      }
+      existingUser = (data.users ?? []).find((u) => normalizeEmail(u.email ?? '') === email) ?? null;
+      if (existingUser || (data.users ?? []).length < perPage) break;
+    }
+
+    if (!existingUser) return json({ found: false });
+
+    const { data: profile, error: profileError } = await admin
+      .from('profiles')
+      .select('id, full_name, role, centre_id')
+      .eq('id', existingUser.id)
+      .maybeSingle();
+
+    if (profileError) {
+      return json({ error: 'Lecture du profil existant impossible : ' + profileError.message }, 500);
+    }
+    if (!profile || profile.role !== 'director' || !profile.centre_id) {
+      return json({
+        error: "Cette adresse e-mail est déjà associée à un compte, mais pas à un directeur de centre réutilisable. Aucun compte ni centre n'a été modifié.",
+      }, 409);
+    }
+
+    const { data: centre, error: centreError } = await admin
+      .from('centres')
+      .select('id, nom, date_debut, date_expiration')
+      .eq('id', profile.centre_id)
+      .maybeSingle();
+
+    if (centreError) {
+      return json({ error: 'Lecture du centre existant impossible : ' + centreError.message }, 500);
+    }
+    if (!centre) {
+      return json({
+        error: "Le compte directeur existe, mais son centre associé est introuvable. Aucune donnée n'a été modifiée.",
+      }, 409);
+    }
+
+    const normalizeName = (value: string) =>
+      value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase().replace(/\s+/g, ' ');
+    if (normalizeName(centre.nom) !== normalizeName(requestedCentreName)) {
+      return json({
+        error: `Cette adresse appartient déjà au centre « ${centre.nom} ». Le centre demandé « ${requestedCentreName} » est différent ; aucune association n'a été modifiée.`,
+      }, 409);
+    }
+
+    return json({
+      found: true,
+      centre_id: centre.id,
+      director_user_id: existingUser.id,
+      centre_nom: centre.nom,
+      date_debut: centre.date_debut ?? null,
+      date_expiration: centre.date_expiration ?? null,
+    });
+  }
+
+  // ============================================================
   // ACTION : LIST
   // ============================================================
 
