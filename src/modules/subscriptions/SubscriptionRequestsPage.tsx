@@ -191,7 +191,7 @@ export function SubscriptionRequestsPage() {
             ? `Centre existant réutilisé : ${centreId}. Lien de réinitialisation envoyé ; période d'essai conservée.`
             : `Centre créé : ${centreId}. Lien de définition du mot de passe envoyé.`,
         }).eq('id', request.id).eq('status', 'pending');
-        if (updateError) throw new Error(`Centre créé, mais la demande n’a pas pu être finalisée : ${updateError.message}. Centre ID : ${created.centre_id}`);
+        if (updateError) throw new Error(`Centre ${reusedExisting ? 'existant réutilisé' : 'créé'}, mais la demande n’a pas pu être finalisée : ${updateError.message}. Centre ID : ${centreId}`);
         notify(reusedExisting
           ? 'Compte directeur et centre existants réutilisés. Aucun doublon créé ; lien de réinitialisation envoyé et période conservée.'
           : 'Démo activée : centre et directeur créés, lien de définition du mot de passe envoyé.', 'success');
