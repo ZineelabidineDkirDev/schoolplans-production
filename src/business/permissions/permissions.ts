@@ -44,7 +44,7 @@ const ROLE_SECTIONS: Record<SourceRole, readonly AppSection[]> = {
     'vnotes',
     'vhelp',
   ],
-  super_admin: [...COMMON_SECTIONS, 'vz', 'vd', 'vnotes'],
+  super_admin: [...COMMON_SECTIONS, 'vz', 'vsub', 'vd', 'vnotes'],
   formateur: [...COMMON_SECTIONS, 'vl', 'vn', 'vp', 'vk', 'vnotes', 'vhelp', 'vrapport'],
   etudiant: ['vcal', 'vr', 'vm', 'vq', 'vk', 'vnotes', 'vrapport'],
 };
