@@ -127,7 +127,7 @@ export function SubscriptionRequestsPage() {
             slug,
             actif: true,
             type_abonnement: 'DEMO',
-            statut_abonnement: 'actif',
+            statut_abonnement: 'ACTIF',
             date_debut: startedAt.toISOString(),
             date_expiration: expiresAt.toISOString(),
           },
