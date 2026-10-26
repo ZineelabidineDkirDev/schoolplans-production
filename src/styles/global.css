@@ -1737,6 +1737,23 @@ button:disabled {
   transition: opacity 0.2s;
 }
 
+.sp-nav-count {
+  display: inline-flex;
+  min-width: 22px;
+  height: 22px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
 .sp-app-nav:hover .sp-nav-label,
 .sp-app-nav:focus-within .sp-nav-label {
   opacity: 1;
