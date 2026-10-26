@@ -104,6 +104,68 @@ export function SubscriptionRequestsPage() {
     }
   }
 
+  async function resendDemoLink(request: DemoRequest) {
+    setSavingId(request.id);
+    try {
+      const client = getSupabaseClient();
+      const { data: authData, error: authError } = await client.auth.getUser();
+      if (authError || !authData.user) throw new Error('Session Super Admin introuvable.');
+
+      // Cette action NE CRÉE rien : elle exige un compte directeur déjà lié au centre demandé.
+      const existing = await invokeCentreDirectorAccess(client, {
+        action: 'reuse_existing_director',
+        email: request.email.trim().toLowerCase(),
+        centre_name: request.centre_name,
+      });
+
+      if (!('found' in existing)) {
+        throw new Error('Réponse de vérification du compte invalide. Aucune modification effectuée.');
+      }
+      if (!existing.found) {
+        throw new Error('Aucun compte directeur existant pour cette demande. Aucun centre ni compte n’a été créé. Utilisez « Approuver la démo » pour la première création.');
+      }
+
+      const { error: emailError } = await client.auth.resetPasswordForEmail(
+        request.email.trim().toLowerCase(),
+        { redirectTo: 'https://madrassa-ti.vercel.app/login' },
+      );
+      if (emailError) {
+        throw new Error(`Le lien n’a pas été envoyé : ${emailError.message}. Aucun centre, compte ou période d’essai n’a été modifié. Attendez avant de réessayer.`);
+      }
+
+      // Ne modifier la demande qu'après confirmation de l'envoi; les dates viennent du centre existant.
+      const now = new Date().toISOString();
+      const { data: updated, error: updateError } = await client
+        .from('demo_requests')
+        .update({
+          status: 'approved',
+          reviewed_at: now,
+          reviewed_by: authData.user.id,
+          demo_started_at: existing.date_debut,
+          demo_expires_at: existing.date_expiration,
+          admin_notes: `Centre existant réutilisé : ${existing.centre_id}. Lien de réinitialisation renvoyé ; période d'essai conservée.`,
+        })
+        .eq('id', request.id)
+        .in('status', ['pending', 'approved'])
+        .is('archived_at', null)
+        .select('id');
+
+      if (updateError) {
+        throw new Error(`Le lien a été envoyé, mais la demande n’a pas pu être mise à jour : ${updateError.message}. Le centre et ses dates sont conservés.`);
+      }
+      if (!updated?.length) {
+        throw new Error('Le lien a été envoyé, mais la demande est désactivée ou son statut a changé. Actualisez la liste avant toute autre action.');
+      }
+
+      notify('Lien renvoyé au directeur. Aucun compte ni centre recréé ; période d’essai conservée.', 'success');
+      await loadRequests();
+    } catch (cause) {
+      notify(cause instanceof Error ? cause.message : 'Impossible de renvoyer le lien.', 'error');
+    } finally {
+      setSavingId(null);
+    }
+  }
+
   async function reviewDemo(request: DemoRequest, status: Exclude<DemoStatus, 'pending'>) {
     setSavingId(request.id);
     const client = getSupabaseClient();
@@ -239,6 +301,7 @@ export function SubscriptionRequestsPage() {
                   <td className="p-3">{request.demo_started_at && request.demo_expires_at ? <>{new Date(request.demo_started_at).toLocaleDateString('fr-FR')} – {new Date(request.demo_expires_at).toLocaleDateString('fr-FR')}</> : 'Démarre après approbation'}</td>
                   <td className="p-3"><StatusBadge>{request.status === 'pending' ? 'En attente' : request.status === 'approved' ? 'Approuvée' : 'Refusée'}</StatusBadge></td>
                   <td className="p-3"><div className="flex flex-wrap gap-2">
+                    <Button disabled={savingId === request.id || request.status === 'rejected'} onClick={() => void resendDemoLink(request)} type="button" variant="secondary">Renvoyer le lien</Button>
                     <Button disabled={savingId === request.id || request.status !== 'pending'} onClick={() => void reviewDemo(request, 'approved')} type="button">Approuver la démo</Button>
                     <Button disabled={savingId === request.id || request.status !== 'pending'} onClick={() => void reviewDemo(request, 'rejected')} type="button" variant="danger">Refuser</Button>
                     <Button disabled={savingId === request.id || request.status === 'pending'} onClick={() => void deactivateDemoRequest(request)} type="button" variant="secondary">Désactiver</Button>
