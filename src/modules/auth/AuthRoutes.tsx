@@ -100,6 +100,29 @@ function ApplicationShell() {
     date_debut?: string | null;
     date_expiration?: string | null;
   };
+  const [pendingDemoCount, setPendingDemoCount] = useState(0);
+
+  useEffect(() => {
+    if (profile?.role !== 'super_admin') {
+      setPendingDemoCount(0);
+      return;
+    }
+    let active = true;
+    const loadPendingDemoCount = async () => {
+      const { count, error } = await getSupabaseClient()
+        .from('demo_requests')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'pending');
+      if (active && !error) setPendingDemoCount(count ?? 0);
+    };
+    void loadPendingDemoCount();
+    const timer = window.setInterval(() => void loadPendingDemoCount(), 30000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [profile?.role]);
+
   const [centres, setCentres] = useState<CentreHeaderInfo[]>([]);
   const [activeCentre, setActiveCentre] = useState<CentreHeaderInfo | null>(null);
   const [centresLoading, setCentresLoading] = useState(false);
@@ -343,7 +366,7 @@ function ApplicationShell() {
             );
             const grouped = new Set([...studentItems, ...teacherItems]);
             const directItems = visibleSections.filter(
-              (section) => !(profile.role === 'super_admin' && (section === 'vz' || section === 'vsub')) && !grouped.has(section),
+              (section) => !(profile.role === 'super_admin' && section === 'vz') && !grouped.has(section),
             );
             const renderItem = (section: AppSection) => (
               <NavLink
@@ -353,6 +376,11 @@ function ApplicationShell() {
               >
                 <NavIcon section={section} />
                 <span className="sp-nav-label">{SECTION_LABELS[section]}</span>
+                {section === 'vsub' && pendingDemoCount > 0 && (
+                  <span aria-label={`${pendingDemoCount} demande(s) de démo en attente`} className="sp-nav-count">
+                    {pendingDemoCount > 99 ? '99+' : pendingDemoCount}
+                  </span>
+                )}
               </NavLink>
             );
             const renderGroup = (
@@ -440,6 +468,7 @@ function NavIcon({ section }: { section: AppSection | 'home' }) {
     vh: 'M12 7v5l3 2m5-2a8 8 0 1 1-2.3-5.7M20 4v5h-5',
     vpcentre: 'M3 20h18M5 20V7l7-4 7 4v13M9 10h1m4 0h1m-6 4h1m4 0h1m-4 6v-4h3v4',
     vz: 'M3 20h18M5 20V5h14v15M8 9h8m-8 4h8m-8 4h5',
+    vsub: 'M4 5h16v14H4zM8 9h8m-8 4h5m7-7 2 2',
   };
 
   return (
