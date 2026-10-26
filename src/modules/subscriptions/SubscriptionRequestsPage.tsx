@@ -5,7 +5,7 @@ import { invokeCentreDirectorAccess } from '../../data/repositories/edgeFunction
 
 type RequestStatus = 'pending' | 'contacted' | 'paid' | 'rejected';
 type DemoStatus = 'pending' | 'approved' | 'rejected';
-type DemoRequest = { id: string; contact_name: string; centre_name: string; email: string; phone: string; status: DemoStatus; created_at: string; demo_started_at: string | null; demo_expires_at: string | null; };
+type DemoRequest = { id: string; contact_name: string; centre_name: string; email: string; phone: string; status: DemoStatus; created_at: string; demo_started_at: string | null; demo_expires_at: string | null; archived_at: string | null; };
 type SubscriptionRequest = {
   id: string;
   contact_name: string;
@@ -38,7 +38,7 @@ export function SubscriptionRequestsPage() {
     const client = getSupabaseClient();
     const [{ data, error: queryError }, { data: demoData, error: demoError }] = await Promise.all([
       client.from('subscription_requests').select('id,contact_name,centre_name,email,phone,plan,annual_price_mad,status,created_at,admin_notes').order('created_at', { ascending: false }),
-      client.from('demo_requests').select('id,contact_name,centre_name,email,phone,status,created_at,demo_started_at,demo_expires_at').order('created_at', { ascending: false }),
+      client.from('demo_requests').select('id,contact_name,centre_name,email,phone,status,created_at,demo_started_at,demo_expires_at,archived_at').is('archived_at', null).order('created_at', { ascending: false }),
     ]);
     if (queryError) {
       setError(queryError.message);
@@ -78,22 +78,27 @@ export function SubscriptionRequestsPage() {
     setSavingId(null);
   }
 
-  async function deleteDemoRequest(request: DemoRequest) {
-    const confirmed = window.confirm(`Supprimer définitivement la demande de démo de « ${request.centre_name} » ? Cette action est irréversible.`);
+  async function deactivateDemoRequest(request: DemoRequest) {
+    const confirmed = window.confirm(`Désactiver la demande de démo de « ${request.centre_name} » ? Elle disparaîtra de la liste active, sans supprimer le centre, le compte directeur ni les données associées.`);
     if (!confirmed) return;
 
     setSavingId(request.id);
     try {
       const client = getSupabaseClient();
-      const { error: deleteError } = await client
+      const { data: authData, error: authError } = await client.auth.getUser();
+      if (authError || !authData.user) throw new Error('Session Super Admin introuvable.');
+      const { data, error: updateError } = await client
         .from('demo_requests')
-        .delete()
-        .eq('id', request.id);
-      if (deleteError) throw deleteError;
-      notify('Demande de démo supprimée.', 'success');
+        .update({ archived_at: new Date().toISOString(), archived_by: authData.user.id })
+        .eq('id', request.id)
+        .is('archived_at', null)
+        .select('id');
+      if (updateError) throw updateError;
+      if (!data?.length) throw new Error('Cette demande est déjà désactivée ou inaccessible.');
+      notify('Demande de démo désactivée. Le centre et le compte directeur sont conservés.', 'success');
       await loadRequests();
     } catch (cause) {
-      notify(cause instanceof Error ? cause.message : 'Impossible de supprimer cette demande.', 'error');
+      notify(cause instanceof Error ? cause.message : 'Impossible de désactiver cette demande.', 'error');
     } finally {
       setSavingId(null);
     }
@@ -205,7 +210,7 @@ export function SubscriptionRequestsPage() {
                   <td className="p-3"><div className="flex flex-wrap gap-2">
                     <Button disabled={savingId === request.id || request.status !== 'pending'} onClick={() => void reviewDemo(request, 'approved')} type="button">Approuver la démo</Button>
                     <Button disabled={savingId === request.id || request.status !== 'pending'} onClick={() => void reviewDemo(request, 'rejected')} type="button" variant="danger">Refuser</Button>
-                    <Button disabled={savingId === request.id || request.status === 'pending'} onClick={() => void deleteDemoRequest(request)} type="button" variant="secondary">Supprimer la demande</Button>
+                    <Button disabled={savingId === request.id || request.status === 'pending'} onClick={() => void deactivateDemoRequest(request)} type="button" variant="secondary">Désactiver</Button>
                   </div></td>
                 </tr>
               ))}</tbody>
