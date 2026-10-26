@@ -30,8 +30,8 @@ begin
   from public.profiles p
   where p.id = auth.uid();
 
-  if v_role is distinct from 'director' or v_profile_centre_id is null then
-    raise exception 'Accès refusé : directeur du centre requis.';
+  if coalesce(v_role, '') not in ('admin', 'director') or v_profile_centre_id is null then
+    raise exception 'Accès refusé : administrateur ou directeur du centre requis.';
   end if;
 
   select e.centre_id, e.amount, e.status, e.label
@@ -124,8 +124,8 @@ begin
   from public.profiles p
   where p.id = auth.uid();
 
-  if v_role is distinct from 'director' or v_centre_id is null then
-    raise exception 'Accès refusé : directeur du centre requis.';
+  if coalesce(v_role, '') not in ('admin', 'director') or v_centre_id is null then
+    raise exception 'Accès refusé : administrateur ou directeur du centre requis.';
   end if;
 
   if p_amount is null or p_amount <= 0 then
