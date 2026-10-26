@@ -126,7 +126,7 @@ export function SubscriptionRequestsPage() {
             nom: request.centre_name,
             slug,
             actif: true,
-            type_abonnement: 'DEMO',
+            type_abonnement: 'STARTER',
             statut_abonnement: 'ACTIF',
             date_debut: startedAt.toISOString(),
             date_expiration: expiresAt.toISOString(),
