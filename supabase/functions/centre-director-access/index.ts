@@ -269,7 +269,7 @@ Deno.serve(async (req: Request) => {
       return json({ error: 'E-mail ou nom du centre invalide.' }, 400);
     }
 
-    let existingUser = null;
+    let existingUser: { id: string; email?: string } | null = null;
     const perPage = 1000;
     for (let page = 1; page <= 100; page += 1) {
       const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
