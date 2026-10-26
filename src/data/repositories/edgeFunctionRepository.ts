@@ -74,6 +74,7 @@ export async function invokeAdminUsers(
 
 type CentreDirectorRequest =
   | { action: 'list'; centre_id: string }
+  | { action: 'reuse_existing_director'; email: string; centre_name: string }
   | { action: 'reset'; centre_id: string; user_id: string; password: string }
   | {
       action: 'create_director';
@@ -103,6 +104,8 @@ export type CentreDirector = {
 
 export type CentreDirectorResponse =
   | { directors: CentreDirector[] }
+  | { found: false }
+  | { found: true; centre_id: string; director_user_id: string; centre_nom: string; date_debut: string | null; date_expiration: string | null }
   | { ok: true; centre_id?: string; director_user_id?: string; message?: string };
 
 export async function invokeCentreDirectorAccess(
@@ -110,6 +113,28 @@ export async function invokeCentreDirectorAccess(
   request: CentreDirectorRequest,
 ): Promise<CentreDirectorResponse> {
   const result = await invoke(client, 'centre-director-access', request);
+
+  if (request.action === 'reuse_existing_director') {
+    if (result.found === false) return { found: false };
+    if (
+      result.found !== true ||
+      typeof result.centre_id !== 'string' ||
+      typeof result.director_user_id !== 'string' ||
+      typeof result.centre_nom !== 'string' ||
+      !(typeof result.date_debut === 'string' || result.date_debut === null) ||
+      !(typeof result.date_expiration === 'string' || result.date_expiration === null)
+    ) {
+      throw new Error('La vérification du directeur existant a renvoyé une réponse invalide.');
+    }
+    return {
+      found: true,
+      centre_id: result.centre_id,
+      director_user_id: result.director_user_id,
+      centre_nom: result.centre_nom,
+      date_debut: result.date_debut,
+      date_expiration: result.date_expiration,
+    };
+  }
 
   if (request.action === 'list') {
     if (!Array.isArray(result.directors)) {
