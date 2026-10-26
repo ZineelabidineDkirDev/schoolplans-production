@@ -366,7 +366,7 @@ function ApplicationShell() {
             );
             const grouped = new Set([...studentItems, ...teacherItems]);
             const directItems = visibleSections.filter(
-              (section) => !(profile.role === 'super_admin' && (section === 'vz' || section === 'vsub')) && !grouped.has(section),
+              (section) => !(profile.role === 'super_admin' && section === 'vz') && !grouped.has(section),
             );
             const renderItem = (section: AppSection) => (
               <NavLink
