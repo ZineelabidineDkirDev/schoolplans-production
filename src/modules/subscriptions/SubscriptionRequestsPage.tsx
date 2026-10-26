@@ -143,7 +143,7 @@ export function SubscriptionRequestsPage() {
 
         // Envoyer le lien officiel Supabase de réinitialisation : le mot de passe
         // temporaire n’est jamais affiché à l’écran ni enregistré dans la demande.
-        const redirectTo = `${window.location.origin}/login`;
+        const redirectTo = 'https://madrassa-ti.vercel.app/login';
         const { error: emailError } = await client.auth.resetPasswordForEmail(
           request.email.trim().toLowerCase(),
           { redirectTo },
