@@ -117,28 +117,51 @@ export function SubscriptionRequestsPage() {
         const baseSlug = request.centre_name.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
           .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 45) || 'centre';
         const slug = `${baseSlug}-${request.id.replace(/-/g, '').slice(0, 8)}`;
-        const temporaryPassword = `${crypto.randomUUID()}Aa1!`;
         const startedAt = new Date();
         const expiresAt = new Date(startedAt.getTime() + 14 * 24 * 60 * 60 * 1000);
-        const created = await invokeCentreDirectorAccess(client, {
-          action: 'create_centre',
-          centre: {
-            nom: request.centre_name,
-            slug,
-            actif: true,
-            type_abonnement: 'STARTER',
-            statut_abonnement: 'ACTIF',
-            date_debut: startedAt.toISOString(),
-            date_expiration: expiresAt.toISOString(),
-          },
-          director: {
-            full_name: request.contact_name,
-            email: request.email.trim().toLowerCase(),
-            password: temporaryPassword,
-          },
+        let centreId: string;
+        let demoStartedAt: string | null;
+        let demoExpiresAt: string | null;
+        let reusedExisting = false;
+
+        // Vérifier d'abord si cette adresse est déjà le directeur du même centre.
+        // La fonction serveur refuse les comptes liés à un autre centre/role.
+        const existing = await invokeCentreDirectorAccess(client, {
+          action: 'reuse_existing_director',
+          email: request.email.trim().toLowerCase(),
+          centre_name: request.centre_name,
         });
-        if (!('centre_id' in created) || !created.centre_id) {
-          throw new Error('Le serveur n’a pas confirmé la création du centre.');
+
+        if ('found' in existing && existing.found) {
+          centreId = existing.centre_id;
+          demoStartedAt = existing.date_debut;
+          demoExpiresAt = existing.date_expiration;
+          reusedExisting = true;
+        } else {
+          const temporaryPassword = `${crypto.randomUUID()}Aa1!`;
+          const created = await invokeCentreDirectorAccess(client, {
+            action: 'create_centre',
+            centre: {
+              nom: request.centre_name,
+              slug,
+              actif: true,
+              type_abonnement: 'STARTER',
+              statut_abonnement: 'ACTIF',
+              date_debut: startedAt.toISOString(),
+              date_expiration: expiresAt.toISOString(),
+            },
+            director: {
+              full_name: request.contact_name,
+              email: request.email.trim().toLowerCase(),
+              password: temporaryPassword,
+            },
+          });
+          if (!('centre_id' in created) || !created.centre_id) {
+            throw new Error('Le serveur n’a pas confirmé la création du centre.');
+          }
+          centreId = created.centre_id;
+          demoStartedAt = startedAt.toISOString();
+          demoExpiresAt = expiresAt.toISOString();
         }
 
         // Envoyer le lien officiel Supabase de réinitialisation : le mot de passe
@@ -158,12 +181,16 @@ export function SubscriptionRequestsPage() {
           status: 'approved',
           reviewed_at: startedAt.toISOString(),
           reviewed_by: authData.user.id,
-          demo_started_at: startedAt.toISOString(),
-          demo_expires_at: expiresAt.toISOString(),
-          admin_notes: `Centre créé : ${created.centre_id}. Lien de définition du mot de passe envoyé.`,
+          demo_started_at: demoStartedAt,
+          demo_expires_at: demoExpiresAt,
+          admin_notes: reusedExisting
+            ? `Centre existant réutilisé : ${centreId}. Lien de réinitialisation envoyé ; période d'essai conservée.`
+            : `Centre créé : ${centreId}. Lien de définition du mot de passe envoyé.`,
         }).eq('id', request.id).eq('status', 'pending');
         if (updateError) throw new Error(`Centre créé, mais la demande n’a pas pu être finalisée : ${updateError.message}. Centre ID : ${created.centre_id}`);
-        notify('Démo activée : centre et directeur créés, lien de définition du mot de passe envoyé.', 'success');
+        notify(reusedExisting
+          ? 'Compte directeur et centre existants réutilisés. Aucun doublon créé ; lien de réinitialisation envoyé et période conservée.'
+          : 'Démo activée : centre et directeur créés, lien de définition du mot de passe envoyé.', 'success');
       } else {
         const now = new Date();
         const { error: updateError } = await client.from('demo_requests').update({
