@@ -205,7 +205,7 @@ export function SubscriptionRequestsPage() {
                   <td className="p-3"><div className="flex flex-wrap gap-2">
                     <Button disabled={savingId === request.id || request.status !== 'pending'} onClick={() => void reviewDemo(request, 'approved')} type="button">Approuver la démo</Button>
                     <Button disabled={savingId === request.id || request.status !== 'pending'} onClick={() => void reviewDemo(request, 'rejected')} type="button" variant="danger">Refuser</Button>
-                    <Button disabled={savingId === request.id} onClick={() => void deleteDemoRequest(request)} type="button" variant="secondary">Supprimer</Button>
+                    <Button disabled={savingId === request.id || request.status === 'pending'} onClick={() => void deleteDemoRequest(request)} type="button" variant="secondary">Supprimer la demande</Button>
                   </div></td>
                 </tr>
               ))}</tbody>
