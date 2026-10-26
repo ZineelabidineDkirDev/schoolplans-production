@@ -78,6 +78,27 @@ export function SubscriptionRequestsPage() {
     setSavingId(null);
   }
 
+  async function deleteDemoRequest(request: DemoRequest) {
+    const confirmed = window.confirm(`Supprimer définitivement la demande de démo de « ${request.centre_name} » ? Cette action est irréversible.`);
+    if (!confirmed) return;
+
+    setSavingId(request.id);
+    try {
+      const client = getSupabaseClient();
+      const { error: deleteError } = await client
+        .from('demo_requests')
+        .delete()
+        .eq('id', request.id);
+      if (deleteError) throw deleteError;
+      notify('Demande de démo supprimée.', 'success');
+      await loadRequests();
+    } catch (cause) {
+      notify(cause instanceof Error ? cause.message : 'Impossible de supprimer cette demande.', 'error');
+    } finally {
+      setSavingId(null);
+    }
+  }
+
   async function reviewDemo(request: DemoRequest, status: Exclude<DemoStatus, 'pending'>) {
     setSavingId(request.id);
     const client = getSupabaseClient();
@@ -184,6 +205,7 @@ export function SubscriptionRequestsPage() {
                   <td className="p-3"><div className="flex flex-wrap gap-2">
                     <Button disabled={savingId === request.id || request.status !== 'pending'} onClick={() => void reviewDemo(request, 'approved')} type="button">Approuver la démo</Button>
                     <Button disabled={savingId === request.id || request.status !== 'pending'} onClick={() => void reviewDemo(request, 'rejected')} type="button" variant="danger">Refuser</Button>
+                    <Button disabled={savingId === request.id} onClick={() => void deleteDemoRequest(request)} type="button" variant="secondary">Supprimer</Button>
                   </div></td>
                 </tr>
               ))}</tbody>
