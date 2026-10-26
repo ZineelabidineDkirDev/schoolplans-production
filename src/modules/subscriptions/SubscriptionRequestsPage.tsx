@@ -31,6 +31,7 @@ export function SubscriptionRequestsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [temporaryAccess, setTemporaryAccess] = useState<{ requestId: string; contactName: string; centreName: string; email: string; phone: string; password: string } | null>(null);
 
   const loadRequests = useCallback(async () => {
     setLoading(true);
@@ -99,6 +100,84 @@ export function SubscriptionRequestsPage() {
       await loadRequests();
     } catch (cause) {
       notify(cause instanceof Error ? cause.message : 'Impossible de désactiver cette demande.', 'error');
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  async function createTemporaryDirectorAccess(request: DemoRequest) {
+    const confirmed = window.confirm(
+      `Avant de créer un accès provisoire pour « ${request.centre_name} », confirmez l’identité du directeur en vérifiant son numéro de téléphone avec les informations de la demande. Le mot de passe temporaire devra lui être transmis par un canal privé.`,
+    );
+    if (!confirmed) return;
+
+    setSavingId(request.id);
+    try {
+      const client = getSupabaseClient();
+      const { data: authData, error: authError } = await client.auth.getUser();
+      if (authError || !authData.user) throw new Error('Session Super Admin introuvable.');
+
+      const existing = await invokeCentreDirectorAccess(client, {
+        action: 'reuse_existing_director',
+        email: request.email.trim().toLowerCase(),
+        centre_name: request.centre_name,
+      });
+      if (!('found' in existing) || !existing.found) {
+        throw new Error(
+          'Aucun compte directeur existant lié à ce centre. Si l’approbation précédente a échoué pendant l’envoi de l’e-mail, actualisez la liste puis réessayez. Aucun nouveau compte ne sera créé par cette action.',
+        );
+      }
+
+      // Mot de passe temporaire aléatoire ; l’Edge Function impose must_change=true.
+      const temporaryPassword = `${crypto.randomUUID()}Aa1!`;
+      const reset = await invokeCentreDirectorAccess(client, {
+        action: 'reset',
+        centre_id: existing.centre_id,
+        user_id: existing.director_user_id,
+        password: temporaryPassword,
+      });
+      if (!('ok' in reset) || reset.ok !== true) {
+        throw new Error('Supabase n’a pas confirmé la création de l’accès provisoire.');
+      }
+
+      // Le mot de passe est affiché uniquement dans cette session Super Admin,
+      // jamais enregistré dans demo_requests ni dans admin_notes.
+      setTemporaryAccess({
+        requestId: request.id,
+        contactName: request.contact_name,
+        centreName: request.centre_name,
+        email: request.email.trim().toLowerCase(),
+        phone: request.phone,
+        password: temporaryPassword,
+      });
+
+      const now = new Date().toISOString();
+      const { data: updated, error: updateError } = await client
+        .from('demo_requests')
+        .update({
+          status: 'approved',
+          reviewed_at: now,
+          reviewed_by: authData.user.id,
+          demo_started_at: existing.date_debut,
+          demo_expires_at: existing.date_expiration,
+          admin_notes: `Compte directeur existant réutilisé : ${existing.director_user_id}. Accès provisoire créé avec changement de mot de passe obligatoire ; période d’essai conservée.`,
+        })
+        .eq('id', request.id)
+        .in('status', ['pending', 'approved'])
+        .is('archived_at', null)
+        .select('id');
+
+      if (updateError) {
+        throw new Error(`Le mot de passe provisoire est prêt et reste affiché ci-dessous, mais la demande n’a pas pu être mise à jour : ${updateError.message}`);
+      }
+      if (!updated?.length) {
+        throw new Error('Le mot de passe provisoire est prêt et reste affiché ci-dessous, mais la demande est désactivée ou son statut a changé. Actualisez la liste.');
+      }
+
+      notify('Accès provisoire créé. Le directeur devra choisir un nouveau mot de passe à la première connexion.', 'success');
+      await loadRequests();
+    } catch (cause) {
+      notify(cause instanceof Error ? cause.message : 'Impossible de créer l’accès provisoire.', 'error');
     } finally {
       setSavingId(null);
     }
@@ -281,6 +360,37 @@ export function SubscriptionRequestsPage() {
     <section className="sp-page">
       <PageHeader title="Demandes d’abonnement" description="Consultez les demandes reçues et vérifiez les paiements manuellement avant d’activer un centre." />
       <Panel>
+        {temporaryAccess && (
+          <Alert tone="warning">
+            <div className="grid gap-3">
+              <div>
+                <strong>Accès provisoire — à transmettre en privé</strong>
+                <p className="mt-1">Directeur : {temporaryAccess.contactName} · Centre : {temporaryAccess.centreName}</p>
+                <p>E-mail : {temporaryAccess.email}</p>
+                <p>Téléphone déclaré : {temporaryAccess.phone}</p>
+                <p className="mt-2">Mot de passe temporaire (visible uniquement dans cette session) :</p>
+                <code className="mt-1 block select-all break-all rounded bg-white/70 p-3 text-sm">{temporaryAccess.password}</code>
+                <p className="mt-2">Transmets-le uniquement après vérification de l’identité du directeur. À sa première connexion, Madrassa-Ti lui imposera de choisir un nouveau mot de passe.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() => {
+                    void navigator.clipboard.writeText(temporaryAccess.password)
+                      .then(() => notify('Mot de passe copié.', 'success'))
+                      .catch(() => notify('Copie impossible. Sélectionnez le mot de passe affiché.', 'error'));
+                  }}
+                  type="button"
+                  variant="secondary"
+                >
+                  Copier le mot de passe
+                </Button>
+                <Button onClick={() => setTemporaryAccess(null)} type="button" variant="secondary">
+                  Masquer le mot de passe
+                </Button>
+              </div>
+            </div>
+          </Alert>
+        )}
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold">Demandes de démo gratuite</h2>
@@ -301,6 +411,7 @@ export function SubscriptionRequestsPage() {
                   <td className="p-3">{request.demo_started_at && request.demo_expires_at ? <>{new Date(request.demo_started_at).toLocaleDateString('fr-FR')} – {new Date(request.demo_expires_at).toLocaleDateString('fr-FR')}</> : 'Démarre après approbation'}</td>
                   <td className="p-3"><StatusBadge>{request.status === 'pending' ? 'En attente' : request.status === 'approved' ? 'Approuvée' : 'Refusée'}</StatusBadge></td>
                   <td className="p-3"><div className="flex flex-wrap gap-2">
+                    <Button disabled={savingId === request.id || request.status === 'rejected'} onClick={() => void createTemporaryDirectorAccess(request)} type="button" variant="secondary">Créer un accès provisoire</Button>
                     <Button disabled={savingId === request.id || request.status === 'rejected'} onClick={() => void resendDemoLink(request)} type="button" variant="secondary">Renvoyer le lien</Button>
                     <Button disabled={savingId === request.id || request.status !== 'pending'} onClick={() => void reviewDemo(request, 'approved')} type="button">Approuver la démo</Button>
                     <Button disabled={savingId === request.id || request.status !== 'pending'} onClick={() => void reviewDemo(request, 'rejected')} type="button" variant="danger">Refuser</Button>
