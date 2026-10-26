@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Button, LoadingState, PageHeader, Panel, StatusBadge, notify } from '../../components/ui';
 import { getSupabaseClient } from '../../data/supabase/client';
+import { invokeCentreDirectorAccess } from '../../data/repositories/edgeFunctionRepository';
 
 type RequestStatus = 'pending' | 'contacted' | 'paid' | 'rejected';
 type DemoStatus = 'pending' | 'approved' | 'rejected';
@@ -80,21 +81,81 @@ export function SubscriptionRequestsPage() {
   async function reviewDemo(request: DemoRequest, status: Exclude<DemoStatus, 'pending'>) {
     setSavingId(request.id);
     const client = getSupabaseClient();
-    const { data: authData } = await client.auth.getUser();
-    const startedAt = new Date();
-    const { error: updateError } = await client.from('demo_requests').update({
-      status,
-      reviewed_at: startedAt.toISOString(),
-      reviewed_by: authData.user?.id ?? null,
-      demo_started_at: status === 'approved' ? startedAt.toISOString() : null,
-      demo_expires_at: status === 'approved' ? new Date(startedAt.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString() : null,
-    }).eq('id', request.id);
-    if (updateError) notify(updateError.message, 'error');
-    else {
-      notify(status === 'approved' ? 'Demande approuvée : période de 14 jours enregistrée.' : 'Demande de démo refusée.', 'success');
+    try {
+      const { data: authData, error: authError } = await client.auth.getUser();
+      if (authError || !authData.user) throw new Error('Session Super Admin introuvable.');
+
+      if (status === 'approved') {
+        // Le slug déterministe rend les nouvelles tentatives détectables au lieu de créer
+        // silencieusement plusieurs centres pour la même demande.
+        const baseSlug = request.centre_name.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 45) || 'centre';
+        const slug = `${baseSlug}-${request.id.replace(/-/g, '').slice(0, 8)}`;
+        const temporaryPassword = `${crypto.randomUUID()}Aa1!`;
+        const startedAt = new Date();
+        const expiresAt = new Date(startedAt.getTime() + 14 * 24 * 60 * 60 * 1000);
+        const created = await invokeCentreDirectorAccess(client, {
+          action: 'create_centre',
+          centre: {
+            nom: request.centre_name,
+            slug,
+            actif: true,
+            type_abonnement: 'DEMO',
+            statut_abonnement: 'actif',
+            date_debut: startedAt.toISOString(),
+            date_expiration: expiresAt.toISOString(),
+          },
+          director: {
+            full_name: request.contact_name,
+            email: request.email.trim().toLowerCase(),
+            password: temporaryPassword,
+          },
+        });
+        if (!('centre_id' in created) || !created.centre_id) {
+          throw new Error('Le serveur n’a pas confirmé la création du centre.');
+        }
+
+        // Envoyer le lien officiel Supabase de réinitialisation : le mot de passe
+        // temporaire n’est jamais affiché à l’écran ni enregistré dans la demande.
+        const redirectTo = `${window.location.origin}/login`;
+        const { error: emailError } = await client.auth.resetPasswordForEmail(
+          request.email.trim().toLowerCase(),
+          { redirectTo },
+        );
+        if (emailError) {
+          notify(`Centre créé, mais l’envoi du lien a échoué : ${emailError.message}. Ne relancez pas la création ; vérifiez le compte puis renvoyez le lien.`, 'error');
+          await loadRequests();
+          return;
+        }
+
+        const { error: updateError } = await client.from('demo_requests').update({
+          status: 'approved',
+          reviewed_at: startedAt.toISOString(),
+          reviewed_by: authData.user.id,
+          demo_started_at: startedAt.toISOString(),
+          demo_expires_at: expiresAt.toISOString(),
+          admin_notes: `Centre créé : ${created.centre_id}. Lien de définition du mot de passe envoyé.`,
+        }).eq('id', request.id).eq('status', 'pending');
+        if (updateError) throw new Error(`Centre créé, mais la demande n’a pas pu être finalisée : ${updateError.message}. Centre ID : ${created.centre_id}`);
+        notify('Démo activée : centre et directeur créés, lien de définition du mot de passe envoyé.', 'success');
+      } else {
+        const now = new Date();
+        const { error: updateError } = await client.from('demo_requests').update({
+          status: 'rejected',
+          reviewed_at: now.toISOString(),
+          reviewed_by: authData.user.id,
+          demo_started_at: null,
+          demo_expires_at: null,
+        }).eq('id', request.id).eq('status', 'pending');
+        if (updateError) throw updateError;
+        notify('Demande de démo refusée.', 'success');
+      }
       await loadRequests();
+    } catch (cause) {
+      notify(cause instanceof Error ? cause.message : 'Échec du traitement de la demande de démo.', 'error');
+    } finally {
+      setSavingId(null);
     }
-    setSavingId(null);
   }
 
   return (
