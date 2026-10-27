@@ -8676,3 +8676,42 @@ textarea.sp-field,
   color: #7b879b;
   opacity: 1;
 }
+
+
+/* Icônes dédiées par champ du formulaire étudiant — remplace les pictogrammes génériques. */
+.sp-modal .sp-popup-placeholder-field:has(input[aria-label="Prénom"])::after,
+.sp-modal .sp-popup-placeholder-field:has(input[aria-label="Nom"])::after {
+  content: "♙";
+  font-size: 19px;
+  bottom: 13px;
+}
+.sp-modal .sp-popup-placeholder-field:has(input[aria-label="E-mail"])::after {
+  content: "✉";
+  font-size: 16px;
+}
+.sp-modal .sp-popup-placeholder-field:has(input[aria-label="Téléphone de l’étudiant"])::after,
+.sp-modal .sp-popup-placeholder-field:has(input[aria-label="Téléphone du parent / tuteur"])::after {
+  content: "☎";
+  font-size: 16px;
+}
+.sp-modal .sp-popup-placeholder-field:has(input[aria-label="Ville"])::after {
+  content: "⌖";
+  font-size: 21px;
+  bottom: 11px;
+}
+.sp-modal .sp-popup-placeholder-field:has(input[aria-label="Adresse"])::after {
+  content: "⌂";
+  font-size: 20px;
+  bottom: 11px;
+}
+.sp-modal .sp-popup-placeholder-field:has(input[aria-label="Niveau d’études"])::after {
+  content: "▤";
+  font-size: 17px;
+}
+.sp-modal .sp-popup-placeholder-field:has(input[aria-label="Budget"])::after,
+.sp-modal .sp-popup-placeholder-field:has(input[aria-label*="Montant"])::after,
+.sp-modal .sp-popup-placeholder-field:has(input[aria-label*="Prix"])::after,
+.sp-modal .sp-popup-placeholder-field:has(input[aria-label*="Paiement"])::after {
+  content: "¤";
+  font-size: 19px;
+}
