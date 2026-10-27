@@ -18,13 +18,15 @@ type LoadState =
 
 async function countRows(
   table: 'centres' | 'profiles' | 'demo_requests' | 'subscription_requests',
-  filter?: { column: string; value: string | boolean | null; operator?: 'eq' | 'is' },
+  filters?: { column: string; value: string | boolean | null; operator?: 'eq' | 'is' }[],
 ): Promise<number> {
   let query = getSupabaseClient().from(table).select('id', { count: 'exact', head: true });
-  if (filter?.operator === 'is') {
-    query = query.is(filter.column, filter.value as null);
-  } else if (filter) {
-    query = query.eq(filter.column, filter.value as string | boolean);
+  for (const filter of filters ?? []) {
+    if (filter.operator === 'is') {
+      query = query.is(filter.column, filter.value as null);
+    } else {
+      query = query.eq(filter.column, filter.value as string | boolean);
+    }
   }
   const { count, error } = await query;
   if (error) throw error;
@@ -35,11 +37,14 @@ async function loadPlatformStats(): Promise<PlatformStats> {
   const [centres, activeCentres, inactiveCentres, users, pendingDemos, pendingSubscriptions] =
     await Promise.all([
       countRows('centres'),
-      countRows('centres', { column: 'actif', value: true }),
-      countRows('centres', { column: 'actif', value: false }),
+      countRows('centres', [{ column: 'actif', value: true }]),
+      countRows('centres', [{ column: 'actif', value: false }]),
       countRows('profiles'),
-      countRows('demo_requests', { column: 'status', value: 'pending' }),
-      countRows('subscription_requests', { column: 'status', value: 'pending' }),
+      countRows('demo_requests', [
+        { column: 'status', value: 'pending' },
+        { column: 'archived_at', value: null, operator: 'is' },
+      ]),
+      countRows('subscription_requests', [{ column: 'status', value: 'pending' }]),
     ]);
 
   return { centres, activeCentres, inactiveCentres, users, pendingDemos, pendingSubscriptions };
