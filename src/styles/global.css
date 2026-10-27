@@ -8802,3 +8802,121 @@ textarea.sp-field,
     white-space: normal;
   }
 }
+
+
+/* Planning/session popup: same header, white form body and clean footer as other editors. */
+.planning-dialog {
+  display: flex;
+  flex-direction: column;
+  padding: 0 !important;
+  overflow: hidden;
+  border: 0 !important;
+  border-radius: 20px;
+  background: #fff !important;
+}
+.planning-dialog-heading {
+  position: relative;
+  flex: 0 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 !important;
+  padding: 22px 64px 22px 26px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: linear-gradient(115deg, #020617 0%, #172554 48%, #1e40af 100%) !important;
+  color: #fff !important;
+}
+.planning-dialog-heading h2 {
+  margin: 0;
+  color: #fff;
+}
+.planning-dialog-close {
+  position: absolute !important;
+  top: 50%;
+  right: 18px;
+  transform: translateY(-50%);
+  border: 0 !important;
+  box-shadow: none !important;
+}
+.planning-editor-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 18px 22px;
+  min-width: 0;
+  padding: 24px 26px 0;
+  overflow-y: auto;
+  background: #fff !important;
+}
+.planning-editor-form > .planning-editor-actions,
+.planning-editor-form > .planning-form-message {
+  grid-column: 1 / -1;
+}
+.planning-editor-form .sp-form-field {
+  min-width: 0;
+  margin: 0;
+  gap: 7px;
+}
+.planning-dialog .sp-field {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  box-sizing: border-box;
+  background: #fff;
+  border-color: #d5deeb;
+}
+.planning-dialog .sp-field:focus,
+.planning-dialog .sp-field:focus-visible {
+  border-color: #2563eb;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 16%);
+}
+.planning-editor-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: 8px -26px 0 !important;
+  padding: 16px 26px !important;
+  border: 0 !important;
+  border-top: 1px solid #e5eaf2 !important;
+  border-radius: 0 !important;
+  background: #fff !important;
+  box-shadow: none !important;
+}
+:where(.sp-modal, .planning-dialog, .finance-modal, .sp-confirm-modal, [role="dialog"], [aria-modal="true"]) :where(.management-toolbar, .planning-editor-actions, .finance-modal-actions, .sp-confirm-actions) .sp-btn {
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: 0;
+}
+:where(.sp-modal, .planning-dialog, .finance-modal, .sp-confirm-modal, [role="dialog"], [aria-modal="true"]) :where(.management-toolbar, .planning-editor-actions, .finance-modal-actions, .sp-confirm-actions) .sp-btn:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+@media (max-width: 640px) {
+  .planning-dialog {
+    width: calc(100vw - 16px);
+    max-width: calc(100vw - 16px);
+    max-height: 94dvh;
+    border-radius: 18px 18px 12px 12px;
+  }
+  .planning-dialog-heading {
+    padding: 17px 54px 17px 16px !important;
+  }
+  .planning-editor-form {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 15px;
+    padding: 18px 14px 0;
+  }
+  .planning-editor-actions {
+    gap: 8px;
+    margin: 6px -14px 0 !important;
+    padding: 12px 14px !important;
+  }
+  .planning-editor-actions .sp-btn {
+    flex: 1 1 125px;
+  }
+}
