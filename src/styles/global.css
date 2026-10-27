@@ -8658,3 +8658,21 @@ textarea.sp-field,
     padding-right: 14px;
   }
 }
+
+
+/* Student popup: placeholders replace visible labels while keeping accessible names. */
+.sp-modal .sp-popup-sr-label {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+.sp-modal .sp-popup-placeholder-field .sp-field::placeholder {
+  color: #7b879b;
+  opacity: 1;
+}
