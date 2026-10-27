@@ -8449,15 +8449,15 @@ textarea.sp-field,
   color: #172033;
 }
 
-:where([role="dialog"], [aria-modal="true"]) :where(input:not([type="checkbox]):not([type="radio]):not([type="file"]), select, textarea) {
+:where([role="dialog"], [aria-modal="true"]) :where(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, textarea) {
   background-color: #fff;
   color: #172033;
   border-color: #d5deeb;
   border-radius: 11px;
 }
 
-:where([role="dialog"], [aria-modal="true"]) :where(input:not([type="checkbox]):not([type="radio]):not([type="file"]), select, textarea):focus,
-:where([role="dialog"], [aria-modal="true"]) :where(input:not([type="checkbox]):not([type="radio]):not([type="file"]), select, textarea):focus-visible {
+:where([role="dialog"], [aria-modal="true"]) :where(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, textarea):focus,
+:where([role="dialog"], [aria-modal="true"]) :where(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, textarea):focus-visible {
   border-color: #2563eb;
   outline: 0;
   box-shadow: 0 0 0 3px rgb(37 99 235 / 16%);
