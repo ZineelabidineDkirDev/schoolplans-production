@@ -44,7 +44,8 @@ const ROLE_SECTIONS: Record<SourceRole, readonly AppSection[]> = {
     'vnotes',
     'vhelp',
   ],
-  super_admin: [...COMMON_SECTIONS, 'vz', 'vsub', 'vd', 'vnotes'],
+  // Le super administrateur gère la plateforme et les centres, pas les fonctions pédagogiques d'un centre.
+  super_admin: ['vz', 'vsub', 'vd'],
   formateur: [...COMMON_SECTIONS, 'vl', 'vn', 'vp', 'vk', 'vnotes', 'vhelp', 'vrapport'],
   etudiant: ['vcal', 'vr', 'vm', 'vq', 'vk', 'vnotes', 'vrapport'],
 };
@@ -113,8 +114,7 @@ export function canAccessSection(
     if (role === 'super_admin') return true;
     return ['admin', 'director', 'formateur', 'etudiant'].includes(role) && permissions.notes_bulletins === true;
   }
-  if (role === 'super_admin' && appSection === 'vpcentre') return false;
-  if (role === 'super_admin') return true;
+  if (role === 'super_admin') return ROLE_SECTIONS.super_admin.includes(appSection);
 
   // Les étudiants peuvent toujours consulter leur planning et leurs salles.
   // Ces deux rubriques restent en lecture seule et ne dépendent pas des droits administratifs du centre.
