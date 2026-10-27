@@ -8366,3 +8366,78 @@ textarea.sp-field,
   color: #fff;
   font-size: 18px;
 }
+
+
+/* Ajustement demandé : couleurs exactes du Hero + contenu et pied blancs. */
+:where(.sp-modal .management-editor-heading,
+       .sp-modal .management-editor > h2,
+       .planning-dialog-heading,
+       .finance-modal-header) {
+  background: linear-gradient(115deg, #020617 0%, #172554 48%, #1e40af 100%);
+  color: #fff;
+}
+
+:where(.sp-modal, .planning-dialog, .finance-modal, .sp-confirm-modal) {
+  background: #fff;
+  color: #172033;
+}
+
+:where(.sp-modal .management-editor-form,
+       .sp-modal .management-editor > form,
+       .sp-modal .management-editor .sp-form-grid,
+       .planning-dialog form,
+       .finance-modal-form,
+       .sp-confirm-modal > :not(.sp-confirm-actions)) {
+  background-color: #fff;
+  color: #172033;
+}
+
+:where(.sp-modal .sp-field,
+       .planning-dialog .sp-field,
+       .finance-modal .sp-field) {
+  background-color: #fff;
+  color: #172033;
+  border-color: #d5deeb;
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+
+:where(.sp-modal .sp-field:focus,
+       .sp-modal .sp-field:focus-visible,
+       .planning-dialog .sp-field:focus,
+       .planning-dialog .sp-field:focus-visible,
+       .finance-modal .sp-field:focus,
+       .finance-modal .sp-field:focus-visible) {
+  background-color: #fff;
+  border-color: #2563eb;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 16%);
+}
+
+:where(.sp-modal .management-toolbar,
+       .finance-modal-actions,
+       .sp-confirm-actions,
+       .planning-editor-actions,
+       .enrollment-reject-form .planning-editor-actions) {
+  background: #fff;
+  border: 0;
+  border-top: 1px solid #e5eaf2;
+  border-radius: 0 0 20px 20px;
+  box-shadow: none;
+}
+
+.sp-confirm-modal::before {
+  background: linear-gradient(115deg, #020617 0%, #172554 48%, #1e40af 100%);
+}
+
+.sp-confirm-actions {
+  margin-left: -30px;
+  margin-right: -30px;
+  margin-bottom: 0;
+}
+
+@media (max-width: 640px) {
+  .sp-confirm-actions {
+    margin-left: -20px;
+    margin-right: -20px;
+  }
+}
