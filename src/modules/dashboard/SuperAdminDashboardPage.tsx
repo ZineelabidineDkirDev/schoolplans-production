@@ -3,12 +3,12 @@ import { Alert, Button, LoadingState, PageHeader, Panel } from '../../components
 import { getSupabaseClient } from '../../data/supabase/client';
 
 type PlatformStats = {
-  centres: number;
-  activeCentres: number;
-  inactiveCentres: number;
-  users: number;
-  pendingDemos: number;
-  pendingSubscriptions: number;
+  centres: number; activeCentres: number; inactiveCentres: number; users: number;
+  pendingDemos: number; pendingSubscriptions: number;
+  starterCentres: number; standardCentres: number; professionalCentres: number;
+  directors: number; trainers: number; students: number; superAdmins: number;
+  approvedDemos: number; rejectedDemos: number;
+  contactedSubscriptions: number; paidSubscriptions: number; rejectedSubscriptions: number;
 };
 
 type LoadState =
