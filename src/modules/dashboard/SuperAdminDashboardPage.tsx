@@ -75,7 +75,7 @@ function MetricCard({
   detail: string;
 }) {
   return (
-    <article className="dashboard-card dashboard-metric">
+    <article className="dashboard-card">
       <p className="m-0 text-sm font-medium text-slate-500">{label}</p>
       <p className="mb-1 mt-3 text-3xl font-bold tracking-tight text-brand-900">{value.toLocaleString('fr-MA')}</p>
       <p className="m-0 text-xs text-slate-500">{detail}</p>
