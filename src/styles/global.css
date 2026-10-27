@@ -8306,3 +8306,63 @@ textarea.sp-field,
     transition: none !important;
   }
 }
+
+
+/* Pieds de formulaire communs : barre dégradée et actions clairement séparées. */
+.planning-editor-actions,
+.enrollment-reject-form .planning-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 16px;
+  margin: 8px -1px -1px;
+  border: 1px solid color-mix(in srgb, #3968f4 12%, var(--line));
+  border-radius: 13px;
+  background: linear-gradient(110deg, #edf4ff 0%, #e8f8f7 100%);
+}
+
+.finance-modal-form:not(:has(.finance-modal-actions)) {
+  background: linear-gradient(110deg, #edf4ff 0%, #e8f8f7 100%);
+  background-repeat: no-repeat;
+  background-position: bottom;
+  background-size: 100% 76px;
+}
+
+.finance-modal-form:not(:has(.finance-modal-actions)) > button[type="submit"] {
+  justify-self: end;
+  margin-top: 4px;
+}
+
+.sp-modal form button[type="submit"].sp-btn-danger,
+.planning-dialog form button[type="submit"].sp-btn-danger,
+.finance-modal form button[type="submit"].sp-btn-danger {
+  background: linear-gradient(115deg, #991b1b 0%, #dc2626 100%);
+  color: #fff;
+}
+
+.sp-modal form button[type="submit"].sp-btn-danger:not(:has(svg))::before,
+.planning-dialog form button[type="submit"].sp-btn-danger:not(:has(svg))::before,
+.finance-modal form button[type="submit"].sp-btn-danger:not(:has(svg))::before {
+  content: "!";
+}
+
+.sp-confirm-modal h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sp-confirm-modal h2::before {
+  content: "!";
+  display: inline-grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  place-items: center;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #173a8c, #087f8c);
+  color: #fff;
+  font-size: 18px;
+}
