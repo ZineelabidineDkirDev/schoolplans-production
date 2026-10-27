@@ -8487,3 +8487,90 @@ textarea.sp-field,
     flex: 1 1 130px;
   }
 }
+
+
+/* Popup fix 1/1 — formulaire standardisé (ex. dossier étudiant).
+   Les formulaires qui possèdent déjà leur bouton dans l'en-tête ne doivent pas
+   afficher une seconde croix ajoutée par le conteneur Modal. */
+.sp-modal:has(.management-editor) {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.sp-modal:has(.management-editor) > .sp-modal-close {
+  display: none;
+}
+.sp-modal:has(.management-editor) > .management-editor {
+  width: 100%;
+  min-width: 0;
+  max-height: min(92dvh, 920px);
+  margin: 0;
+  padding: 24px 30px 0;
+  overflow: auto;
+  border: 0;
+  border-radius: inherit;
+  background: #fff;
+  box-shadow: none;
+}
+.sp-modal:has(.management-editor) .management-editor-heading {
+  position: relative;
+  margin: 0 0 22px;
+  border-radius: 16px;
+  padding: 18px 58px 18px 20px;
+}
+.sp-modal:has(.management-editor) .management-editor-heading .planning-dialog-close {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+}
+.sp-modal:has(.management-editor) .management-editor-form,
+.sp-modal:has(.management-editor) .sp-form-grid {
+  background: #fff;
+}
+.sp-modal:has(.management-editor) .sp-form-field {
+  gap: 7px;
+  margin: 0;
+}
+.sp-modal:has(.management-editor) .sp-field {
+  min-height: 44px;
+  background: #fff;
+  border-color: #dbe3ef;
+}
+.sp-modal:has(.management-editor) .sp-field:focus,
+.sp-modal:has(.management-editor) .sp-field:focus-visible {
+  border-color: #2563eb;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 15%);
+}
+.sp-modal:has(.management-editor) .management-toolbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin: 18px -30px 0;
+  padding: 16px 30px;
+  border-top: 1px solid #e5eaf2;
+  border-radius: 0;
+  background: #fff;
+}
+@media (max-width: 640px) {
+  .sp-modal:has(.management-editor) {
+    width: calc(100vw - 20px);
+    max-width: calc(100vw - 20px);
+    max-height: 92dvh;
+    border-radius: 18px;
+  }
+  .sp-modal:has(.management-editor) > .management-editor {
+    max-height: 92dvh;
+    padding: 14px 14px 0;
+  }
+  .sp-modal:has(.management-editor) .management-editor-heading {
+    padding: 15px 48px 15px 14px;
+    margin-bottom: 16px;
+  }
+  .sp-modal:has(.management-editor) .management-toolbar {
+    margin: 16px -14px 0;
+    padding: 12px 14px;
+  }
+}
