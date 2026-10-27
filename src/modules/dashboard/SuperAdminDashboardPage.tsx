@@ -75,7 +75,7 @@ function MetricCard({
   detail: string;
 }) {
   return (
-    <article className="rounded-2xl border border-line bg-white p-5 shadow-sm">
+    <article className="dashboard-card dashboard-metric">
       <p className="m-0 text-sm font-medium text-slate-500">{label}</p>
       <p className="mb-1 mt-3 text-3xl font-bold tracking-tight text-brand-900">{value.toLocaleString('fr-MA')}</p>
       <p className="m-0 text-xs text-slate-500">{detail}</p>
@@ -112,7 +112,7 @@ export function SuperAdminDashboardPage() {
       />
 
       {state.status === 'loading' && (
-        <Panel><LoadingState label="Chargement des statistiques de la plateforme…" /></Panel>
+        <Panel className="dashboard-panel"><LoadingState label="Chargement des statistiques de la plateforme…" /></Panel>
       )}
 
       {state.status === 'error' && (
@@ -127,7 +127,7 @@ export function SuperAdminDashboardPage() {
 
       {state.status === 'loaded' && (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="dashboard-kpis grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <MetricCard label="Centres enregistrés" value={state.stats.centres} detail="Tous les centres de la plateforme" />
             <MetricCard label="Centres actifs" value={state.stats.activeCentres} detail="Centres activés" />
             <MetricCard label="Centres inactifs" value={state.stats.inactiveCentres} detail="Centres désactivés" />
@@ -136,7 +136,7 @@ export function SuperAdminDashboardPage() {
             <MetricCard label="Demandes d’abonnement" value={state.stats.pendingSubscriptions} detail="En attente de traitement" />
           </div>
 
-          <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+          <div className="dashboard-columns grid grid-cols-1 gap-5 xl:grid-cols-2">
             <Panel>
               <h2 className="m-0 text-lg font-semibold text-brand-900">État des centres</h2>
               <p className="mt-1 text-sm text-slate-500">Comparaison des centres actifs et inactifs.</p>
@@ -180,7 +180,7 @@ export function SuperAdminDashboardPage() {
               </div>
             </Panel>
           </div>
-          <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+          <div className="dashboard-data-grid grid grid-cols-1 gap-5 xl:grid-cols-2">
             <Panel>
               <h2 className="m-0 text-lg font-semibold text-brand-900">Centres par pack</h2>
               <p className="mt-1 text-sm text-slate-500">Répartition des abonnements enregistrés sur les centres.</p>
