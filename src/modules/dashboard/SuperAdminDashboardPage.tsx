@@ -180,7 +180,69 @@ export function SuperAdminDashboardPage() {
               </div>
             </Panel>
           </div>
-          <p className="m-0 text-xs text-slate-500">Les compteurs dépendent des données visibles par les politiques RLS du compte connecté. Toute erreur d’autorisation est affichée plutôt que remplacée par des chiffres estimés.</p>
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+            <Panel>
+              <h2 className="m-0 text-lg font-semibold text-brand-900">Centres par pack</h2>
+              <p className="mt-1 text-sm text-slate-500">Répartition des abonnements enregistrés sur les centres.</p>
+              <div className="mt-5 space-y-4">
+                {[
+                  { label: 'STARTER', value: state.stats.starterCentres },
+                  { label: 'STANDARD', value: state.stats.standardCentres },
+                  { label: 'PROFESSIONAL', value: state.stats.professionalCentres },
+                ].map((item) => {
+                  const max = Math.max(1, state.stats.starterCentres, state.stats.standardCentres, state.stats.professionalCentres);
+                  const percent = Math.round((item.value / max) * 100);
+                  return <div key={item.label}>
+                    <div className="mb-2 flex items-center justify-between gap-3 text-sm"><span>{item.label}</span><strong>{item.value}</strong></div>
+                    <div className="h-3 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-brand-600" style={{ width: `${percent}%` }} /></div>
+                  </div>;
+                })}
+              </div>
+            </Panel>
+            <Panel>
+              <h2 className="m-0 text-lg font-semibold text-brand-900">Utilisateurs par rôle</h2>
+              <p className="mt-1 text-sm text-slate-500">Répartition des profils accessibles au super-admin.</p>
+              <div className="mt-5 space-y-4">
+                {[
+                  { label: 'Directeurs', value: state.stats.directors },
+                  { label: 'Formateurs', value: state.stats.trainers },
+                  { label: 'Étudiants', value: state.stats.students },
+                  { label: 'Super-admins', value: state.stats.superAdmins },
+                ].map((item) => {
+                  const max = Math.max(1, state.stats.directors, state.stats.trainers, state.stats.students, state.stats.superAdmins);
+                  const percent = Math.round((item.value / max) * 100);
+                  return <div key={item.label}>
+                    <div className="mb-2 flex items-center justify-between gap-3 text-sm"><span>{item.label}</span><strong>{item.value}</strong></div>
+                    <div className="h-3 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-brand-600" style={{ width: `${percent}%` }} /></div>
+                  </div>;
+                })}
+              </div>
+            </Panel>
+            <Panel>
+              <h2 className="m-0 text-lg font-semibold text-brand-900">Demandes de démonstration</h2>
+              <p className="mt-1 text-sm text-slate-500">Statuts des demandes non archivées.</p>
+              <div className="mt-5 grid grid-cols-3 gap-3">
+                <div className="rounded-xl border border-line p-3"><p className="text-xs text-slate-500">En attente</p><p className="text-2xl font-bold">{state.stats.pendingDemos}</p></div>
+                <div className="rounded-xl border border-line p-3"><p className="text-xs text-slate-500">Approuvées</p><p className="text-2xl font-bold">{state.stats.approvedDemos}</p></div>
+                <div className="rounded-xl border border-line p-3"><p className="text-xs text-slate-500">Refusées</p><p className="text-2xl font-bold">{state.stats.rejectedDemos}</p></div>
+              </div>
+              <a className="mt-4 inline-flex text-sm font-semibold text-brand-700 hover:underline" href="/app/vdemo">Gérer les démonstrations</a>
+            </Panel>
+            <Panel>
+              <h2 className="m-0 text-lg font-semibold text-brand-900">Demandes d’abonnement</h2>
+              <p className="mt-1 text-sm text-slate-500">Statuts des demandes non archivées.</p>
+              <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  { label: 'En attente', value: state.stats.pendingSubscriptions },
+                  { label: 'Contactées', value: state.stats.contactedSubscriptions },
+                  { label: 'Payées', value: state.stats.paidSubscriptions },
+                  { label: 'Refusées', value: state.stats.rejectedSubscriptions },
+                ].map((item) => <div key={item.label} className="rounded-xl border border-line p-3"><p className="text-xs text-slate-500">{item.label}</p><p className="text-2xl font-bold">{item.value}</p></div>)}
+              </div>
+              <a className="mt-4 inline-flex text-sm font-semibold text-brand-700 hover:underline" href="/app/vsub">Gérer les abonnements</a>
+            </Panel>
+          </div>
+          <p className="m-0 text-xs text-slate-500">Les compteurs ne filtrent pas par centre sélectionné. Leur exhaustivité dépend des politiques RLS Supabase et des colonnes disponibles dans la base déployée.</p>
         </>
       )}
     </section>
