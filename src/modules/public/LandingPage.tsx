@@ -456,6 +456,35 @@ export function LandingPage() {
 #lp-pricing .sp-landing-comparison thead .sp-compare-featured{background:rgba(37,99,235,.08)}
 @media(max-width:640px){#lp-pricing .sp-landing-comparison{margin-top:24px;border-radius:14px}#lp-pricing .sp-landing-comparison-heading{padding:18px 16px 14px}#lp-pricing .sp-landing-comparison th,#lp-pricing .sp-landing-comparison td{padding:12px 13px}}
 
+/* Navigation responsive robuste : liens accessibles sur toutes les largeurs. */
+.sp-landing .sp-landing-menu-toggle{display:none}
+.sp-landing .sp-landing-nav .sp-landing-links{min-width:0}
+.sp-landing .sp-landing-nav .sp-landing-links>a{white-space:normal}
+@media(max-width:1100px){
+  .sp-landing .sp-landing-nav{gap:14px;padding-inline:clamp(14px,3vw,28px)}
+  .sp-landing .sp-landing-nav .sp-landing-links{gap:clamp(8px,1.2vw,14px);font-size:13px}
+  .sp-landing .sp-landing-nav .sp-landing-links>a{white-space:nowrap}
+}
+@media(max-width:900px){
+  .sp-landing .sp-landing-nav{min-height:68px;padding:12px 18px}
+  .sp-landing .sp-landing-nav>.sp-landing-menu-toggle{display:grid;place-content:center;gap:5px;width:44px;height:44px;flex:0 0 44px;border:1px solid rgba(255,255,255,.28);border-radius:12px;background:rgba(255,255,255,.1);cursor:pointer;z-index:3}
+  .sp-landing .sp-landing-menu-toggle span{display:block;width:19px;height:2px;border-radius:2px;background:#fff}
+  .sp-landing .sp-landing-nav .sp-landing-links{position:absolute;top:calc(100% + 8px);right:12px;left:12px;display:none;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:2px;max-height:calc(100dvh - 90px);overflow-y:auto;overscroll-behavior:contain;margin:0;padding:10px;border:1px solid rgba(147,197,253,.24);border-radius:16px;background:linear-gradient(145deg,#020617,#172554 70%,#1e40af);box-shadow:0 20px 50px rgba(2,6,23,.3);font-size:15px}
+  .sp-landing .sp-landing-nav.menu-open .sp-landing-links{display:flex}
+  .sp-landing .sp-landing-nav .sp-landing-links>a{display:flex;align-items:center;justify-content:flex-start;min-height:44px;width:100%;box-sizing:border-box;padding:11px 12px;white-space:normal;border-radius:9px}
+  .sp-landing .sp-landing-nav .sp-landing-links>a:hover,.sp-landing .sp-landing-nav .sp-landing-links>a:focus-visible{background:rgba(255,255,255,.1)}
+  .sp-landing .sp-landing-nav .sp-landing-links>.sp-landing-login{justify-content:center;margin:6px 0 0;min-height:46px}
+  .sp-landing .sp-landing-nav .sp-landing-links .sp-landing-account-name{overflow-wrap:anywhere}
+}
+@media(max-width:380px){
+  .sp-landing .sp-landing-nav{padding-inline:12px}
+  .sp-landing .sp-landing-nav>.sp-landing-brand{font-size:1.05rem;gap:8px}
+  .sp-landing .sp-landing-nav>.sp-landing-menu-toggle{width:40px;height:40px;flex-basis:40px}
+}
+@media(prefers-reduced-motion:reduce){
+  .sp-landing .sp-landing-nav,.sp-landing .sp-landing-nav .sp-landing-links a{transition:none}
+}
+
 `}</style>
       <header
         className={`sp-landing-nav${menuOpen ? ' menu-open' : ''}${scrolled ? ' is-scrolled' : ''}`}
