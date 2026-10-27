@@ -1270,11 +1270,13 @@ export function StudentsPage() {
           </header>
           <form className="sp-form-grid" onSubmit={(event) => void submitStudent(event)}>
             {fields.map((field) => (
-              <label className="sp-form-field" key={field.key}>
-                {field.label}
+              <label className="sp-form-field sp-popup-placeholder-field" key={field.key}>
+                <span className="sp-popup-sr-label">{field.label}</span>
                 <input
                   className="sp-field"
                   autoComplete="off"
+                  placeholder={field.label}
+                  aria-label={field.label}
                   required={field.required}
                   type={field.type ?? 'text'}
                   value={form[field.key]}
