@@ -137,7 +137,7 @@ export function SuperAdminDashboardPage() {
           </div>
 
           <div className="dashboard-columns grid grid-cols-1 gap-5 xl:grid-cols-2">
-            <Panel>
+            <Panel className="dashboard-panel">
               <h2 className="m-0 text-lg font-semibold text-brand-900">État des centres</h2>
               <p className="mt-1 text-sm text-slate-500">Comparaison des centres actifs et inactifs.</p>
               <div className="mt-5 space-y-4">
@@ -163,7 +163,7 @@ export function SuperAdminDashboardPage() {
               </div>
             </Panel>
 
-            <Panel>
+            <Panel className="dashboard-panel">
               <h2 className="m-0 text-lg font-semibold text-brand-900">Demandes à traiter</h2>
               <p className="mt-1 text-sm text-slate-500">Les demandes en attente qui nécessitent une action du super administrateur.</p>
               <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -181,7 +181,7 @@ export function SuperAdminDashboardPage() {
             </Panel>
           </div>
           <div className="dashboard-data-grid grid grid-cols-1 gap-5 xl:grid-cols-2">
-            <Panel>
+            <Panel className="dashboard-panel">
               <h2 className="m-0 text-lg font-semibold text-brand-900">Centres par pack</h2>
               <p className="mt-1 text-sm text-slate-500">Répartition des abonnements enregistrés sur les centres.</p>
               <div className="mt-5 space-y-4">
@@ -199,7 +199,7 @@ export function SuperAdminDashboardPage() {
                 })}
               </div>
             </Panel>
-            <Panel>
+            <Panel className="dashboard-panel">
               <h2 className="m-0 text-lg font-semibold text-brand-900">Utilisateurs par rôle</h2>
               <p className="mt-1 text-sm text-slate-500">Répartition des profils accessibles au super-admin.</p>
               <div className="mt-5 space-y-4">
@@ -218,7 +218,7 @@ export function SuperAdminDashboardPage() {
                 })}
               </div>
             </Panel>
-            <Panel>
+            <Panel className="dashboard-panel">
               <h2 className="m-0 text-lg font-semibold text-brand-900">Demandes de démonstration</h2>
               <p className="mt-1 text-sm text-slate-500">Statuts des demandes non archivées.</p>
               <div className="mt-5 grid grid-cols-3 gap-3">
@@ -228,7 +228,7 @@ export function SuperAdminDashboardPage() {
               </div>
               <a className="mt-4 inline-flex text-sm font-semibold text-brand-700 hover:underline" href="/app/vdemo">Gérer les démonstrations</a>
             </Panel>
-            <Panel>
+            <Panel className="dashboard-panel">
               <h2 className="m-0 text-lg font-semibold text-brand-900">Demandes d’abonnement</h2>
               <p className="mt-1 text-sm text-slate-500">Statuts des demandes non archivées.</p>
               <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
