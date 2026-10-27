@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
-import { Alert, Button, LoadingState } from '../../components/ui';
+import { Alert, Button, LoadingState, confirmAction } from '../../components/ui';
 import { getSupabaseClient } from '../../data/supabase/client';
 import { useAuth } from '../auth/AuthProvider';
 
@@ -117,7 +117,7 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
 
   async function changeExpenseStatus(expense: Expense, status: 'approved' | 'rejected') {
     if (!profile?.centreId) return;
-    if (status === 'rejected' && !window.confirm('Supprimer cette dépense en la marquant comme refusée ? Son historique sera conservé.')) return;
+    if (status === 'rejected' && !await confirmAction('Refuser cette dépense ? Son historique sera conservé.', { title: 'Confirmer le refus', confirmLabel: 'Refuser la dépense' })) return;
     setSaving(true); setError(null); setNotice(null);
     try {
       const { error } = await getSupabaseClient().from('finance_expenses').update({ status, approved_by: status === 'approved' ? profile.id : null }).eq('id', expense.id).eq('centre_id', profile.centreId).eq('status', 'pending');
@@ -164,7 +164,7 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
       setError('Impossible de désactiver « ' + account.name + ' » tant que son solde est différent de 0 DH. Transférez d’abord les fonds vers un autre compte.');
       return;
     }
-    if (!window.confirm('Désactiver « ' + account.name + ' » ? Son historique sera conservé.')) return;
+    if (!await confirmAction('Désactiver « ' + account.name + ' » ? Son historique sera conservé.', { title: 'Désactiver le compte', confirmLabel: 'Désactiver' })) return;
     setSaving(true); setError(null); setNotice(null);
     try {
       const { error } = await getSupabaseClient().from('finance_accounts').update({ active: false }).eq('id', account.id).eq('centre_id', profile.centreId).eq('active', true);
