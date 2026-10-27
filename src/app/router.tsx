@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router-dom';
 import { App } from './App';
 import { AuthenticatedRoutes, SectionPlaceholder } from '../modules/auth/AuthRoutes';
 import { DashboardPage } from '../modules/dashboard/DashboardPage';
+import { SuperAdminDashboardPage } from '../modules/dashboard/SuperAdminDashboardPage';
 import { RapportCentrePage } from '../modules/dashboard/RapportCentrePage';
 import { StudentPortalDashboardPage } from '../modules/students/StudentPortalDashboardPage';
 import { useAuth } from '../modules/auth/AuthProvider';
@@ -10,6 +11,7 @@ function HomeByRole() {
   const { profile } = useAuth();
   if (profile?.role === 'etudiant') return <StudentPortalDashboardPage />;
   if (profile?.role === 'formateur') return <RapportCentrePage />;
+  if (profile?.role === 'super_admin') return <SuperAdminDashboardPage />;
   return <DashboardPage />;
 }
 import { LandingPage } from '../modules/public/LandingPage';
