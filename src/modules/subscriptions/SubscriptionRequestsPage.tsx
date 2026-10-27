@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Button, LoadingState, PageHeader, Panel, StatusBadge, notify } from '../../components/ui';
+import { Alert, Button, LoadingState, PageHeader, Panel, StatusBadge, confirmAction, notify } from '../../components/ui';
 import { getSupabaseClient } from '../../data/supabase/client';
 import { invokeCentreDirectorAccess } from '../../data/repositories/edgeFunctionRepository';
 
@@ -80,7 +80,7 @@ export function SubscriptionRequestsPage() {
   }
 
   async function deactivateDemoRequest(request: DemoRequest) {
-    const confirmed = window.confirm(`Désactiver la demande de démo de « ${request.centre_name} » ? Elle disparaîtra de la liste active, sans supprimer le centre, le compte directeur ni les données associées.`);
+    const confirmed = await confirmAction(`Désactiver la demande de démo de « ${request.centre_name} » ? Elle disparaîtra de la liste active, sans supprimer le centre, le compte directeur ni les données associées.`, { title: 'Désactiver la demande de démo', confirmLabel: 'Désactiver' });
     if (!confirmed) return;
 
     setSavingId(request.id);
@@ -106,8 +106,9 @@ export function SubscriptionRequestsPage() {
   }
 
   async function createTemporaryDirectorAccess(request: DemoRequest) {
-    const confirmed = window.confirm(
+    const confirmed = await confirmAction(
       `Avant de créer un accès provisoire pour « ${request.centre_name} », confirmez l’identité du directeur en vérifiant son numéro de téléphone avec les informations de la demande. Le mot de passe temporaire devra lui être transmis par un canal privé.`,
+      { title: 'Créer un accès provisoire', confirmLabel: 'Continuer' },
     );
     if (!confirmed) return;
 
