@@ -44,7 +44,10 @@ async function loadPlatformStats(): Promise<PlatformStats> {
         { column: 'status', value: 'pending' },
         { column: 'archived_at', value: null, operator: 'is' },
       ]),
-      countRows('subscription_requests', [{ column: 'status', value: 'pending' }]),
+      countRows('subscription_requests', [
+        { column: 'status', value: 'pending' },
+        { column: 'archived_at', value: null, operator: 'is' },
+      ]),
     ]);
 
   return { centres, activeCentres, inactiveCentres, users, pendingDemos, pendingSubscriptions };
