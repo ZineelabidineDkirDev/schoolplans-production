@@ -38,7 +38,7 @@ export function SubscriptionRequestsPage() {
     setError('');
     const client = getSupabaseClient();
     const [{ data, error: queryError }, { data: demoData, error: demoError }] = await Promise.all([
-      client.from('subscription_requests').select('id,contact_name,centre_name,email,phone,plan,annual_price_mad,status,created_at,admin_notes').order('created_at', { ascending: false }),
+      client.from('subscription_requests').select('id,contact_name,centre_name,email,phone,plan,annual_price_mad,status,created_at,admin_notes').is('archived_at', null).order('created_at', { ascending: false }),
       client.from('demo_requests').select('id,contact_name,centre_name,email,phone,status,created_at,demo_started_at,demo_expires_at,archived_at').is('archived_at', null).order('created_at', { ascending: false }),
     ]);
     if (queryError) {
