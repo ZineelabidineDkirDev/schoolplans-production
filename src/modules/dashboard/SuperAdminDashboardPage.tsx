@@ -34,23 +34,35 @@ async function countRows(
 }
 
 async function loadPlatformStats(): Promise<PlatformStats> {
-  const [centres, activeCentres, inactiveCentres, users, pendingDemos, pendingSubscriptions] =
-    await Promise.all([
-      countRows('centres'),
-      countRows('centres', [{ column: 'actif', value: true }]),
-      countRows('centres', [{ column: 'actif', value: false }]),
-      countRows('profiles'),
-      countRows('demo_requests', [
-        { column: 'status', value: 'pending' },
-        { column: 'archived_at', value: null, operator: 'is' },
-      ]),
-      countRows('subscription_requests', [
-        { column: 'status', value: 'pending' },
-        { column: 'archived_at', value: null, operator: 'is' },
-      ]),
-    ]);
+  const activeOnly = [{ column: 'archived_at', value: null, operator: 'is' as const }];
+  const [
+    centres, activeCentres, inactiveCentres, users, pendingDemos, pendingSubscriptions,
+    starterCentres, standardCentres, professionalCentres, directors, trainers, students, superAdmins,
+    approvedDemos, rejectedDemos, contactedSubscriptions, paidSubscriptions, rejectedSubscriptions,
+  ] = await Promise.all([
+    countRows('centres'),
+    countRows('centres', [{ column: 'actif', value: true }]),
+    countRows('centres', [{ column: 'actif', value: false }]),
+    countRows('profiles'),
+    countRows('demo_requests', [...activeOnly, { column: 'status', value: 'pending' }]),
+    countRows('subscription_requests', [...activeOnly, { column: 'status', value: 'pending' }]),
+    countRows('centres', [{ column: 'type_abonnement', value: 'STARTER' }]),
+    countRows('centres', [{ column: 'type_abonnement', value: 'STANDARD' }]),
+    countRows('centres', [{ column: 'type_abonnement', value: 'PROFESSIONAL' }]),
+    countRows('profiles', [{ column: 'role', value: 'director' }]),
+    countRows('profiles', [{ column: 'role', value: 'formateur' }]),
+    countRows('profiles', [{ column: 'role', value: 'etudiant' }]),
+    countRows('profiles', [{ column: 'role', value: 'super_admin' }]),
+    countRows('demo_requests', [...activeOnly, { column: 'status', value: 'approved' }]),
+    countRows('demo_requests', [...activeOnly, { column: 'status', value: 'rejected' }]),
+    countRows('subscription_requests', [...activeOnly, { column: 'status', value: 'contacted' }]),
+    countRows('subscription_requests', [...activeOnly, { column: 'status', value: 'paid' }]),
+    countRows('subscription_requests', [...activeOnly, { column: 'status', value: 'rejected' }]),
+  ]);
 
-  return { centres, activeCentres, inactiveCentres, users, pendingDemos, pendingSubscriptions };
+  return { centres, activeCentres, inactiveCentres, users, pendingDemos, pendingSubscriptions,
+    starterCentres, standardCentres, professionalCentres, directors, trainers, students, superAdmins,
+    approvedDemos, rejectedDemos, contactedSubscriptions, paidSubscriptions, rejectedSubscriptions };
 }
 
 function MetricCard({
