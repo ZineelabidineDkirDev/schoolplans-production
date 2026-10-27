@@ -8441,3 +8441,49 @@ textarea.sp-field,
     margin-right: -20px;
   }
 }
+
+
+/* Madrassa-Ti — harmonisation transversale des popups de gestion sur toutes les pages. */
+/* Cible les modales React accessibles, y compris celles qui n'utilisent pas les classes historiques. */
+:where([role="dialog"], [aria-modal="true"], .sp-modal, .planning-dialog, .finance-modal, .sp-confirm-modal) {
+  color: #172033;
+}
+
+:where([role="dialog"], [aria-modal="true"]) :where(input:not([type="checkbox]):not([type="radio]):not([type="file"]), select, textarea) {
+  background-color: #fff;
+  color: #172033;
+  border-color: #d5deeb;
+  border-radius: 11px;
+}
+
+:where([role="dialog"], [aria-modal="true"]) :where(input:not([type="checkbox]):not([type="radio]):not([type="file"]), select, textarea):focus,
+:where([role="dialog"], [aria-modal="true"]) :where(input:not([type="checkbox]):not([type="radio]):not([type="file"]), select, textarea):focus-visible {
+  border-color: #2563eb;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 16%);
+}
+
+:where([role="dialog"], [aria-modal="true"]) :where(footer, .modal-footer, .dialog-footer, [data-modal-footer]) {
+  background: #fff;
+  border-top: 1px solid #e5eaf2;
+}
+
+:where([role="dialog"], [aria-modal="true"]) :where(button[aria-label*="Fermer"], button[aria-label*="Close"], .modal-close, .dialog-close) {
+  border-radius: 10px;
+}
+
+@media (max-width: 640px) {
+  :where([role="dialog"], [aria-modal="true"], .sp-modal, .planning-dialog, .finance-modal) {
+    max-width: calc(100vw - 20px);
+    max-height: 92dvh;
+    overflow-y: auto;
+  }
+  :where([role="dialog"], [aria-modal="true"]) :where(footer, .modal-footer, .dialog-footer, [data-modal-footer]) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  :where([role="dialog"], [aria-modal="true"]) :where(footer button, .modal-footer button, .dialog-footer button, [data-modal-footer] button) {
+    flex: 1 1 130px;
+  }
+}
