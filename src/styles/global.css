@@ -8715,3 +8715,35 @@ textarea.sp-field,
   content: "¤";
   font-size: 19px;
 }
+
+
+/* Popup forms: consistent breathing room, two columns on desktop/tablet, one on mobile. */
+.sp-modal:has(.management-editor) .sp-form-grid,
+.sp-modal:has(.management-editor) .management-editor-form.sp-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 22px;
+  row-gap: 20px;
+  align-items: start;
+}
+.sp-modal:has(.management-editor) .sp-form-grid > .management-toolbar,
+.sp-modal:has(.management-editor) .management-editor-form > .management-toolbar {
+  grid-column: 1 / -1;
+}
+.sp-modal:has(.management-editor) .sp-form-field {
+  min-width: 0;
+  width: 100%;
+  margin: 0;
+}
+.sp-modal:has(.management-editor) .sp-field {
+  min-width: 0;
+  width: 100%;
+}
+@media (max-width: 640px) {
+  .sp-modal:has(.management-editor) .sp-form-grid,
+  .sp-modal:has(.management-editor) .management-editor-form.sp-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+    column-gap: 0;
+    row-gap: 15px;
+  }
+}
