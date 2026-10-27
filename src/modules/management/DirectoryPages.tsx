@@ -278,12 +278,24 @@ export function TeachersPage() {
   return <PageFrame actions={canManage ? <Button onClick={() => openForm()} type="button">+ Ajouter un formateur</Button> : undefined}
     description="Équipe pédagogique, matières enseignées et séances attribuées dans le centre." title="Formateurs">
     {error && <Alert tone="error"><p>{error}</p></Alert>}{message && <Alert tone="success"><p>{message}</p></Alert>}
-    {formOpen && canManage && <Modal label={editingId === null ? 'Nouveau formateur' : 'Modifier le formateur'} onClose={() => setFormOpen(false)}><Panel className="management-editor"><h2>{editingId === null ? 'Nouveau formateur' : 'Modifier le formateur'}</h2>
+    {formOpen && canManage && <Modal label={editingId === null ? 'Nouveau formateur' : 'Modifier le formateur'} onClose={() => setFormOpen(false)}><Panel className="management-editor">
+      <header className="management-editor-heading">
+        <div>
+          <p className="planning-progress-eyebrow">Équipe pédagogique</p>
+          <h2>{editingId === null ? 'Nouveau formateur' : 'Modifier le formateur'}</h2>
+        </div>
+      </header>
       <form className="sp-form-grid" onSubmit={(event) => void saveTeacher(event)}>
-        <label className="sp-form-field">Nom complet<input className="sp-field" required value={form.name} onChange={(event) => setForm((v) => ({ ...v, name: event.target.value }))} /></label>
-        <label className="sp-form-field">E-mail<input className="sp-field" type="email" value={form.email} onChange={(event) => setForm((v) => ({ ...v, email: event.target.value }))} /></label>
-        <p className="management-muted">Le compte de connexion et les matières associées ne sont pas modifiés par ce formulaire.</p>
-        <div className="management-toolbar"><Button disabled={saving} type="submit">{saving ? 'Enregistrement…' : 'Enregistrer'}</Button><Button onClick={() => setFormOpen(false)} type="button" variant="secondary">Annuler</Button></div>
+        <label className="sp-form-field sp-popup-placeholder-field">
+          <span className="sp-popup-sr-label">Nom complet</span>
+          <input aria-label="Nom complet" className="sp-field" autoComplete="name" placeholder="Nom complet" required value={form.name} onChange={(event) => setForm((v) => ({ ...v, name: event.target.value }))} />
+        </label>
+        <label className="sp-form-field sp-popup-placeholder-field">
+          <span className="sp-popup-sr-label">E-mail</span>
+          <input aria-label="E-mail" className="sp-field" autoComplete="email" placeholder="E-mail" type="email" value={form.email} onChange={(event) => setForm((v) => ({ ...v, email: event.target.value }))} />
+        </label>
+        <p className="management-muted management-editor-wide">Le compte de connexion et les matières associées ne sont pas modifiés par ce formulaire.</p>
+        <div className="management-toolbar management-editor-wide"><Button disabled={saving} type="submit">{saving ? 'Enregistrement…' : 'Enregistrer'}</Button><Button onClick={() => setFormOpen(false)} type="button" variant="secondary">Annuler</Button></div>
       </form></Panel></Modal>}
     <PlanningLoadState retry={reload} state={state} />
     {state.status === 'loaded' && (state.data.filters.teachers.length === 0 ? <EmptyState title="Aucun formateur n’est enregistré dans ce centre." /> :
