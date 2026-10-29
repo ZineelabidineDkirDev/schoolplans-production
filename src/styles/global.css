@@ -9761,3 +9761,28 @@ textarea.sp-field,
     max-height: min(70dvh, 620px) !important;
   }
 }
+
+
+/* Positionnement explicite : popup AU-DESSUS du bouton circulaire, jamais dessous. */
+@media (max-width: 900px) {
+  .sp-app-nav,
+  .sp-app-nav:hover,
+  .sp-app-nav:focus-within {
+    top: auto !important;
+    right: max(14px, env(safe-area-inset-right)) !important;
+    bottom: calc(max(18px, env(safe-area-inset-bottom)) + 58px + 14px) !important;
+    left: auto !important;
+    transform: none !important;
+    margin: 0 !important;
+  }
+}
+@media (max-width: 480px) {
+  .sp-app-nav,
+  .sp-app-nav:hover,
+  .sp-app-nav:focus-within {
+    top: auto !important;
+    right: max(10px, env(safe-area-inset-right)) !important;
+    bottom: calc(max(16px, env(safe-area-inset-bottom)) + 56px + 12px) !important;
+    left: auto !important;
+  }
+}
