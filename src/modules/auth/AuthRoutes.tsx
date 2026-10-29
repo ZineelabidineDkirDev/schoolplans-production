@@ -367,7 +367,7 @@ function ApplicationShell() {
           </svg>
           <span>{mobileNavOpen ? 'Fermer le menu' : 'Rubriques du centre'}</span>
         </button>
-        <nav aria-label="Navigation principale" className="sp-app-nav" id="sp-dashboard-navigation">
+        <nav aria-label="Navigation principale" className={`sp-app-nav${mobileNavOpen ? ' is-mobile-open' : ''}`} id="sp-dashboard-navigation">
           <NavLink className={({ isActive }) => navItemClass(isActive)} end onClick={() => setMobileNavOpen(false)} to="/app">
             <NavIcon section="home" />
             <span className="sp-nav-label">Accueil</span>
