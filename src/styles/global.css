@@ -9355,3 +9355,82 @@ textarea.sp-field,
     flex-wrap: wrap;
   }
 }
+
+
+/* Madrassa-Ti — bouton burger circulaire flottant, fixe en bas sur mobile/tablette. */
+@media (max-width: 900px) {
+  .sp-dashboard-menu-toggle {
+    position: fixed;
+    right: max(18px, env(safe-area-inset-right));
+    bottom: max(18px, env(safe-area-inset-bottom));
+    z-index: 1001;
+    width: 58px;
+    height: 58px;
+    min-height: 58px;
+    justify-content: center;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: #12306d;
+    color: #fff;
+    box-shadow: 0 8px 26px rgb(8 16 40 / 35%);
+  }
+  .sp-dashboard-menu-toggle span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .sp-dashboard-menu-toggle svg {
+    width: 26px;
+    height: 26px;
+    flex-basis: 26px;
+  }
+  .sp-dashboard-menu-toggle:focus-visible {
+    outline: 3px solid #93c5fd;
+    outline-offset: 4px;
+  }
+  .sp-app-nav,
+  .sp-app-nav:hover,
+  .sp-app-nav:focus-within {
+    position: fixed;
+    right: max(14px, env(safe-area-inset-right));
+    bottom: calc(max(18px, env(safe-area-inset-bottom)) + 72px);
+    left: auto;
+    top: auto;
+    z-index: 1000;
+    display: none;
+    width: min(360px, calc(100vw - 28px));
+    max-height: min(70dvh, 620px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    border-radius: 18px;
+  }
+  .sp-app-nav.is-mobile-open {
+    display: flex;
+  }
+}
+@media (max-width: 480px) {
+  .sp-dashboard-menu-toggle {
+    right: max(16px, env(safe-area-inset-right));
+    bottom: max(16px, env(safe-area-inset-bottom));
+    width: 56px;
+    height: 56px;
+    min-height: 56px;
+  }
+  .sp-app-nav,
+  .sp-app-nav:hover,
+  .sp-app-nav:focus-within {
+    right: max(10px, env(safe-area-inset-right));
+    bottom: calc(max(16px, env(safe-area-inset-bottom)) + 68px);
+    width: min(360px, calc(100vw - 20px));
+    max-height: min(72dvh, 620px);
+  }
+}
