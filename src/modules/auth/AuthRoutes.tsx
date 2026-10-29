@@ -365,12 +365,12 @@ function ApplicationShell() {
           <span>{mobileNavOpen ? 'Fermer le menu' : 'Rubriques du centre'}</span>
         </button>
         <nav aria-label="Navigation principale" className={`sp-app-nav${mobileNavOpen ? ' is-mobile-open' : ''}`} id="sp-dashboard-navigation">
-          <NavLink className={({ isActive }) => navItemClass(isActive)} end to="/app">
+          <NavLink className={({ isActive }) => navItemClass(isActive)} end onClick={() => setMobileNavOpen(false)} to="/app">
             <NavIcon section="home" />
             <span className="sp-nav-label">Accueil</span>
           </NavLink>
           {profile.role === 'super_admin' && (
-            <NavLink className={({ isActive }) => navItemClass(isActive)} to="/app/vz">
+            <NavLink className={({ isActive }) => navItemClass(isActive)} onClick={() => setMobileNavOpen(false)} to="/app/vz">
               <NavIcon section="vz" />
               <span className="sp-nav-label">Gérer les centres</span>
             </NavLink>
