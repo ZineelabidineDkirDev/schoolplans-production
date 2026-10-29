@@ -73,6 +73,7 @@ function AuthenticatedContent() {
 function ApplicationShell() {
   const location = useLocation();
   const [openNavGroups, setOpenNavGroups] = useState({ students: false, teachers: false });
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   useEffect(() => {
     const section = location.pathname.split('/')[2] ?? '';
     setOpenNavGroups((current) => ({
@@ -346,7 +347,24 @@ function ApplicationShell() {
 
 
       <div className="sp-app-wrap">
-        <nav aria-label="Navigation principale" className="sp-app-nav">
+        <button
+          aria-controls="sp-dashboard-navigation"
+          aria-expanded={mobileNavOpen}
+          aria-label={mobileNavOpen ? 'Fermer le menu du tableau de bord' : 'Ouvrir le menu du tableau de bord'}
+          className="sp-dashboard-menu-toggle"
+          onClick={() => {
+            const nextOpen = !mobileNavOpen;
+            setMobileNavOpen(nextOpen);
+            if (nextOpen) setOpenNavGroups({ students: true, teachers: true });
+          }}
+          type="button"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            {mobileNavOpen ? <path d="m6 6 12 12M18 6 6 18" /> : <path d="M3 6h18M3 12h18M3 18h18" />}
+          </svg>
+          <span>{mobileNavOpen ? 'Fermer le menu' : 'Rubriques du centre'}</span>
+        </button>
+        <nav aria-label="Navigation principale" className={`sp-app-nav${mobileNavOpen ? ' is-mobile-open' : ''}`} id="sp-dashboard-navigation">
           <NavLink className={({ isActive }) => navItemClass(isActive)} end to="/app">
             <NavIcon section="home" />
             <span className="sp-nav-label">Accueil</span>
@@ -372,6 +390,7 @@ function ApplicationShell() {
               <NavLink
                 className={({ isActive }) => navItemClass(isActive)}
                 key={section}
+                onClick={() => setMobileNavOpen(false)}
                 to={`/app/${section}`}
               >
                 <NavIcon section={section} />
