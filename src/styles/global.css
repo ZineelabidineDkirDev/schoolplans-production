@@ -9690,3 +9690,74 @@ textarea.sp-field,
     max-width: calc(100vw - 20px) !important;
   }
 }
+
+
+/* Ajustement validé : panneau flottant ancré au bas de la fenêtre, au-dessus du burger. */
+@media (max-width: 900px) {
+  .sp-app-wrap {
+    transform: none !important;
+    filter: none !important;
+    perspective: none !important;
+    contain: none !important;
+  }
+  .sp-dashboard-menu-toggle {
+    position: fixed !important;
+    inset: auto max(18px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) auto !important;
+    z-index: 1501 !important;
+    display: inline-flex !important;
+    width: 58px !important;
+    height: 58px !important;
+    min-height: 58px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 50% !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: #12306d !important;
+    color: #fff !important;
+  }
+  .sp-app-nav,
+  .sp-app-nav:hover,
+  .sp-app-nav:focus-within {
+    position: fixed !important;
+    inset: auto max(14px, env(safe-area-inset-right)) calc(max(18px, env(safe-area-inset-bottom)) + 72px) auto !important;
+    z-index: 1500 !important;
+    display: none !important;
+    width: min(360px, calc(100vw - 28px)) !important;
+    max-width: calc(100vw - 28px) !important;
+    height: auto !important;
+    max-height: min(68dvh, 620px) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 12px !important;
+    gap: 4px !important;
+    border: 1px solid var(--line) !important;
+    border-radius: 18px !important;
+    background: var(--card) !important;
+    color: var(--ink) !important;
+    box-shadow: 0 16px 42px rgb(8 16 40 / 28%) !important;
+  }
+  .sp-app-nav.is-mobile-open {
+    display: flex !important;
+  }
+}
+@media (max-width: 480px) {
+  .sp-dashboard-menu-toggle {
+    inset: auto max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) auto !important;
+    width: 56px !important;
+    height: 56px !important;
+    min-height: 56px !important;
+  }
+  .sp-app-nav,
+  .sp-app-nav:hover,
+  .sp-app-nav:focus-within {
+    inset: auto max(10px, env(safe-area-inset-right)) calc(max(16px, env(safe-area-inset-bottom)) + 68px) auto !important;
+    width: min(360px, calc(100vw - 20px)) !important;
+    max-width: calc(100vw - 20px) !important;
+    max-height: min(70dvh, 620px) !important;
+  }
+}
