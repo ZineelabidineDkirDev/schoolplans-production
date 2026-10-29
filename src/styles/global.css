@@ -9786,3 +9786,110 @@ textarea.sp-field,
     left: auto !important;
   }
 }
+
+
+/* Mobile UX — CRUD, formulaires et popups compacts et alignés. */
+@media (max-width: 640px) {
+  /* Les formulaires classiques passent en une colonne sans champs géants. */
+  :where(.sp-page, .sp-app-content) :where(.sp-form-grid, .management-editor-form, .planning-editor-form, .finance-modal-form, form) {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+    min-width: 0 !important;
+  }
+
+  :where(.sp-page, .sp-app-content, .sp-modal, .planning-dialog, .finance-modal, [role="dialog"], [aria-modal="true"])
+    :where(.sp-form-field, label, .form-field) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  :where(.sp-page, .sp-app-content, .sp-modal, .planning-dialog, .finance-modal, [role="dialog"], [aria-modal="true"])
+    :where(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, textarea, .sp-field) {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 40px !important;
+    padding: 9px 11px !important;
+    font-size: 16px !important;
+    border-radius: 9px !important;
+  }
+
+  :where(.sp-page, .sp-app-content, .sp-modal, .planning-dialog, .finance-modal, [role="dialog"], [aria-modal="true"])
+    textarea {
+    min-height: 88px !important;
+  }
+
+  /* Boutons CRUD compacts : côte à côte si possible, retour à la ligne si nécessaire. */
+  :where(.sp-page, .sp-app-content, .sp-modal, .planning-dialog, .finance-modal, [role="dialog"], [aria-modal="true"])
+    :where(.management-toolbar, .management-status-actions, .planning-editor-actions, .finance-modal-actions, .sp-confirm-actions, .acts, .bar, .modal-footer, .dialog-footer, [data-modal-footer]) {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+    min-width: 0 !important;
+  }
+
+  :where(.sp-page, .sp-app-content, .sp-modal, .planning-dialog, .finance-modal, [role="dialog"], [aria-modal="true"])
+    :where(.management-toolbar, .management-status-actions, .planning-editor-actions, .finance-modal-actions, .sp-confirm-actions, .acts, .bar, .modal-footer, .dialog-footer, [data-modal-footer])
+    > :where(button, .sp-btn, a[role="button"]) {
+    flex: 0 1 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: 36px !important;
+    padding: 8px 11px !important;
+    border-radius: 9px !important;
+    font-size: 13px !important;
+    line-height: 1.25 !important;
+    white-space: normal !important;
+  }
+
+  /* Actions sur les lignes/tableaux : petites icônes ou libellés qui s'enroulent. */
+  :where(.sp-page, .sp-app-content, .sp-modal, [role="dialog"], [aria-modal="true"])
+    :where(td, .management-student-footer, .management-group-row, .management-attendance-row)
+    :where(.actions, .action-buttons, .row-actions, .acts, .bar) {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    min-width: 0 !important;
+  }
+
+  :where(.sp-page, .sp-app-content, .sp-modal, [role="dialog"], [aria-modal="true"])
+    :where(td, .actions, .action-buttons, .row-actions, .acts, .bar)
+    > :where(button, .sp-btn, a[role="button"]) {
+    flex: 0 1 auto !important;
+    width: auto !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+    padding: 7px 9px !important;
+    font-size: 12px !important;
+  }
+
+  /* Popups : largeur adaptée à l'écran, contenu défilant, pied de formulaire lisible. */
+  :where(.sp-modal, .planning-dialog, .finance-modal, .sp-confirm-modal, [role="dialog"], [aria-modal="true"]) {
+    width: calc(100vw - 24px) !important;
+    max-width: 520px !important;
+    max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px)) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    padding: 16px !important;
+    border-radius: 16px !important;
+  }
+
+  :where(.sp-modal, .planning-dialog, .finance-modal, .sp-confirm-modal, [role="dialog"], [aria-modal="true"])
+    :where(h1, h2, h3, .management-editor-heading) {
+    min-width: 0 !important;
+    overflow-wrap: anywhere !important;
+    font-size: 1.05rem !important;
+    line-height: 1.3 !important;
+  }
+}
+
+@media (max-width: 380px) {
+  :where(.sp-page, .sp-app-content, .sp-modal, .planning-dialog, .finance-modal, [role="dialog"], [aria-modal="true"])
+    :where(.management-toolbar, .management-status-actions, .planning-editor-actions, .finance-modal-actions, .sp-confirm-actions, .acts, .bar, .modal-footer, .dialog-footer, [data-modal-footer])
+    > :where(button, .sp-btn, a[role="button"]) {
+    flex: 1 1 calc(50% - 8px) !important;
+    min-width: 0 !important;
+  }
+}
