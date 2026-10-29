@@ -76,6 +76,9 @@ function ApplicationShell() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   useEffect(() => {
     const section = location.pathname.split('/')[2] ?? '';
+    // Sur mobile/tablette, garder les groupes repliés à l'ouverture du menu.
+    // Sur desktop, ouvrir le groupe qui contient la rubrique active.
+    if (window.matchMedia('(max-width: 900px)').matches) return;
     setOpenNavGroups((current) => ({
       students: current.students || ['vs', 'vp', 'vi', 'vnotes'].includes(section),
       teachers: current.teachers || ['vf', 'vk', 'vl', 'vfg', 'vhelp', 'vc'].includes(section),
@@ -355,7 +358,7 @@ function ApplicationShell() {
           onClick={() => {
             const nextOpen = !mobileNavOpen;
             setMobileNavOpen(nextOpen);
-            if (nextOpen) setOpenNavGroups({ students: true, teachers: true });
+            if (nextOpen) setOpenNavGroups({ students: false, teachers: false });
           }}
           type="button"
         >
