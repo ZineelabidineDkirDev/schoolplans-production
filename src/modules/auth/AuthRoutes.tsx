@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, NavLink, Navigate, Outlet, useLocation, useParams } from 'react-router-dom';
 import {
   canAccessSection,
@@ -367,7 +368,7 @@ function ApplicationShell() {
           </svg>
           <span>{mobileNavOpen ? 'Fermer le menu' : 'Rubriques du centre'}</span>
         </button>
-        <nav aria-label="Navigation principale" className={`sp-app-nav${mobileNavOpen ? ' is-mobile-open' : ''}`} id="sp-dashboard-navigation">
+        {createPortal(<nav aria-label="Navigation principale" className={`sp-app-nav${mobileNavOpen ? ' is-mobile-open' : ''}`} id="sp-dashboard-navigation">
           <NavLink className={({ isActive }) => navItemClass(isActive)} end onClick={() => setMobileNavOpen(false)} to="/app">
             <NavIcon section="home" />
             <span className="sp-nav-label">Accueil</span>
@@ -440,7 +441,7 @@ function ApplicationShell() {
               </>
             );
           })()}
-        </nav>
+        </nav>, document.body)}
 
         <main className="sp-app-content">
           {profile.role === 'super_admin' && !activeCentreId && (
