@@ -9893,3 +9893,82 @@ textarea.sp-field,
     min-width: 0 !important;
   }
 }
+
+
+/* Correctif prioritaire burger mobile : panneau ancré au bouton, aligné à droite. */
+@media (max-width: 900px) {
+  .sp-dashboard-menu-toggle {
+    position: fixed !important;
+    right: max(16px, env(safe-area-inset-right)) !important;
+    bottom: max(16px, env(safe-area-inset-bottom)) !important;
+    top: auto !important;
+    left: auto !important;
+    z-index: 10001 !important;
+    display: inline-flex !important;
+    width: 56px !important;
+    height: 56px !important;
+    min-width: 56px !important;
+    min-height: 56px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 50% !important;
+  }
+
+  body > .sp-app-nav,
+  body > nav.sp-app-nav,
+  .sp-app-nav,
+  .sp-app-nav:hover,
+  .sp-app-nav:focus-within {
+    position: fixed !important;
+    inset: auto max(16px, env(safe-area-inset-right)) calc(max(16px, env(safe-area-inset-bottom)) + 68px) auto !important;
+    z-index: 10000 !important;
+    box-sizing: border-box !important;
+    display: none !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: min(360px, calc(100vw - 32px)) !important;
+    min-width: 0 !important;
+    max-width: calc(100vw - 32px) !important;
+    height: auto !important;
+    max-height: min(68dvh, 560px) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    margin: 0 !important;
+    padding: 10px !important;
+    border-radius: 16px !important;
+    box-shadow: 0 12px 36px rgb(0 0 0 / 24%) !important;
+    transform: none !important;
+  }
+
+  .sp-app-nav.is-mobile-open,
+  .sp-app-nav.is-mobile-open:hover,
+  .sp-app-nav.is-mobile-open:focus-within {
+    display: flex !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .sp-dashboard-menu-toggle {
+    right: max(12px, env(safe-area-inset-right)) !important;
+    bottom: max(12px, env(safe-area-inset-bottom)) !important;
+    width: 54px !important;
+    height: 54px !important;
+    min-width: 54px !important;
+    min-height: 54px !important;
+  }
+
+  body > .sp-app-nav,
+  body > nav.sp-app-nav,
+  .sp-app-nav,
+  .sp-app-nav:hover,
+  .sp-app-nav:focus-within {
+    right: max(12px, env(safe-area-inset-right)) !important;
+    bottom: calc(max(12px, env(safe-area-inset-bottom)) + 66px) !important;
+    width: min(360px, calc(100vw - 24px)) !important;
+    max-width: calc(100vw - 24px) !important;
+    max-height: min(70dvh, 560px) !important;
+  }
+}
