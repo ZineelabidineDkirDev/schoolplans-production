@@ -9157,3 +9157,156 @@ textarea.sp-field,
     border-radius: 12px;
   }
 }
+
+
+/* Madrassa-Ti — menu hamburger du tableau de bord sur tablette et mobile. */
+.sp-dashboard-menu-toggle {
+  display: none;
+}
+@media (max-width: 900px) {
+  .sp-app-wrap {
+    max-width: none;
+    padding: 14px 14px 32px;
+  }
+  .sp-dashboard-menu-toggle {
+    position: relative;
+    z-index: 15;
+    display: inline-flex;
+    width: 100%;
+    min-height: 48px;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    margin: 0 0 12px;
+    padding: 11px 14px;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: var(--card);
+    color: var(--ink);
+    box-shadow: var(--sh);
+    font: inherit;
+    font-weight: 750;
+    text-align: left;
+    cursor: pointer;
+  }
+  .sp-dashboard-menu-toggle svg {
+    display: block;
+    width: 22px;
+    height: 22px;
+    flex: 0 0 22px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+  .sp-app-nav,
+  .sp-app-nav:hover,
+  .sp-app-nav:focus-within {
+    position: relative;
+    z-index: 14;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    left: auto;
+    display: none;
+    width: 100%;
+    max-height: min(70dvh, 620px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 10px;
+    border: 1px solid rgb(255 255 255 / 12%);
+    border-radius: 16px;
+    background: linear-gradient(180deg, #0a1b40, #12306d);
+    box-shadow: 0 16px 38px rgb(8 16 40 / 24%);
+    color: #cfd9f2;
+    transition: none;
+  }
+  .sp-app-nav.is-mobile-open {
+    display: flex;
+  }
+  .sp-app-nav .sp-nav-link,
+  .sp-app-nav .sp-nav-group-toggle {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    color: #e5ecff;
+    font-size: 14px;
+    text-align: left;
+    white-space: normal;
+  }
+  .sp-app-nav .sp-nav-link:hover,
+  .sp-app-nav .sp-nav-link.active,
+  .sp-app-nav .sp-nav-group-toggle:hover,
+  .sp-app-nav .sp-nav-group-toggle.active {
+    background: rgb(255 255 255 / 12%);
+    color: #fff;
+  }
+  .sp-app-nav .sp-nav-icon {
+    width: 22px;
+    height: 22px;
+  }
+  .sp-app-nav .sp-nav-label {
+    display: block;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    opacity: 1;
+  }
+  .sp-app-nav .sp-nav-chevron {
+    display: block;
+    margin-left: auto;
+    opacity: 1;
+  }
+  .sp-app-nav .sp-nav-group {
+    width: 100%;
+    min-width: 0;
+    flex: none;
+  }
+  .sp-app-nav .sp-nav-submenu {
+    position: static;
+    width: 100%;
+    max-width: none;
+    max-height: none;
+    overflow: visible;
+    padding: 4px 0 6px 12px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .sp-app-nav .sp-nav-submenu .sp-nav-link {
+    width: 100%;
+    min-width: 0;
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 9px 12px;
+    color: #d5def4;
+    font-size: 13px;
+  }
+  .sp-app-nav .sp-nav-submenu .sp-nav-label {
+    text-align: left;
+  }
+  .sp-app-content {
+    min-width: 0;
+    width: 100%;
+  }
+}
+@media (max-width: 480px) {
+  .sp-app-wrap {
+    padding: 10px 8px 24px;
+  }
+  .sp-dashboard-menu-toggle {
+    min-height: 46px;
+    margin-bottom: 10px;
+  }
+  .sp-app-nav,
+  .sp-app-nav:hover,
+  .sp-app-nav:focus-within {
+    max-height: 68dvh;
+    padding: 8px;
+  }
+}
