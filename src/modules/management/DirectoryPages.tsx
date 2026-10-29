@@ -572,9 +572,14 @@ export function FormationGroupsPage() {
     <PageFrame
       actions={
         canManage ? (
-          <Button onClick={() => startFormationForm()} type="button">
-            + Ajouter une formation
-          </Button>
+          <div className="management-page-actions">
+            <Button onClick={() => startFormationForm()} type="button" variant="secondary">
+              + Ajouter une formation
+            </Button>
+            <Button onClick={() => startGroupForm()} type="button">
+              + Ajouter un groupe
+            </Button>
+          </div>
         ) : undefined
       }
       description="Créez et gérez les formations du centre, leurs modules et leurs groupes."
@@ -962,6 +967,14 @@ export function FormationGroupsPage() {
                     </div>
                     {canManage && (
                       <div className="management-card-actions">
+                        {formation.active && (
+                          <Button
+                            onClick={() => startGroupForm(String(formation.id))}
+                            type="button"
+                          >
+                            + Groupe
+                          </Button>
+                        )}
                         <Button
                           onClick={() => startFormationForm(formation)}
                           type="button"
