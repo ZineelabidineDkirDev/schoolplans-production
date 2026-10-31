@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Alert, Button, LoadingState, PageHeader, Panel } from '../../components/ui';
 import {
   getDashboardDateRange,
@@ -668,6 +669,16 @@ export function DashboardPage() {
   const metrics = summary;
   if (!metrics) return null;
 
+  const todayRange = getDashboardDateRange('d');
+  const todayMetrics = summarizeDashboard(
+    data,
+    todayRange,
+    { teacherId: '', courseId: '' },
+    new Set(data.closedDates),
+    new Set(data.cancelledOccurrences),
+  );
+  const pendingRequests = data.requests.filter((request) => request.status === 'en_attente').length;
+
   return (
     <section
       className="mx-auto w-full max-w-screen-2xl space-y-5"
@@ -811,6 +822,50 @@ export function DashboardPage() {
           value={data.groupCount ?? '—'}
         />
       </div>
+
+      <Panel className="dashboard-panel">
+        <div className="dashboard-heading">
+          <div>
+            <h2>Actions prioritaires</h2>
+            <p className="sp-muted">Les éléments qui demandent une intervention de l’administration.</p>
+          </div>
+        </div>
+        <div className="grid gap-3 md:grid-cols-3">
+          <Link
+            className="dashboard-card block no-underline transition hover:-translate-y-0.5 hover:shadow-md"
+            to="/app/vi"
+          >
+            <span className="dashboard-metric-icon"><DashboardIcon name="clock" /></span>
+            <div>
+              <b>Demandes à traiter</b>
+              <strong>{pendingRequests}</strong>
+              <small>{pendingRequests === 0 ? 'Aucune demande en attente' : 'Ouvrir les demandes d’inscription'}</small>
+            </div>
+          </Link>
+          <Link
+            className="dashboard-card block no-underline transition hover:-translate-y-0.5 hover:shadow-md"
+            to="/app/vp"
+          >
+            <span className="dashboard-metric-icon"><DashboardIcon name="check" /></span>
+            <div>
+              <b>Suivi des présences</b>
+              <strong>{metrics.attendanceCount}</strong>
+              <small>Consulter et contrôler les présences de la période</small>
+            </div>
+          </Link>
+          <Link
+            className="dashboard-card block no-underline transition hover:-translate-y-0.5 hover:shadow-md"
+            to="/app/vcal"
+          >
+            <span className="dashboard-metric-icon"><DashboardIcon name="formations" /></span>
+            <div>
+              <b>Programme du jour</b>
+              <strong>{todayMetrics.occurrences.length}</strong>
+              <small>{todayMetrics.occurrences.length === 0 ? 'Aucune séance planifiée aujourd’hui' : 'Voir les séances planifiées aujourd’hui'}</small>
+            </div>
+          </Link>
+        </div>
+      </Panel>
 
       <div className="dashboard-columns dashboard-main-grid">
         <Panel className="dashboard-panel">
