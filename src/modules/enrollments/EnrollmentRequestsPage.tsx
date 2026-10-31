@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Alert, Button, EmptyState, LoadingState, PageHeader, Panel, notify } from '../../components/ui';
 import {
   approveEnrollmentRequest,
@@ -43,6 +43,7 @@ function statusLabel(status: EnrollmentRequest['status']): string {
 export function EnrollmentRequestsPage() {
   const { profile } = useAuth();
   const [filter, setFilter] = useState<EnrollmentRequestFilter>('en_attente');
+  const [search, setSearch] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
   const [state, setState] = useState<PageState>({ status: 'loading' });
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -83,6 +84,16 @@ export function EnrollmentRequestsPage() {
       active = false;
     };
   }, [authorized, filter, profile?.centreId, reloadKey]);
+
+  const visibleRequests = useMemo(() => {
+    if (state.status !== 'loaded') return [];
+    const query = search.trim().toLocaleLowerCase('fr');
+    if (!query) return state.requests;
+    return state.requests.filter((request) =>
+      [request.firstName, request.lastName, request.email, request.telephone, request.city, request.educationLevel]
+        .some((value) => String(value ?? '').toLocaleLowerCase('fr').includes(query)),
+    );
+  }, [search, state]);
 
   async function performDecision(
     request: EnrollmentRequest,
@@ -129,6 +140,11 @@ export function EnrollmentRequestsPage() {
       {actionError && <Alert tone="error">{actionError}</Alert>}
 
       <Panel className="enrollment-request-toolbar">
+        <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 sm:items-end">
+        <label className="sp-form-field" htmlFor="enrollment-request-search">
+          Rechercher une demande
+          <input className="sp-field w-full min-w-0" id="enrollment-request-search" onChange={(event) => setSearch(event.target.value)} placeholder="Nom, email, téléphone, ville…" type="search" value={search} />
+        </label>
         <label className="sp-form-field" htmlFor="enrollment-request-filter">
           Afficher
           <select
@@ -146,9 +162,10 @@ export function EnrollmentRequestsPage() {
             ))}
           </select>
         </label>
-        <span className="enrollment-request-limit">
-          200 demandes au maximum, des plus récentes.
+        <span className="enrollment-request-limit sm:col-span-2">
+          {state.status === 'loaded' ? `${visibleRequests.length} résultat(s) affiché(s) sur ${state.requests.length} demande(s).` : '200 demandes au maximum, des plus récentes.'}
         </span>
+        </div>
       </Panel>
 
       {state.status === 'loading' && (
@@ -168,10 +185,10 @@ export function EnrollmentRequestsPage() {
       )}
 
       {state.status === 'loaded' &&
-        (state.requests.length === 0 ? (
+        (visibleRequests.length === 0 ? (
           <EmptyState
-            description="Aucune demande ne correspond au filtre sélectionné."
-            title="Aucune demande d’inscription."
+            description={search.trim() ? "Essayez un autre nom, email, téléphone ou ville." : "Aucune demande ne correspond au filtre sélectionné."}
+            title={search.trim() ? "Aucun résultat." : "Aucune demande d’inscription."}
           />
         ) : (
           <Panel className="!p-0">
@@ -188,7 +205,7 @@ export function EnrollmentRequestsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {state.requests.map((request) => {
+                  {visibleRequests.map((request) => {
                     const pending = request.status === 'en_attente';
                     const processing = processingId === String(request.id);
                     return (
