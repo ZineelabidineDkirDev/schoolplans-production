@@ -1118,6 +1118,7 @@ export function StudentsPage() {
   const { profile } = useAuth();
   const planning = usePlanningData();
   const [search, setSearch] = useState('');
+  const [groupFilter, setGroupFilter] = useState('all');
   const [reloadKey, setReloadKey] = useState(0);
   const [state, setState] = useState<StudentState>({ status: 'loading' });
   const [editingId, setEditingId] = useState<string | number | null>(null);
@@ -1183,11 +1184,13 @@ export function StudentsPage() {
   const visibleStudents = useMemo(() => {
     if (state.status !== 'loaded') return [];
     const normalized = search.trim().toLocaleLowerCase('fr');
-    return state.students.filter((student) =>
-      [student.firstName, student.lastName, student.email, student.telephone, student.parentTelephone, student.city, student.groupName]
-        .filter(Boolean).join(' ').toLocaleLowerCase('fr').includes(normalized),
-    );
-  }, [search, state]);
+    return state.students.filter((student) => {
+      const matchesSearch = [student.firstName, student.lastName, student.email, student.telephone, student.parentTelephone, student.city, student.groupName]
+        .filter(Boolean).join(' ').toLocaleLowerCase('fr').includes(normalized);
+      const matchesGroup = groupFilter === 'all' || String(student.groupId ?? '') === groupFilter;
+      return matchesSearch && matchesGroup;
+    });
+  }, [groupFilter, search, state]);
 
   function startCreate() {
     setEditingId(null);
@@ -1317,11 +1320,22 @@ export function StudentsPage() {
         </Panel>
         </Modal>
       )}
-      <div className="management-toolbar">
+      <div className="management-toolbar management-student-filters">
         <label className="sp-form-field">
           Rechercher un étudiant
           <input className="sp-field" onChange={(event) => setSearch(event.target.value)} placeholder="Nom, e-mail, ville ou groupe" type="search" value={search} />
         </label>
+        {state.status === 'loaded' && (
+          <label className="sp-form-field">
+            Groupe
+            <select className="sp-field" onChange={(event) => setGroupFilter(event.target.value)} value={groupFilter}>
+              <option value="all">Tous les groupes</option>
+              {Array.from(new Map(state.students.filter((student) => student.groupId !== null).map((student) => [String(student.groupId), student.groupName || 'Groupe sans nom'])).entries())
+                .sort((left, right) => left[1].localeCompare(right[1], 'fr'))
+                .map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+            </select>
+          </label>
+        )}
         {state.status === 'loaded' && <span className="management-result-count">{visibleStudents.length} / {state.students.length} étudiants</span>}
       </div>
       {state.status === 'loading' && <Panel><LoadingState label="Chargement des étudiants…" /></Panel>}
