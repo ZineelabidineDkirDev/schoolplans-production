@@ -241,6 +241,7 @@ export function RoomsPage() {
 export function TeachersPage() {
   const { profile } = useAuth();
   const { state, reload } = usePlanningData();
+  const [searchTeachers, setSearchTeachers] = useState('');
   const [editingId, setEditingId] = useState<string | number | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -298,8 +299,20 @@ export function TeachersPage() {
         <div className="management-toolbar management-editor-wide"><Button disabled={saving} type="submit">{saving ? 'Enregistrement…' : 'Enregistrer'}</Button><Button onClick={() => setFormOpen(false)} type="button" variant="secondary">Annuler</Button></div>
       </form></Panel></Modal>}
     <PlanningLoadState retry={reload} state={state} />
-    {state.status === 'loaded' && (state.data.filters.teachers.length === 0 ? <EmptyState title="Aucun formateur n’est enregistré dans ce centre." /> :
-      <div className="management-card-grid management-four-column-grid">{state.data.filters.teachers.map((teacher) => {
+    {state.status === 'loaded' && (
+      <>
+        <div className="management-toolbar">
+          <label className="sp-form-field">
+            Rechercher un formateur
+            <input className="sp-field" type="search" placeholder="Nom ou adresse e-mail" value={searchTeachers} onChange={(event) => setSearchTeachers(event.target.value)} />
+          </label>
+          <span className="management-result-count">
+            {state.data.filters.teachers.filter((teacher) => `${teacher.name} ${teacher.email ?? ''}`.toLocaleLowerCase('fr').includes(searchTeachers.trim().toLocaleLowerCase('fr'))).length} / {state.data.filters.teachers.length} formateurs
+          </span>
+        </div>
+        {state.data.filters.teachers.filter((teacher) => `${teacher.name} ${teacher.email ?? ''}`.toLocaleLowerCase('fr').includes(searchTeachers.trim().toLocaleLowerCase('fr'))).length === 0
+          ? <EmptyState title={searchTeachers ? 'Aucun formateur ne correspond à cette recherche.' : 'Aucun formateur n’est enregistré dans ce centre.'} />
+          : <div className="management-card-grid management-four-column-grid">{state.data.filters.teachers.filter((teacher) => `${teacher.name} ${teacher.email ?? ''}`.toLocaleLowerCase('fr').includes(searchTeachers.trim().toLocaleLowerCase('fr'))).map((teacher) => {
         const courses = state.data.courses.filter((course) => String(course.teacherId) === String(teacher.id));
         const subjects = state.data.subjectIdsByTeacher[String(teacher.id)] ?? [];
         const hours = courses.reduce((total, course) => total + courseDuration(course), 0);
@@ -311,7 +324,9 @@ export function TeachersPage() {
           <p className="management-card-note">{teacher.profileId ? 'Compte de connexion associé' : 'Aucun compte associé'}</p>
           {canManage && <div className="management-toolbar"><Button onClick={() => openForm(teacher)} type="button" variant="secondary">Modifier</Button><Button disabled={Boolean(teacher.profileId || courses.length)} onClick={() => void removeTeacher(teacher)} type="button" variant="danger">Supprimer</Button></div>}
         </Panel>;
-      })}</div>)}
+      })}</div>}
+      </>
+    )}
   </PageFrame>;
 }
 
