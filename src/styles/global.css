@@ -10012,3 +10012,162 @@ textarea.sp-field,
     overflow-y: auto;
   }
 }
+
+/* Responsive transversal — planning, présence et rapport pédagogique */
+@media (max-width: 850px) {
+  .rc-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .rc-grid-top,
+  .rc-grid-bottom {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rc-grid-bottom .rc-channel-panel {
+    grid-column: auto;
+  }
+
+  .rc-panel,
+  .rc-kpi,
+  .management-attendance-course {
+    min-width: 0;
+  }
+
+  .rc-donut-layout,
+  .rc-map-layout {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .planning-calendar {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .planning-calendar .planning-grid {
+    min-width: 760px;
+  }
+}
+
+@media (max-width: 560px) {
+  .rc-page {
+    gap: 14px;
+  }
+
+  .rc-heading-row {
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .rc-heading-row > :last-child {
+    width: 100%;
+  }
+
+  .rc-kpis {
+    gap: 9px;
+  }
+
+  .rc-kpi {
+    grid-template-columns: 34px minmax(0, 1fr);
+    column-gap: 9px;
+    padding: 12px;
+  }
+
+  .rc-kpi-icon {
+    width: 34px;
+    height: 34px;
+    font-size: 17px;
+  }
+
+  .rc-kpi strong {
+    font-size: 21px;
+  }
+
+  .rc-panel {
+    padding: 14px;
+  }
+
+  .rc-panel-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .rc-chart-svg {
+    min-height: 130px;
+  }
+
+  .rc-table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .rc-table {
+    min-width: 460px;
+  }
+
+  .management-attendance-course {
+    padding: 14px;
+  }
+
+  .management-attendance-heading {
+    gap: 10px;
+  }
+
+  .management-attendance-heading > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .management-absence-alert-row .management-toolbar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .management-absence-alert-row .management-toolbar > a {
+    justify-content: center;
+    min-width: 0;
+    padding-inline: 8px;
+  }
+
+  .planning-week-toolbar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .planning-week-toolbar strong {
+    grid-column: 1 / -1;
+    min-width: 0;
+    order: -1;
+    line-height: 1.4;
+  }
+
+  .planning-week-toolbar > button:last-child {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .planning-day-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 5px;
+    scroll-snap-type: x proximity;
+  }
+
+  .planning-day-chips button {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+
+  .planning-agenda-item {
+    align-items: flex-start;
+    gap: 9px;
+    padding: 10px;
+  }
+}
