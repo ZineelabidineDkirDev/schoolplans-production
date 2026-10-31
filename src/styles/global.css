@@ -9972,3 +9972,43 @@ textarea.sp-field,
     max-height: min(70dvh, 560px) !important;
   }
 }
+
+/* Responsive — demandes d'inscription (administration du centre) */
+@media (max-width: 640px) {
+  .enrollment-request-toolbar {
+    align-items: stretch;
+    padding: 12px;
+  }
+
+  .enrollment-request-toolbar .sp-form-field {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .enrollment-request-toolbar .sp-field {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .enrollment-request-limit {
+    display: block;
+    line-height: 1.45;
+  }
+
+  .enrollment-request-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .enrollment-request-actions .sp-btn {
+    width: 100%;
+    white-space: normal;
+  }
+
+  .enrollment-reject-dialog {
+    width: min(100%, calc(100vw - 24px));
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+  }
+}
