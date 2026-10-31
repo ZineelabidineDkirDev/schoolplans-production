@@ -17,6 +17,7 @@ function describeError(error: unknown): string {
 export function MyStudentsPage() {
   const { profile } = useAuth();
   const [reloadKey, setReloadKey] = useState(0);
+  const [search, setSearch] = useState('');
   const [state, setState] = useState<StudentsPageState>({ status: 'loading' });
 
   useEffect(() => {
@@ -76,7 +77,17 @@ export function MyStudentsPage() {
             title="Aucun étudiant enregistré dans votre centre."
           />
         ) : (
-          <Panel className="!p-0">
+          <>
+            <div className="management-toolbar">
+              <label className="sp-form-field">
+                Rechercher dans mes étudiants
+                <input className="sp-field" type="search" placeholder="Nom, prénom, e-mail, téléphone ou cours" value={search} onChange={(event) => setSearch(event.target.value)} />
+              </label>
+              <span className="management-result-count">
+                {state.students.filter(({ student, courses }) => [student.lastName, student.firstName, student.email, student.telephone, ...courses].filter(Boolean).join(' ').toLocaleLowerCase('fr').includes(search.trim().toLocaleLowerCase('fr'))).length} / {state.students.length} étudiants
+              </span>
+            </div>
+            <Panel className="!p-0">
             <div className="sp-table-wrap">
               <table className="sp-table">
                 <thead>
@@ -99,7 +110,7 @@ export function MyStudentsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {state.students.map(({ student, courses }) => (
+                  {state.students.filter(({ student, courses }) => [student.lastName, student.firstName, student.email, student.telephone, ...courses].filter(Boolean).join(' ').toLocaleLowerCase('fr').includes(search.trim().toLocaleLowerCase('fr'))).map(({ student, courses }) => (
                     <tr
                       className="border-b border-line last:border-0 hover:bg-slate-50/70"
                       key={String(student.id)}
@@ -142,7 +153,11 @@ export function MyStudentsPage() {
                 </tbody>
               </table>
             </div>
-          </Panel>
+            </Panel>
+            {state.students.filter(({ student, courses }) => [student.lastName, student.firstName, student.email, student.telephone, ...courses].filter(Boolean).join(' ').toLocaleLowerCase('fr').includes(search.trim().toLocaleLowerCase('fr'))).length === 0 && (
+              <EmptyState title="Aucun étudiant ne correspond à cette recherche." />
+            )}
+          </>
         ))}
     </section>
   );
