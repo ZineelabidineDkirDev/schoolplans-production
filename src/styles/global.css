@@ -9976,7 +9976,22 @@ textarea.sp-field,
 
 /* Madrassa-Ti — navigation latérale organisée par rôle */
 .sp-app-wrap {
-  align-items: flex-start;
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 22px !important;
+  width: 100%;
+}
+.sp-nav-column {
+  display: flex;
+  flex: 0 0 276px;
+  flex-direction: column;
+  width: 276px;
+  min-width: 0;
+  gap: 10px;
+}
+.sp-app-content {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 .sp-nav-toolbar {
   display: flex;
@@ -10101,7 +10116,9 @@ textarea.sp-field,
     color: #172554 !important;
     box-shadow: none !important;
   }
-  .sp-app-wrap { display: flex !important; flex-direction: column !important; gap: 0 !important; }
+  .sp-app-wrap { display: flex !important; flex-direction: column !important; align-items: stretch !important; gap: 0 !important; }
+  .sp-nav-column { flex: 0 0 auto !important; width: 100% !important; }
+  .sp-app-content { width: 100%; }
   .sp-app-nav,
   .sp-app-nav:hover,
   .sp-app-nav:focus-within {
