@@ -361,6 +361,7 @@ function ApplicationShell() {
 
 
       <div className="sp-app-wrap">
+        <aside className="sp-nav-column">
         <div className="sp-nav-toolbar">
           <button className="sp-nav-compact-toggle" type="button" onClick={() => setNavCompact((value) => !value)} aria-pressed={navCompact} title={navCompact ? 'Développer le menu' : 'Réduire le menu'}>
             <span aria-hidden="true">{navCompact ? '»' : '«'}</span><span className="sp-nav-label">{navCompact ? 'Développer' : 'Réduire'}</span>
@@ -404,6 +405,7 @@ function ApplicationShell() {
             });
           })()}
         </nav>
+        </aside>
 
         <main className="sp-app-content">
           {profile.role === 'super_admin' && !activeCentreId && (
