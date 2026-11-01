@@ -73,28 +73,17 @@ function AuthenticatedContent() {
 
 function ApplicationShell() {
   const location = useLocation();
-  const NAV_GROUPS = ['overview', 'pedagogy', 'people', 'followup', 'finance', 'reports', 'settings', 'platform'] as const;
-  const [openNavGroups, setOpenNavGroups] = useState<Record<string, boolean>>(() => {
-    try {
-      const saved = window.localStorage.getItem('madrassa-ti-nav-groups');
-      return saved ? { ...Object.fromEntries(NAV_GROUPS.map((key) => [key, false])), ...JSON.parse(saved) } : { overview: true };
-    } catch { return { overview: true }; }
-  });
+  const [openNavGroups, setOpenNavGroups] = useState({ students: false, teachers: false });
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [navCompact, setNavCompact] = useState(false);
-  useEffect(() => {
-    try { window.localStorage.setItem('madrassa-ti-nav-groups', JSON.stringify(openNavGroups)); } catch { /* stockage indisponible */ }
-  }, [openNavGroups]);
   useEffect(() => {
     const section = location.pathname.split('/')[2] ?? '';
-    const groupForSection: Record<string, string> = {
-      vd: 'overview', vcal: 'pedagogy', vr: 'pedagogy', vfg: 'pedagogy', vl: 'pedagogy',
-      vs: 'people', vi: 'people', vf: 'people', vn: 'people', vp: 'followup', vnotes: 'followup',
-      vc: 'followup', vhelp: 'followup', vk: 'followup', vfinance: 'finance', vh: 'settings',
-      vpcentre: 'settings', vz: 'platform', vsub: 'platform', vm: 'overview', vq: 'overview', vrapport: 'reports'
-    };
-    const activeGroup = groupForSection[section];
-    if (activeGroup) setOpenNavGroups((current) => ({ ...current, [activeGroup]: true }));
+    // Sur mobile/tablette, garder les groupes repliés à l'ouverture du menu.
+    // Sur desktop, ouvrir le groupe qui contient la rubrique active.
+    if (window.matchMedia('(max-width: 900px)').matches) return;
+    setOpenNavGroups((current) => ({
+      students: current.students || ['vs', 'vp', 'vi', 'vnotes'].includes(section),
+      teachers: current.teachers || ['vf', 'vk', 'vl', 'vfg', 'vhelp', 'vc'].includes(section),
+    }));
   }, [location.pathname]);
   const {
     profile,
@@ -362,47 +351,95 @@ function ApplicationShell() {
 
 
       <div className="sp-app-wrap">
-        <div className="sp-nav-toolbar">
-          <button className="sp-nav-compact-toggle" type="button" onClick={() => setNavCompact((value) => !value)} aria-pressed={navCompact} title={navCompact ? 'Développer le menu' : 'Réduire le menu'}>
-            <span aria-hidden="true">{navCompact ? '»' : '«'}</span><span className="sp-nav-label">{navCompact ? 'Développer' : 'Réduire'}</span>
-          </button>
-          <button className="sp-dashboard-menu-toggle" type="button" aria-controls="sp-dashboard-navigation" aria-expanded={mobileNavOpen} onClick={() => setMobileNavOpen((value) => !value)}>
-            <span aria-hidden="true">{mobileNavOpen ? '×' : '☰'}</span><span>{mobileNavOpen ? 'Fermer la navigation' : 'Navigation'}</span>
-          </button>
-        </div>
-        {createPortal(<nav aria-label="Navigation principale" className={`sp-app-nav${navCompact ? ' is-compact' : ''}${mobileNavOpen ? ' is-mobile-open' : ''}`} id="sp-dashboard-navigation">
+        <button
+          aria-controls="sp-dashboard-navigation"
+          aria-expanded={mobileNavOpen}
+          aria-label={mobileNavOpen ? 'Fermer le menu du tableau de bord' : 'Ouvrir le menu du tableau de bord'}
+          className="sp-dashboard-menu-toggle"
+          onClick={() => {
+            const nextOpen = !mobileNavOpen;
+            setMobileNavOpen(nextOpen);
+            if (nextOpen) setOpenNavGroups({ students: false, teachers: false });
+          }}
+          type="button"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            {mobileNavOpen ? <path d="m6 6 12 12M18 6 6 18" /> : <path d="M3 6h18M3 12h18M3 18h18" />}
+          </svg>
+          <span>{mobileNavOpen ? 'Fermer le menu' : 'Rubriques du centre'}</span>
+        </button>
+        {createPortal(<nav aria-label="Navigation principale" className={`sp-app-nav${mobileNavOpen ? ' is-mobile-open' : ''}`} id="sp-dashboard-navigation">
+          <NavLink className={({ isActive }) => navItemClass(isActive)} end onClick={() => setMobileNavOpen(false)} to="/app">
+            <NavIcon section="home" />
+            <span className="sp-nav-label">Accueil</span>
+          </NavLink>
+          {profile.role === 'super_admin' && (
+            <NavLink className={({ isActive }) => navItemClass(isActive)} onClick={() => setMobileNavOpen(false)} to="/app/vz">
+              <NavIcon section="vz" />
+              <span className="sp-nav-label">Gérer les centres</span>
+            </NavLink>
+          )}
           {(() => {
-            const groups: { id: string; label: string; icon: AppSection; sections: AppSection[] }[] = profile.role === 'super_admin'
-              ? [{ id: 'platform', label: 'Gestion de la plateforme', icon: 'vz', sections: visibleSections.filter((x) => ['vd', 'vz', 'vsub'].includes(x)) }]
-              : [
-                  { id: 'overview', label: 'Vue d’ensemble', icon: 'vd', sections: visibleSections.filter((x) => ['vd', 'vm', 'vq'].includes(x)) },
-                  { id: 'pedagogy', label: 'Gestion pédagogique', icon: 'vfg', sections: visibleSections.filter((x) => ['vfg', 'vl', 'vcal', 'vr'].includes(x)) },
-                  { id: 'people', label: 'Gestion des personnes', icon: 'vs', sections: visibleSections.filter((x) => ['vs', 'vi', 'vf', 'vn'].includes(x)) },
-                  { id: 'followup', label: 'Suivi pédagogique', icon: 'vp', sections: visibleSections.filter((x) => ['vp', 'vnotes', 'vc', 'vhelp', 'vk'].includes(x)) },
-                  { id: 'finance', label: 'Gestion financière', icon: 'vfinance', sections: visibleSections.filter((x) => x === 'vfinance') },
-                  { id: 'reports', label: 'Documents et rapports', icon: 'vrapport', sections: visibleSections.filter((x) => x === 'vrapport') },
-                  { id: 'settings', label: 'Paramètres', icon: 'vpcentre', sections: visibleSections.filter((x) => ['vpcentre', 'vh'].includes(x)) },
-                ];
+            const studentItems = visibleSections.filter((section) =>
+              ['vs', 'vp', 'vi', 'vnotes'].includes(section),
+            );
+            const teacherItems = visibleSections.filter((section) =>
+              ['vf', 'vk', 'vl', 'vfg', 'vhelp', 'vc'].includes(section),
+            );
+            const grouped = new Set([...studentItems, ...teacherItems]);
+            const directItems = visibleSections.filter(
+              (section) => !(profile.role === 'super_admin' && section === 'vz') && !grouped.has(section),
+            );
             const renderItem = (section: AppSection) => (
-              <NavLink className={({ isActive }) => navItemClass(isActive)} key={section} title={navCompact ? SECTION_LABELS[section] : undefined}
-                onClick={() => setMobileNavOpen(false)} to={`/app/${section}`}>
-                <NavIcon section={section} /><span className="sp-nav-label">{SECTION_LABELS[section]}</span>
-                {section === 'vsub' && pendingDemoCount > 0 && <span className="sp-nav-count">{pendingDemoCount > 99 ? '99+' : pendingDemoCount}</span>}
+              <NavLink
+                className={({ isActive }) => navItemClass(isActive)}
+                key={section}
+                onClick={() => setMobileNavOpen(false)}
+                to={`/app/${section}`}
+              >
+                <NavIcon section={section} />
+                <span className="sp-nav-label">{SECTION_LABELS[section]}</span>
+                {section === 'vsub' && pendingDemoCount > 0 && (
+                  <span aria-label={`${pendingDemoCount} demande(s) de démo en attente`} className="sp-nav-count">
+                    {pendingDemoCount > 99 ? '99+' : pendingDemoCount}
+                  </span>
+                )}
               </NavLink>
             );
-            return groups.filter((group) => group.sections.length > 0).map((group) => {
-              const expanded = Boolean(openNavGroups[group.id]);
-              const active = group.sections.some((section) => location.pathname === `/app/${section}`);
-              return <div className="sp-nav-group" key={group.id}>
-                <button type="button" aria-expanded={expanded} title={navCompact ? group.label : undefined}
-                  className={`sp-nav-group-toggle${active ? ' active' : ''}`}
-                  onClick={() => setOpenNavGroups((current) => ({ ...current, [group.id]: !current[group.id] }))}>
-                  <NavIcon section={group.icon} /><span className="sp-nav-label">{group.label}</span>
-                  <svg aria-hidden="true" className={`sp-nav-chevron${expanded ? ' is-open' : ''}`} viewBox="0 0 24 24"><path d="m7 10 5 5 5-5" /></svg>
-                </button>
-                {expanded && <div className="sp-nav-submenu">{group.sections.map(renderItem)}</div>}
-              </div>;
-            });
+            const renderGroup = (
+              id: 'students' | 'teachers',
+              label: string,
+              items: AppSection[],
+              iconSection: AppSection,
+            ) => {
+              if (!items.length) return null;
+              const expanded = window.matchMedia('(max-width: 900px)').matches || openNavGroups[id];
+              const active = items.some((section) => location.pathname === `/app/${section}`);
+              return (
+                <div className="sp-nav-group" key={id}>
+                  <button
+                    aria-expanded={expanded}
+                    className={`sp-nav-group-toggle${active ? ' active' : ''}`}
+                    onClick={() => setOpenNavGroups((current) => ({ ...current, [id]: !current[id] }))}
+                    type="button"
+                  >
+                    <NavIcon section={iconSection} />
+                    <span className="sp-nav-label">{label}</span>
+                    <svg aria-hidden="true" className={`sp-nav-chevron${expanded ? ' is-open' : ''}`} viewBox="0 0 24 24">
+                      <path d="m7 10 5 5 5-5" />
+                    </svg>
+                  </button>
+                  {expanded && <div className="sp-nav-submenu">{items.map(renderItem)}</div>}
+                </div>
+              );
+            };
+            return (
+              <>
+                {renderGroup('students', 'Étudiants', studentItems, 'vs')}
+                {renderGroup('teachers', 'Formateurs & pédagogie', teacherItems, 'vf')}
+                {directItems.map(renderItem)}
+              </>
+            );
           })()}
         </nav>, document.body)}
 
