@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, NavLink, Navigate, Outlet, useLocation, useParams } from 'react-router-dom';
 import {
   canAccessSection,
@@ -361,7 +362,6 @@ function ApplicationShell() {
 
 
       <div className="sp-app-wrap">
-        <aside className="sp-nav-column">
         <div className="sp-nav-toolbar">
           <button className="sp-nav-compact-toggle" type="button" onClick={() => setNavCompact((value) => !value)} aria-pressed={navCompact} title={navCompact ? 'Développer le menu' : 'Réduire le menu'}>
             <span aria-hidden="true">{navCompact ? '»' : '«'}</span><span className="sp-nav-label">{navCompact ? 'Développer' : 'Réduire'}</span>
@@ -370,7 +370,7 @@ function ApplicationShell() {
             <span aria-hidden="true">{mobileNavOpen ? '×' : '☰'}</span><span>{mobileNavOpen ? 'Fermer la navigation' : 'Navigation'}</span>
           </button>
         </div>
-        <nav aria-label="Navigation principale" className={`sp-app-nav${navCompact ? ' is-compact' : ''}${mobileNavOpen ? ' is-mobile-open' : ''}`} id="sp-dashboard-navigation">
+        {createPortal(<nav aria-label="Navigation principale" className={`sp-app-nav${navCompact ? ' is-compact' : ''}${mobileNavOpen ? ' is-mobile-open' : ''}`} id="sp-dashboard-navigation">
           {(() => {
             const groups: { id: string; label: string; icon: AppSection; sections: AppSection[] }[] = profile.role === 'super_admin'
               ? [{ id: 'platform', label: 'Gestion de la plateforme', icon: 'vz', sections: visibleSections.filter((x) => ['vd', 'vz', 'vsub'].includes(x)) }]
@@ -404,8 +404,7 @@ function ApplicationShell() {
               </div>;
             });
           })()}
-        </nav>
-        </aside>
+        </nav>, document.body)}
 
         <main className="sp-app-content">
           {profile.role === 'super_admin' && !activeCentreId && (
