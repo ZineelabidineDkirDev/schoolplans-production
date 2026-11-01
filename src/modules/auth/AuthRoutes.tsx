@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { Link, NavLink, Navigate, Outlet, useLocation, useParams } from 'react-router-dom';
 import {
   canAccessSection,
@@ -370,7 +369,7 @@ function ApplicationShell() {
             <span aria-hidden="true">{mobileNavOpen ? '×' : '☰'}</span><span>{mobileNavOpen ? 'Fermer la navigation' : 'Navigation'}</span>
           </button>
         </div>
-        {createPortal(<nav aria-label="Navigation principale" className={`sp-app-nav${navCompact ? ' is-compact' : ''}${mobileNavOpen ? ' is-mobile-open' : ''}`} id="sp-dashboard-navigation">
+        <nav aria-label="Navigation principale" className={`sp-app-nav${navCompact ? ' is-compact' : ''}${mobileNavOpen ? ' is-mobile-open' : ''}`} id="sp-dashboard-navigation">
           {(() => {
             const groups: { id: string; label: string; icon: AppSection; sections: AppSection[] }[] = profile.role === 'super_admin'
               ? [{ id: 'platform', label: 'Gestion de la plateforme', icon: 'vz', sections: visibleSections.filter((x) => ['vd', 'vz', 'vsub'].includes(x)) }]
@@ -404,7 +403,7 @@ function ApplicationShell() {
               </div>;
             });
           })()}
-        </nav>, document.body)}
+        </nav>
 
         <main className="sp-app-content">
           {profile.role === 'super_admin' && !activeCentreId && (
