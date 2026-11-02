@@ -12,7 +12,10 @@ const input: StudentRecordInput = {
   lastName: ' Benali ',
   email: ' amina@example.test ',
   telephone: '',
+  guardianName: ' Karim Benali ',
+  guardianEmail: ' karim@example.test ',
   parentTelephone: '',
+  guardianCity: ' Casablanca ',
   city: ' Rabat ',
   address: '',
   educationLevel: ' Supérieur ',
@@ -52,7 +55,10 @@ describe('student management CRUD repository', () => {
         nom: 'Benali',
         email: 'amina@example.test',
         telephone: null,
+        nom_parent: 'Karim Benali',
+        email_parent: 'karim@example.test',
         telephone_parent: null,
+        ville_parent: 'Casablanca',
         ville: 'Rabat',
         adresse: null,
         niveau_etudes: 'Supérieur',
@@ -91,6 +97,9 @@ describe('student management CRUD repository', () => {
     await expect(
       createCentreStudent(client, 'centre-a', { ...input, email: 'not-an-email' }),
     ).rejects.toThrow('adresse e-mail');
+    await expect(
+      createCentreStudent(client, 'centre-a', { ...input, guardianEmail: 'not-an-email' }),
+    ).rejects.toThrow('e-mail du parent ou tuteur');
     expect(from).not.toHaveBeenCalled();
   });
 });

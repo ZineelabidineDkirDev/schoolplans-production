@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Alert, Button, EmptyState, LoadingState, PageHeader, Panel, notify } from '../../components/ui';
 import {
   approveEnrollmentRequest,
@@ -42,13 +42,12 @@ function statusLabel(status: EnrollmentRequest['status']): string {
 
 export function EnrollmentRequestsPage() {
   const { profile } = useAuth();
-  const [filter, setFilter] = useState<EnrollmentRequestFilter>('en_attente');
+  const [filter, setFilter] = useState<EnrollmentRequestFilter>('all');
+  const [search, setSearch] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
   const [state, setState] = useState<PageState>({ status: 'loading' });
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [message, setMessageState] = useState<string | null>(null);
   const setMessage = (value: string | null) => {
-    setMessageState(value);
     if (value) notify(value, 'success');
   };
   const [actionError, setActionError] = useState<string | null>(null);
@@ -56,6 +55,25 @@ export function EnrollmentRequestsPage() {
   const [refusalReason, setRefusalReason] = useState('');
 
   const authorized = profile?.role === 'admin' || profile?.role === 'director';
+  const requestStats = useMemo(() => {
+    const requests = state.status === 'loaded' ? state.requests : [];
+    return {
+      total: requests.length,
+      pending: requests.filter((request) => request.status === 'en_attente').length,
+      approved: requests.filter((request) => request.status === 'approuvee').length,
+      rejected: requests.filter((request) => request.status === 'refusee').length,
+    };
+  }, [state]);
+  const visibleRequests = useMemo(() => {
+    if (state.status !== 'loaded') return [];
+    const query = search.trim().toLocaleLowerCase('fr');
+    if (!query) return state.requests;
+    return state.requests.filter((request) =>
+      [request.firstName, request.lastName, request.email, request.telephone, request.city]
+        .filter((value): value is string => Boolean(value))
+        .some((value) => value.toLocaleLowerCase('fr').includes(query)),
+    );
+  }, [search, state]);
 
   useEffect(() => {
     let active = true;
@@ -125,7 +143,6 @@ export function EnrollmentRequestsPage() {
         title="Inscriptions"
       />
 
-      {message && <Alert tone="success">{message}</Alert>}
       {actionError && <Alert tone="error">{actionError}</Alert>}
 
       <Panel className="enrollment-request-toolbar">
@@ -147,9 +164,28 @@ export function EnrollmentRequestsPage() {
           </select>
         </label>
         <span className="enrollment-request-limit">
-          200 demandes au maximum, des plus récentes.
+          Les {requestStats.total} demandes les plus récentes sont chargées (maximum 200).
         </span>
+        <label className="sp-form-field enrollment-request-search" htmlFor="enrollment-request-search">
+          Rechercher
+          <input
+            autoComplete="off"
+            className="sp-field"
+            id="enrollment-request-search"
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Nom, e-mail, téléphone ou ville"
+            type="search"
+            value={search}
+          />
+        </label>
       </Panel>
+
+      <section aria-label="Résumé des demandes" className="enrollment-request-summary">
+        <article><span>Total chargées</span><strong>{requestStats.total}</strong></article>
+        <article className="is-pending"><span>En attente</span><strong>{requestStats.pending}</strong></article>
+        <article className="is-approved"><span>Approuvées</span><strong>{requestStats.approved}</strong></article>
+        <article className="is-rejected"><span>Refusées</span><strong>{requestStats.rejected}</strong></article>
+      </section>
 
       {state.status === 'loading' && (
         <Panel>
@@ -168,10 +204,12 @@ export function EnrollmentRequestsPage() {
       )}
 
       {state.status === 'loaded' &&
-        (state.requests.length === 0 ? (
+        (visibleRequests.length === 0 ? (
           <EmptyState
-            description="Aucune demande ne correspond au filtre sélectionné."
-            title="Aucune demande d’inscription."
+            description={search.trim()
+              ? 'Essayez un autre nom, e-mail, téléphone ou ville.'
+              : 'Aucune demande ne correspond au filtre sélectionné.'}
+            title={search.trim() ? 'Aucun résultat trouvé.' : 'Aucune demande d’inscription.'}
           />
         ) : (
           <Panel className="!p-0">
@@ -188,7 +226,7 @@ export function EnrollmentRequestsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {state.requests.map((request) => {
+                  {visibleRequests.map((request) => {
                     const pending = request.status === 'en_attente';
                     const processing = processingId === String(request.id);
                     return (
@@ -255,13 +293,13 @@ export function EnrollmentRequestsPage() {
 
       {requestToReject && (
         <div
-          className="planning-dialog-backdrop"
+          className="planning-dialog-backdrop app-modal-backdrop"
           onMouseDown={() => processingId === null && setRequestToReject(null)}
         >
           <section
             aria-labelledby="enrollment-reject-title"
             aria-modal="true"
-            className="planning-dialog enrollment-reject-dialog"
+            className="planning-dialog enrollment-reject-dialog app-modal"
             onMouseDown={(event) => event.stopPropagation()}
             role="dialog"
           >

@@ -133,6 +133,9 @@ const plans = [
   },
 ];
 
+const SALES_WHATSAPP_NUMBER = '212624438140';
+const SALES_EMAIL = 'zainmawada2@gmail.com';
+
 const comparisonFeatures = [
   { label: 'Étudiants & formateurs', available: [true, true, true] },
   { label: 'Formations, groupes & matières', available: [true, true, true] },
@@ -222,6 +225,14 @@ export function LandingPage() {
   const [contactMessage, setContactMessage] = useState('');
   const [subscriptionPlan, setSubscriptionPlan] = useState<(typeof plans)[number] | null>(null);
   const [subscriptionMessage, setSubscriptionMessage] = useState('');
+  const [subscriptionOrder, setSubscriptionOrder] = useState<{
+    contactName: string;
+    centreName: string;
+    email: string;
+    phone: string;
+    plan: string;
+    annualPrice: string;
+  } | null>(null);
   const [demoOpen, setDemoOpen] = useState(false);
   const [demoMessage, setDemoMessage] = useState('');
   const [demoSubmitting, setDemoSubmitting] = useState(false);
@@ -267,20 +278,30 @@ export function LandingPage() {
     if (!subscriptionPlan) return;
     setSubscriptionSubmitting(true);
     setSubscriptionMessage('');
+    setSubscriptionOrder(null);
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
-    const { error } = await getSupabaseClient().from('subscription_requests').insert({
-      contact_name: String(form.get('contact_name') ?? '').trim(),
-      centre_name: String(form.get('centre_name') ?? '').trim(),
+    const order = {
+      contactName: String(form.get('contact_name') ?? '').trim(),
+      centreName: String(form.get('centre_name') ?? '').trim(),
       email: String(form.get('email') ?? '').trim(),
       phone: String(form.get('phone') ?? '').trim(),
       plan: subscriptionPlan.name,
+      annualPrice: subscriptionPlan.price,
+    };
+    const { error } = await getSupabaseClient().from('subscription_requests').insert({
+      contact_name: order.contactName,
+      centre_name: order.centreName,
+      email: order.email,
+      phone: order.phone,
+      plan: order.plan,
       annual_price_mad: Number(subscriptionPlan.price.replace(/\s/g, '')),
     });
     if (error) {
       setSubscriptionMessage('Impossible d’envoyer la demande pour le moment. Vérifiez la configuration Supabase et réessayez.');
     } else {
-      setSubscriptionMessage('Votre demande a bien été enregistrée. Notre équipe vous contactera pour la suite du paiement.');
+      setSubscriptionMessage('Votre demande est enregistrée. Choisissez un canal ci-dessous pour transmettre le récapitulatif à notre équipe.');
+      setSubscriptionOrder(order);
       formElement.reset();
     }
     setSubscriptionSubmitting(false);
@@ -954,6 +975,7 @@ export function LandingPage() {
                     className="sp-landing-plan-cta"
                     onClick={() => {
                       setSubscriptionMessage('');
+                      setSubscriptionOrder(null);
                       setSubscriptionPlan(plan);
                     }}
                     type="button"
@@ -1180,14 +1202,14 @@ export function LandingPage() {
                 <b>☎</b>
                 <span>
                   <small>Téléphone</small>
-                  <a href="tel:+212600000000">+212 6 00 00 00 00</a>
+                  <a href="tel:+212624438140">+212 6 24 43 81 40</a>
                 </span>
               </div>
               <div>
                 <b>@</b>
                 <span>
                   <small>E-mail</small>
-                  <a href="mailto:contact@test-formation.ma">contact@test-formation.ma</a>
+                  <a href={`mailto:${SALES_EMAIL}`}>{SALES_EMAIL}</a>
                 </span>
               </div>
               <div>
@@ -1199,7 +1221,7 @@ export function LandingPage() {
             </div>
             <a
               className="sp-landing-whatsapp"
-              href="https://wa.me/212624438140"
+              href={`https://wa.me/${SALES_WHATSAPP_NUMBER}`}
               rel="noreferrer"
               target="_blank"
             >
@@ -1269,11 +1291,13 @@ export function LandingPage() {
       </section>
 
       {demoOpen && (
-        <div role="presentation" onClick={(event) => { if (event.target === event.currentTarget) setDemoOpen(false); }} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,.68)', display: 'grid', placeItems: 'center', padding: 16, overflowY: 'auto' }}>
-          <section aria-labelledby="demo-title" aria-modal="true" role="dialog" style={{ width: 'min(100%, 560px)', maxHeight: '90vh', overflowY: 'auto', background: 'var(--sp-card, #fff)', color: 'var(--sp-text, #172554)', borderRadius: 20, padding: 24, boxShadow: '0 24px 80px rgba(0,0,0,.25)' }}>
-            <button type="button" onClick={() => setDemoOpen(false)} aria-label="Fermer" style={{ float: 'right', fontSize: 24, padding: '0 8px' }}>×</button>
-            <p className="sp-landing-kicker">DEMANDE DE DÉMO GRATUITE</p>
-            <h2 id="demo-title"><b>14 jours · 0 DH</b></h2>
+        <div className="app-modal-backdrop landing-modal-backdrop" role="presentation" onClick={(event) => { if (event.target === event.currentTarget) setDemoOpen(false); }}>
+          <section aria-labelledby="demo-title" aria-modal="true" className="app-modal landing-modal" role="dialog">
+            <header className="app-modal-header landing-modal-header">
+              <button type="button" onClick={() => setDemoOpen(false)} aria-label="Fermer" className="app-modal-close">×</button>
+              <p className="sp-landing-kicker">DEMANDE DE DÉMO GRATUITE</p>
+              <h2 id="demo-title"><b>14 jours · 0 DH</b></h2>
+            </header>
             <form className="sp-landing-contact-form" onSubmit={submitDemo}>
               <label>Nom complet du responsable<input name="contact_name" required minLength={2} maxLength={100} autoComplete="name" placeholder="Votre nom complet" /></label>
               <label>Nom du centre<input name="centre_name" required minLength={2} maxLength={150} placeholder="Nom de votre centre" /></label>
@@ -1287,22 +1311,51 @@ export function LandingPage() {
       )}
 
       {subscriptionPlan && (
-        <div role="presentation" onClick={(event) => { if (event.target === event.currentTarget) setSubscriptionPlan(null); }} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,.68)', display: 'grid', placeItems: 'center', padding: 16, overflowY: 'auto' }}>
-          <section aria-labelledby="subscription-title" aria-modal="true" role="dialog" style={{ width: 'min(100%, 560px)', maxHeight: '90vh', overflowY: 'auto', background: 'var(--sp-card, #fff)', color: 'var(--sp-text, #172554)', borderRadius: 20, padding: 24, boxShadow: '0 24px 80px rgba(0,0,0,.25)' }}>
-            <button type="button" onClick={() => setSubscriptionPlan(null)} aria-label="Fermer" style={{ float: 'right', fontSize: 24, padding: '0 8px' }}>×</button>
-            <p className="sp-landing-kicker">DEMANDE D’ABONNEMENT</p>
-            <h2 id="subscription-title">Pack {subscriptionPlan.name}</h2>
-            <p style={{ marginBottom: 18, fontWeight: 700 }}>{subscriptionPlan.price} DH / an</p>
+        <div className="app-modal-backdrop landing-modal-backdrop" role="presentation" onClick={(event) => { if (event.target === event.currentTarget) setSubscriptionPlan(null); }}>
+          <section aria-labelledby="subscription-title" aria-modal="true" className="app-modal landing-modal" role="dialog">
+            <header className="app-modal-header landing-modal-header">
+              <button type="button" onClick={() => setSubscriptionPlan(null)} aria-label="Fermer" className="app-modal-close">×</button>
+              <p className="sp-landing-kicker">DEMANDE D’ABONNEMENT</p>
+              <h2 id="subscription-title">Pack {subscriptionPlan.name}</h2>
+              <p className="landing-modal-price">{subscriptionPlan.price} DH / an</p>
+            </header>
             <form className="sp-landing-contact-form" onSubmit={submitSubscription}>
               <label>Nom complet du responsable<input name="contact_name" required minLength={2} maxLength={100} autoComplete="name" placeholder="Votre nom complet" /></label>
               <label>Nom du centre<input name="centre_name" required minLength={2} maxLength={150} placeholder="Nom de votre centre" /></label>
               <label>E-mail<input name="email" type="email" required maxLength={254} autoComplete="email" placeholder="vous@exemple.ma" /></label>
               <label>Téléphone<input name="phone" type="tel" required minLength={6} maxLength={30} autoComplete="tel" placeholder="+212 ..." /></label>
-              <div style={{ padding: 14, borderRadius: 12, background: 'var(--sp-soft, #f8fafc)' }}>
+              <div className="landing-modal-plan-summary">
                 <strong>Pack {subscriptionPlan.name}</strong><br />Abonnement annuel : {subscriptionPlan.price} DH
               </div>
               <button className="sp-landing-submit" disabled={subscriptionSubmitting} type="submit">{subscriptionSubmitting ? 'Envoi en cours…' : 'Demander mon abonnement →'}</button>
               {subscriptionMessage && <p role="status">{subscriptionMessage}</p>}
+              {subscriptionOrder && (
+                <div className="landing-order-followup">
+                  <p>La demande est déjà visible dans le suivi Super Admin. Le message ne sera envoyé qu’après votre confirmation dans WhatsApp ou votre messagerie.</p>
+                  <div className="landing-order-followup-actions">
+                    <a
+                      className="landing-order-followup-link"
+                      href={`https://wa.me/${SALES_WHATSAPP_NUMBER}?text=${encodeURIComponent(
+                        `Bonjour, je souhaite souscrire au pack ${subscriptionOrder.plan} (${subscriptionOrder.annualPrice} DH/an) pour le centre ${subscriptionOrder.centreName}.\nResponsable : ${subscriptionOrder.contactName}\nE-mail : ${subscriptionOrder.email}\nTéléphone : ${subscriptionOrder.phone}`,
+                      )}`}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      Continuer sur WhatsApp
+                    </a>
+                    <a
+                      className="landing-order-followup-link"
+                      href={`mailto:${SALES_EMAIL}?subject=${encodeURIComponent(
+                        `Commande ${subscriptionOrder.plan} — ${subscriptionOrder.centreName}`,
+                      )}&body=${encodeURIComponent(
+                        `Bonjour,\n\nJe souhaite souscrire au pack ${subscriptionOrder.plan} (${subscriptionOrder.annualPrice} DH/an) pour le centre ${subscriptionOrder.centreName}.\n\nResponsable : ${subscriptionOrder.contactName}\nE-mail : ${subscriptionOrder.email}\nTéléphone : ${subscriptionOrder.phone}\n\nMerci de m’indiquer les prochaines étapes de paiement.`,
+                      )}`}
+                    >
+                      Préparer un e-mail
+                    </a>
+                  </div>
+                </div>
+              )}
             </form>
           </section>
         </div>

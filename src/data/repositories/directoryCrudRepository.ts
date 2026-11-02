@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { StudentIdentifier } from '../../types/students';
 
 export type RoomInput = { name: string; type: string; capacity: number | null };
-export type TeacherInput = { name: string; email: string };
+export type TeacherInput = { firstName: string; lastName: string; email: string; telephone: string };
 
 function centre(value: string): string {
   if (!value.trim()) throw new Error('Sélectionnez un centre avant de gérer ces données.');
@@ -22,12 +22,17 @@ function validateRoom(input: RoomInput): RoomInput {
   return { name, type, capacity: input.capacity };
 }
 function validateTeacher(input: TeacherInput): TeacherInput {
-  const name = required(input.name, 'nom du formateur');
+  const firstName = required(input.firstName, 'prénom du formateur');
+  const lastName = required(input.lastName, 'nom du formateur');
   const email = input.email.trim();
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw new Error('L’adresse e-mail du formateur est invalide.');
   }
-  return { name, email };
+  const telephone = input.telephone.trim();
+  if (telephone && !/^[+()\d\s.-]{6,30}$/.test(telephone)) {
+    throw new Error('Le numéro de téléphone du formateur est invalide.');
+  }
+  return { firstName, lastName, email, telephone };
 }
 
 export async function createCentreRoom(client: SupabaseClient, centreIdValue: string, input: RoomInput): Promise<StudentIdentifier> {
@@ -65,7 +70,10 @@ export async function createCentreTeacher(client: SupabaseClient, centreIdValue:
   const centreId = centre(centreIdValue);
   const teacher = validateTeacher(input);
   const { data, error } = await client.from('formateurs').insert({
-    centre_id: centreId, nom: teacher.name, email: teacher.email || null,
+    centre_id: centreId,
+    nom: `${teacher.firstName} ${teacher.lastName}`,
+    email: teacher.email || null,
+    telephone: teacher.telephone || null,
   }).select('id').single();
   if (error) throw error;
   if (!data || (typeof data.id !== 'number' && typeof data.id !== 'string')) throw new Error('Identifiant de formateur manquant dans la réponse.');
@@ -76,7 +84,9 @@ export async function updateCentreTeacher(client: SupabaseClient, centreIdValue:
   const centreId = centre(centreIdValue);
   const teacher = validateTeacher(input);
   const { data, error } = await client.from('formateurs').update({
-    nom: teacher.name, email: teacher.email || null,
+    nom: `${teacher.firstName} ${teacher.lastName}`,
+    email: teacher.email || null,
+    telephone: teacher.telephone || null,
   }).eq('centre_id', centreId).eq('id', teacherId).select('id').maybeSingle();
   if (error) throw error;
   if (!data) throw new Error('Formateur introuvable dans le centre actif.');

@@ -58,6 +58,8 @@ export type PlanningFilterOptions = {
     id: StudentIdentifier;
     name: string;
     email: string | null;
+    telephone: string | null;
+    createdAt: string | null;
     profileId: string | null;
   }>;
   rooms: PlanningRoom[];

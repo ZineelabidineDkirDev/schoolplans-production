@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { Alert, Button, EmptyState, LoadingState, Modal, PageHeader, Panel, confirmAction, notify } from '../../components/ui';
 import { getWeekOccurrences } from '../../business/planning/planningSchedule';
 import { getPlanningData } from '../../data/repositories/planningRepository';
@@ -17,6 +18,7 @@ import {
 } from '../../data/repositories/formationGroupRepository';
 import {
   getAbsenceAlerts,
+  getCentreAttendanceSummary,
   getAttendanceSheet,
   getCentreStudents,
   saveAttendance,
@@ -142,6 +144,11 @@ function initials(name: string): string {
     .join('');
 }
 
+function teacherNameParts(name: string): { firstName: string; lastName: string } {
+  const [firstName = '', ...lastName] = name.trim().split(/\s+/);
+  return { firstName, lastName: lastName.join(' ') };
+}
+
 function courseDuration(course: PlanningData['courses'][number]): number {
   const [startHour, startMinute] = course.startsAt.split(':').map(Number);
   const [endHour, endMinute] = course.endsAt.split(':').map(Number);
@@ -167,9 +174,7 @@ export function RoomsPage() {
     setErrorState(value);
     if (value) notify(value, 'error');
   };
-  const [message, setMessageState] = useState<string | null>(null);
   const setMessage = (value: string | null) => {
-    setMessageState(value);
     if (value) notify(value, 'success');
   };
   const [form, setForm] = useState<RoomInput>({ name: '', type: '', capacity: 30 });
@@ -200,7 +205,7 @@ export function RoomsPage() {
   return (
     <PageFrame actions={canManage ? <Button onClick={() => openForm()} type="button">+ Ajouter une salle</Button> : undefined}
       description="Salles du centre et volume d’occupation hebdomadaire selon les séances planifiées." title="Salles">
-      {error && <Alert tone="error"><p>{error}</p></Alert>}{message && <Alert tone="success"><p>{message}</p></Alert>}
+      {error && <Alert tone="error"><p>{error}</p></Alert>}
       {formOpen && canManage && <Modal label={editingId === null ? 'Nouvelle salle' : 'Modifier la salle'} onClose={() => setFormOpen(false)}><Panel className="management-editor">
         <h2>{editingId === null ? 'Nouvelle salle' : 'Modifier la salle'}</h2>
         <form className="sp-form-grid" onSubmit={(event) => void saveRoom(event)}>
@@ -241,6 +246,28 @@ export function RoomsPage() {
 export function TeachersPage() {
   const { profile } = useAuth();
   const { state, reload } = usePlanningData();
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null);
+  const [teacherProfileTab, setTeacherProfileTab] = useState<
+    'overview' | 'groups' | 'students' | 'pay' | 'settings'
+  >('overview');
+  const [teacherStudentsState, setTeacherStudentsState] = useState<StudentState>({
+    status: 'loading',
+  });
+  const [teacherPayrollState, setTeacherPayrollState] = useState<
+    | { status: 'loading' }
+    | { status: 'error'; message: string }
+    | {
+        status: 'loaded';
+        payroll: Array<{
+          id: string;
+          periodStart: string;
+          periodEnd: string;
+          amountDue: number;
+          status: string;
+          paidAt: string | null;
+        }>;
+      }
+  >({ status: 'loading' });
   const [editingId, setEditingId] = useState<string | number | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -249,15 +276,106 @@ export function TeachersPage() {
     setErrorState(value);
     if (value) notify(value, 'error');
   };
-  const [message, setMessageState] = useState<string | null>(null);
   const setMessage = (value: string | null) => {
-    setMessageState(value);
     if (value) notify(value, 'success');
   };
-  const [form, setForm] = useState<TeacherInput>({ name: '', email: '' });
+  const [form, setForm] = useState<TeacherInput>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    telephone: '',
+  });
   const canManage = profile?.role === 'admin' || profile?.role === 'director';
+  const selectedTeacher =
+    state.status === 'loaded'
+      ? state.data.filters.teachers.find((teacher) => String(teacher.id) === selectedTeacherId)
+      : undefined;
+  const teacherGroups =
+    selectedTeacher && state.status === 'loaded'
+      ? state.data.filters.groups.filter(
+          (group) => String(group.teacherId) === String(selectedTeacher.id),
+        )
+      : [];
+  const teacherCourses =
+    selectedTeacher && state.status === 'loaded'
+      ? state.data.courses.filter(
+          (course) => String(course.teacherId) === String(selectedTeacher.id),
+        )
+      : [];
+  const teacherFormations = Array.from(
+    new Map(
+      teacherGroups
+        .filter((group) => group.formationId !== null)
+        .map((group) => [String(group.formationId), {
+          id: group.formationId,
+          name: group.formationName ?? 'Formation non définie',
+        }]),
+    ).values(),
+  );
+
+  useEffect(() => {
+    if (!selectedTeacher || !profile?.centreId) return;
+    let active = true;
+    setTeacherStudentsState({ status: 'loading' });
+    void getCentreStudents(getSupabaseClient(), profile.centreId)
+      .then((students) => {
+        if (active) setTeacherStudentsState({ status: 'loaded', students });
+      })
+      .catch((cause: unknown) => {
+        if (active) setTeacherStudentsState({ status: 'error', message: errorMessage(cause) });
+      });
+    return () => {
+      active = false;
+    };
+  }, [profile?.centreId, selectedTeacher]);
+
+  useEffect(() => {
+    if (!selectedTeacher || !profile?.centreId || !canManage || teacherProfileTab !== 'pay') return;
+    let active = true;
+    setTeacherPayrollState({ status: 'loading' });
+    void (async () => {
+      try {
+        const { data, error } = await getSupabaseClient()
+          .from('finance_teacher_payroll')
+          .select('id,period_start,period_end,amount_due,status,paid_at')
+          .eq('centre_id', profile.centreId)
+          .eq('teacher_id', selectedTeacher.id)
+          .neq('status', 'cancelled')
+          .order('period_start', { ascending: false });
+        if (error) throw error;
+        if (!Array.isArray(data)) throw new Error('Réponse financière invalide.');
+        const payroll = data.map((entry) => {
+          const amountDue = Number(entry.amount_due);
+          if (!Number.isFinite(amountDue)) {
+            throw new Error('Montant de rémunération invalide.');
+          }
+          return {
+            id: String(entry.id),
+            periodStart: String(entry.period_start),
+            periodEnd: String(entry.period_end),
+            amountDue,
+            status: String(entry.status),
+            paidAt: typeof entry.paid_at === 'string' ? entry.paid_at : null,
+          };
+        });
+        if (active) setTeacherPayrollState({ status: 'loaded', payroll });
+      } catch (cause) {
+        if (active) setTeacherPayrollState({ status: 'error', message: errorMessage(cause) });
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [canManage, profile?.centreId, selectedTeacher, teacherProfileTab]);
+
   function openForm(teacher?: PlanningData['filters']['teachers'][number]) {
-    setEditingId(teacher?.id ?? null); setForm(teacher ? { name: teacher.name, email: teacher.email ?? '' } : { name: '', email: '' });
+    const nameParts = teacher ? teacherNameParts(teacher.name) : { firstName: '', lastName: '' };
+    setEditingId(teacher?.id ?? null);
+    setForm({
+      ...nameParts,
+      email: teacher?.email ?? '',
+      telephone: teacher?.telephone ?? '',
+    });
     setError(null); setMessage(null); setFormOpen(true);
   }
   async function saveTeacher(event: FormEvent<HTMLFormElement>) {
@@ -275,9 +393,224 @@ export function TeachersPage() {
     try { await deleteCentreTeacher(getSupabaseClient(), profile.centreId, teacher.id); setMessage('Formateur supprimé.'); reload(); }
     catch (cause) { setError(errorMessage(cause)); }
   }
+  if (state.status === 'loaded' && selectedTeacher) {
+    const subjects = state.data.subjectIdsByTeacher[String(selectedTeacher.id)] ?? [];
+    const groupIds = new Set(teacherGroups.map((group) => String(group.id)));
+    const students =
+      teacherStudentsState.status === 'loaded'
+        ? teacherStudentsState.students.filter(
+            (student) => student.groupId !== null && groupIds.has(String(student.groupId)),
+          )
+        : [];
+    const formatDate = (value: string | null) =>
+      value ? new Date(value.length === 10 ? `${value}T12:00:00` : value).toLocaleDateString('fr-FR') : 'Non défini';
+
+    return (
+      <PageFrame
+        actions={
+          <Button onClick={() => setSelectedTeacherId(null)} type="button" variant="secondary">
+            ← Retour aux formateurs
+          </Button>
+        }
+        description="Profil, activité pédagogique et suivi du formateur."
+        title={`Profil de ${selectedTeacher.name}`}
+      >
+        {error && <Alert tone="error"><p>{error}</p></Alert>}
+        <section className="teacher-profile">
+          <header className="teacher-profile-hero">
+            <span aria-hidden="true" className="teacher-profile-avatar">
+              {initials(selectedTeacher.name)}
+            </span>
+            <h2>{selectedTeacher.name}</h2>
+            <div className="teacher-profile-contact">
+              <span>{selectedTeacher.email ?? 'Adresse e-mail non renseignée'}</span>
+              <span>{selectedTeacher.telephone ?? 'Téléphone non renseigné'}</span>
+              <span>Inscrit le {formatDate(selectedTeacher.createdAt)}</span>
+              <span>{teacherCourses.length} cours attribué(s)</span>
+              <span>{teacherGroups.length} groupe(s)</span>
+            </div>
+            <div className="teacher-profile-actions">
+              {canManage && (
+                <Link className="sp-btn sp-btn-ghost" to="/app/vfg">
+                  Assigner à un groupe
+                </Link>
+              )}
+              {selectedTeacher.email && (
+                <a className="sp-btn sp-btn-ghost" href={`mailto:${selectedTeacher.email}`}>
+                  Envoyer un e-mail
+                </a>
+              )}
+            </div>
+          </header>
+          <nav aria-label="Sections du profil formateur" className="teacher-profile-tabs">
+            {([
+              ['overview', 'Aperçu'],
+              ['groups', 'Groupes'],
+              ['students', 'Étudiants'],
+              ['pay', 'Rémunération'],
+              ['settings', 'Paramètres'],
+            ] as const).map(([tab, label]) => (
+              <button
+                aria-current={teacherProfileTab === tab ? 'page' : undefined}
+                className={teacherProfileTab === tab ? 'is-active' : ''}
+                key={tab}
+                onClick={() => setTeacherProfileTab(tab)}
+                type="button"
+              >
+                {label}
+                {tab === 'groups' && <span>{teacherGroups.length}</span>}
+                {tab === 'students' && teacherStudentsState.status === 'loaded' && (
+                  <span>{students.length}</span>
+                )}
+              </button>
+            ))}
+          </nav>
+          <div className="teacher-profile-content">
+            {teacherProfileTab === 'overview' && (
+              <div className="teacher-profile-overview">
+                <Panel className="teacher-profile-panel">
+                  <h2>Aperçu de l’activité</h2>
+                  <div className="teacher-profile-stat-grid">
+                    <article><span>Groupes</span><strong>{teacherGroups.length}</strong></article>
+                    <article><span>Étudiants</span><strong>{teacherStudentsState.status === 'loaded' ? students.length : '—'}</strong></article>
+                    <article><span>Séances attribuées</span><strong>{teacherCourses.length}</strong></article>
+                    <article><span>Heures planifiées</span><strong>{teacherCourses.reduce((total, course) => total + courseDuration(course), 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h</strong></article>
+                  </div>
+                </Panel>
+                <Panel className="teacher-profile-panel">
+                  <h2>Matières enseignées</h2>
+                  <div className="management-chip-list">
+                    {subjects.map((subjectId) => {
+                      const subject = state.data.filters.subjects.find(
+                        (item) => String(item.id) === String(subjectId),
+                      );
+                      return subject ? <span className="management-chip" key={subjectId}>{subject.name}</span> : null;
+                    })}
+                    {subjects.length === 0 && <span className="management-muted">Aucune matière associée</span>}
+                  </div>
+                </Panel>
+                <Panel className="teacher-profile-panel">
+                  <h2>Prochains cours</h2>
+                  {teacherCourses.length ? (
+                    <ul className="teacher-profile-course-list">
+                      {teacherCourses.slice(0, 5).map((course) => (
+                        <li key={course.id}>
+                          <strong>{course.subjectName}</strong>
+                          <span>{['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'][course.weekday] ?? 'Jour non défini'} · {course.startsAt}–{course.endsAt}</span>
+                          <small>{course.groupName ?? 'Groupe non défini'}{course.roomName ? ` · ${course.roomName}` : ''}</small>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : <EmptyState title="Aucun cours attribué à ce formateur." />}
+                </Panel>
+              </div>
+            )}
+            {teacherProfileTab === 'groups' && (
+              <Panel className="teacher-profile-panel">
+                <div className="teacher-profile-section-heading">
+                  <div><h2>Groupes associés</h2><p>Groupes de formation attribués à {selectedTeacher.name}.</p></div>
+                  {canManage && <Link className="sp-btn sp-btn-ghost" to="/app/vfg">Gérer les groupes</Link>}
+                </div>
+                {teacherGroups.length ? (
+                  <div className="teacher-profile-group-grid">
+                    {teacherGroups.map((group) => (
+                      <article key={group.id}>
+                        <strong>{group.name}</strong>
+                        <span>{group.formationName ?? 'Formation non définie'}</span>
+                        <small>{formatDate(group.startsOn)} – {formatDate(group.endsOn)}</small>
+                        <small>{group.active ? 'Actif' : 'Inactif'} · {group.capacity} places</small>
+                      </article>
+                    ))}
+                  </div>
+                ) : <EmptyState title="Aucun groupe associé à ce formateur." />}
+              </Panel>
+            )}
+            {teacherProfileTab === 'students' && (
+              <Panel className="teacher-profile-panel">
+                <h2>Étudiants des groupes attribués</h2>
+                {teacherStudentsState.status === 'loading' && <LoadingState label="Chargement des étudiants…" />}
+                {teacherStudentsState.status === 'error' && <Alert tone="error">{teacherStudentsState.message}</Alert>}
+                {teacherStudentsState.status === 'loaded' && (students.length ? (
+                  <div className="teacher-profile-student-list">
+                    {students.map((student) => (
+                      <article key={student.id}>
+                        <span aria-hidden="true" className="management-avatar">{initials(`${student.firstName} ${student.lastName}`)}</span>
+                        <span><strong>{student.firstName} {student.lastName}</strong><small>{student.groupName ?? 'Groupe non défini'}</small></span>
+                        <span>{student.email ?? student.telephone ?? 'Coordonnées non renseignées'}</span>
+                      </article>
+                    ))}
+                  </div>
+                ) : <EmptyState title="Aucun étudiant dans les groupes de ce formateur." />)}
+              </Panel>
+            )}
+            {teacherProfileTab === 'pay' && (
+              <Panel className="teacher-profile-panel">
+                <div className="teacher-profile-section-heading">
+                  <div><h2>Rémunération</h2><p>Historique des rémunérations non annulées.</p></div>
+                  {canManage && <Link className="sp-btn sp-btn-ghost" to="/app/vfinance">Ouvrir la finance</Link>}
+                </div>
+                {!canManage && <Alert>Le suivi des rémunérations est réservé à l’administration.</Alert>}
+                {canManage && teacherPayrollState.status === 'loading' && <LoadingState label="Chargement des rémunérations…" />}
+                {canManage && teacherPayrollState.status === 'error' && <Alert tone="error">{teacherPayrollState.message}</Alert>}
+                {canManage && teacherPayrollState.status === 'loaded' && (teacherPayrollState.payroll.length ? (
+                  <div className="teacher-profile-pay-list">
+                    {teacherPayrollState.payroll.map((item) => (
+                      <article key={item.id}>
+                        <span><strong>{formatDate(item.periodStart)} – {formatDate(item.periodEnd)}</strong><small>{item.status === 'paid' ? `Payée le ${formatDate(item.paidAt)}` : item.status === 'approved' ? 'À régler' : 'Brouillon'}</small></span>
+                        <strong>{new Intl.NumberFormat('fr-MA', { style: 'currency', currency: 'MAD' }).format(item.amountDue)}</strong>
+                      </article>
+                    ))}
+                  </div>
+                ) : <EmptyState title="Aucune rémunération enregistrée pour ce formateur." />)}
+              </Panel>
+            )}
+            {teacherProfileTab === 'settings' && (
+              <Panel className="teacher-profile-panel">
+                <div className="teacher-profile-section-heading">
+                  <div><h2>Paramètres du profil</h2><p>Identité, coordonnées et formations associées au formateur.</p></div>
+                  {canManage && <Button onClick={() => openForm(selectedTeacher)} type="button" variant="secondary">Modifier le profil</Button>}
+                </div>
+                <dl className="teacher-profile-settings">
+                  <div><dt>Prénom</dt><dd>{teacherNameParts(selectedTeacher.name).firstName || 'Non renseigné'}</dd></div>
+                  <div><dt>Nom</dt><dd>{teacherNameParts(selectedTeacher.name).lastName || 'Non renseigné'}</dd></div>
+                  <div><dt>E-mail</dt><dd>{selectedTeacher.email ?? 'Non renseigné'}</dd></div>
+                  <div><dt>Téléphone personnel</dt><dd>{selectedTeacher.telephone ?? 'Non renseigné'}</dd></div>
+                  <div><dt>Date d’inscription</dt><dd>{formatDate(selectedTeacher.createdAt)}</dd></div>
+                  <div><dt>Compte de connexion</dt><dd>{selectedTeacher.profileId ? 'Associé' : 'Non associé'}</dd></div>
+                  <div><dt>Matières</dt><dd>{subjects.length}</dd></div>
+                </dl>
+                <div className="teacher-profile-settings-formations">
+                  <h3>Formations inscrites</h3>
+                  {teacherFormations.length ? (
+                    <div className="management-chip-list">
+                      {teacherFormations.map((formation) => (
+                        <span className="management-chip" key={formation.id}>{formation.name}</span>
+                      ))}
+                    </div>
+                  ) : <p className="management-muted">Aucune formation associée à un groupe attribué.</p>}
+                </div>
+              </Panel>
+            )}
+          </div>
+        </section>
+        {formOpen && canManage && <Modal label="Modifier le formateur" onClose={() => setFormOpen(false)}><Panel className="management-editor">
+          <header className="management-editor-heading"><div><p className="planning-progress-eyebrow">Équipe pédagogique</p><h2>Modifier le formateur</h2></div></header>
+          <form className="sp-form-grid" onSubmit={(event) => void saveTeacher(event)}>
+            <label className="sp-form-field"><span className="sp-popup-sr-label">Prénom</span><input aria-label="Prénom" className="sp-field" autoComplete="given-name" placeholder="Prénom" required value={form.firstName} onChange={(event) => setForm((value) => ({ ...value, firstName: event.target.value }))} /></label>
+            <label className="sp-form-field"><span className="sp-popup-sr-label">Nom</span><input aria-label="Nom" className="sp-field" autoComplete="family-name" placeholder="Nom" required value={form.lastName} onChange={(event) => setForm((value) => ({ ...value, lastName: event.target.value }))} /></label>
+            <label className="sp-form-field"><span className="sp-popup-sr-label">E-mail</span><input aria-label="E-mail" className="sp-field" autoComplete="email" placeholder="E-mail" type="email" value={form.email} onChange={(event) => setForm((value) => ({ ...value, email: event.target.value }))} /></label>
+            <label className="sp-form-field"><span className="sp-popup-sr-label">Téléphone personnel</span><input aria-label="Téléphone personnel" className="sp-field" autoComplete="tel" placeholder="Téléphone personnel" type="tel" value={form.telephone} onChange={(event) => setForm((value) => ({ ...value, telephone: event.target.value }))} /></label>
+            <p className="management-muted management-editor-wide">Le compte de connexion et les matières associées ne sont pas modifiés par ce formulaire.</p>
+            <div className="management-toolbar management-editor-wide"><Button disabled={saving} type="submit">{saving ? 'Enregistrement…' : 'Enregistrer'}</Button><Button onClick={() => setFormOpen(false)} type="button" variant="secondary">Annuler</Button></div>
+          </form>
+        </Panel></Modal>}
+      </PageFrame>
+    );
+  }
+
   return <PageFrame actions={canManage ? <Button onClick={() => openForm()} type="button">+ Ajouter un formateur</Button> : undefined}
     description="Équipe pédagogique, matières enseignées et séances attribuées dans le centre." title="Formateurs">
-    {error && <Alert tone="error"><p>{error}</p></Alert>}{message && <Alert tone="success"><p>{message}</p></Alert>}
+    {error && <Alert tone="error"><p>{error}</p></Alert>}
     {formOpen && canManage && <Modal label={editingId === null ? 'Nouveau formateur' : 'Modifier le formateur'} onClose={() => setFormOpen(false)}><Panel className="management-editor">
       <header className="management-editor-heading">
         <div>
@@ -287,12 +620,20 @@ export function TeachersPage() {
       </header>
       <form className="sp-form-grid" onSubmit={(event) => void saveTeacher(event)}>
         <label className="sp-form-field sp-popup-placeholder-field">
-          <span className="sp-popup-sr-label">Nom complet</span>
-          <input aria-label="Nom complet" className="sp-field" autoComplete="name" placeholder="Nom complet" required value={form.name} onChange={(event) => setForm((v) => ({ ...v, name: event.target.value }))} />
+          <span className="sp-popup-sr-label">Prénom</span>
+          <input aria-label="Prénom" className="sp-field" autoComplete="given-name" placeholder="Prénom" required value={form.firstName} onChange={(event) => setForm((v) => ({ ...v, firstName: event.target.value }))} />
+        </label>
+        <label className="sp-form-field sp-popup-placeholder-field">
+          <span className="sp-popup-sr-label">Nom</span>
+          <input aria-label="Nom" className="sp-field" autoComplete="family-name" placeholder="Nom" required value={form.lastName} onChange={(event) => setForm((v) => ({ ...v, lastName: event.target.value }))} />
         </label>
         <label className="sp-form-field sp-popup-placeholder-field">
           <span className="sp-popup-sr-label">E-mail</span>
           <input aria-label="E-mail" className="sp-field" autoComplete="email" placeholder="E-mail" type="email" value={form.email} onChange={(event) => setForm((v) => ({ ...v, email: event.target.value }))} />
+        </label>
+        <label className="sp-form-field sp-popup-placeholder-field">
+          <span className="sp-popup-sr-label">Téléphone personnel</span>
+          <input aria-label="Téléphone personnel" className="sp-field" autoComplete="tel" placeholder="Téléphone personnel" type="tel" value={form.telephone} onChange={(event) => setForm((v) => ({ ...v, telephone: event.target.value }))} />
         </label>
         <p className="management-muted management-editor-wide">Le compte de connexion et les matières associées ne sont pas modifiés par ce formulaire.</p>
         <div className="management-toolbar management-editor-wide"><Button disabled={saving} type="submit">{saving ? 'Enregistrement…' : 'Enregistrer'}</Button><Button onClick={() => setFormOpen(false)} type="button" variant="secondary">Annuler</Button></div>
@@ -303,12 +644,28 @@ export function TeachersPage() {
         const courses = state.data.courses.filter((course) => String(course.teacherId) === String(teacher.id));
         const subjects = state.data.subjectIdsByTeacher[String(teacher.id)] ?? [];
         const hours = courses.reduce((total, course) => total + courseDuration(course), 0);
-        return <Panel className="management-card" key={teacher.id}>
-          <div className="management-card-heading"><span aria-hidden="true" className="management-avatar">{initials(teacher.name)}</span><div><h2>{teacher.name}</h2><p>{teacher.email ?? 'Adresse e-mail non renseignée'}</p></div></div>
-          <div className="management-chip-list">{subjects.map((subjectId) => { const subject = state.data.filters.subjects.find((item) => String(item.id) === String(subjectId)); return subject ? <span className="management-chip" key={subjectId}>{subject.name}</span> : null; })}
-            {subjects.length === 0 && <span className="management-muted">Aucune matière associée</span>}</div>
-          <div className="management-metrics"><div><span>Séances / semaine</span><strong>{courses.length}</strong></div><div><span>Heures planifiées</span><strong>{hours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h</strong></div></div>
-          <p className="management-card-note">{teacher.profileId ? 'Compte de connexion associé' : 'Aucun compte associé'}</p>
+        return <Panel className="management-card management-teacher-card" key={teacher.id}>
+          <div
+            aria-label={`Ouvrir le profil de ${teacher.name}`}
+            className="management-teacher-card-open"
+            onClick={() => { setSelectedTeacherId(String(teacher.id)); setTeacherProfileTab('overview'); }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                setSelectedTeacherId(String(teacher.id));
+                setTeacherProfileTab('overview');
+              }
+            }}
+            role="button"
+            tabIndex={0}
+          >
+            <div className="management-card-heading"><span aria-hidden="true" className="management-avatar">{initials(teacher.name)}</span><div><h2>{teacher.name}</h2><p>{teacher.email ?? 'Adresse e-mail non renseignée'}</p></div></div>
+            <div className="management-chip-list">{subjects.map((subjectId) => { const subject = state.data.filters.subjects.find((item) => String(item.id) === String(subjectId)); return subject ? <span className="management-chip" key={subjectId}>{subject.name}</span> : null; })}
+              {subjects.length === 0 && <span className="management-muted">Aucune matière associée</span>}</div>
+            <div className="management-metrics"><div><span>Séances / semaine</span><strong>{courses.length}</strong></div><div><span>Heures planifiées</span><strong>{hours.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} h</strong></div></div>
+            <p className="management-card-note">{teacher.profileId ? 'Compte de connexion associé' : 'Aucun compte associé'}</p>
+            <span className="management-teacher-card-link">Ouvrir le profil →</span>
+          </div>
           {canManage && <div className="management-toolbar"><Button onClick={() => openForm(teacher)} type="button" variant="secondary">Modifier</Button><Button disabled={Boolean(teacher.profileId || courses.length)} onClick={() => void removeTeacher(teacher)} type="button" variant="danger">Supprimer</Button></div>}
         </Panel>;
       })}</div>)}
@@ -319,6 +676,11 @@ export function FormationGroupsPage() {
   const { profile } = useAuth();
   const { state, reload } = usePlanningData();
   const [selectedFormationId, setSelectedFormationId] = useState('');
+  const [directoryView, setDirectoryView] = useState<'cards' | 'table'>('cards');
+  const [directorySearch, setDirectorySearch] = useState('');
+  const [moduleFilter, setModuleFilter] = useState('');
+  const [levelFilter, setLevelFilter] = useState('');
+  const [teacherFilter, setTeacherFilter] = useState('');
   const [modules, setModules] = useState<ModuleOption[]>([]);
   const [domains, setDomains] = useState<ModuleDomain[]>([]);
   const [studentCounts, setStudentCounts] = useState<Map<string, number>>(new Map());
@@ -330,9 +692,7 @@ export function FormationGroupsPage() {
     setErrorState(value);
     if (value) notify(value, 'error');
   };
-  const [message, setMessageState] = useState<string | null>(null);
   const setMessage = (value: string | null) => {
-    setMessageState(value);
     if (value) notify(value, 'success');
   };
   const [searchModules, setSearchModules] = useState('');
@@ -416,6 +776,29 @@ export function FormationGroupsPage() {
           (group) => String(group.formationId) === selectedFormationId,
         )
       : [];
+  const visibleFormations = state.status === 'loaded'
+    ? formations.filter((formation) => {
+        const formationGroups = state.data.filters.groups.filter(
+          (group) => String(group.formationId) === String(formation.id),
+        );
+        const moduleIds = state.data.subjectIdsByFormation[String(formation.id)] ?? [];
+        const searchable = [
+          formation.name,
+          formation.description ?? '',
+          ...formationGroups.map((group) => group.name),
+        ].join(' ').toLocaleLowerCase('fr');
+        return searchable.includes(directorySearch.trim().toLocaleLowerCase('fr')) &&
+          (!moduleFilter || moduleIds.some((id) => String(id) === moduleFilter)) &&
+          (!levelFilter || String(formation.id) === levelFilter) &&
+          (!teacherFilter || formationGroups.some((group) => String(group.teacherId ?? '') === teacherFilter));
+      })
+    : [];
+  const formationStats = state.status === 'loaded' ? {
+    formationCount: formations.length,
+    activeGroupCount: state.data.filters.groups.filter((group) => group.active).length,
+    studentCount: [...studentCounts.values()].reduce((total, count) => total + count, 0),
+    weeklyCourseCount: state.data.courses.length,
+  } : null;
   const filteredModules = modules.filter((module) =>
     module.name.toLocaleLowerCase('fr').includes(searchModules.trim().toLocaleLowerCase('fr')),
   );
@@ -587,7 +970,6 @@ export function FormationGroupsPage() {
     >
       <PlanningLoadState retry={reload} state={state} />
       {error && <Alert tone="error">{error}</Alert>}
-      {message && <Alert tone="success">{message}</Alert>}
       {formOpen && (
         <Modal label={formationForm.id ? 'Modifier la formation' : 'Nouvelle formation'} onClose={() => setFormOpen(false)}>
         <Panel className="management-editor">
@@ -875,126 +1257,185 @@ export function FormationGroupsPage() {
       )}
       {state.status === 'loaded' && (
         <>
+          {formationStats && (
+            <section aria-label="Statistiques des formations et groupes" className="formation-overview-stats">
+              <article className="is-highlighted"><span>Formations</span><strong>{formationStats.formationCount}</strong><small>{formations.filter((formation) => formation.active).length} actives</small></article>
+              <article><span>Groupes actifs</span><strong>{formationStats.activeGroupCount}</strong><small>{state.data.filters.groups.length} groupe(s) au total</small></article>
+              <article><span>Étudiants dans les groupes</span><strong>{formationStats.studentCount}</strong><small>Places occupées dans le centre</small></article>
+              <article><span>Cours hebdomadaires</span><strong>{formationStats.weeklyCourseCount}</strong><small>Séances planifiées</small></article>
+            </section>
+          )}
           {state.data.filters.formations.length === 0 ? (
             <EmptyState title="Aucune formation n’est enregistrée dans ce centre." />
           ) : (
-            <div className="management-card-grid">
-              {state.data.filters.formations.map((formation) => {
-                const groups = state.data.filters.groups.filter(
-                  (group) => String(group.formationId) === String(formation.id),
-                );
-                const subjectIds = state.data.subjectIdsByFormation[String(formation.id)] ?? [];
-                return (
-                  <Panel
-                    className={`management-card management-formation-card${selectedFormationId === String(formation.id) ? ' is-selected' : ''}`}
-                    key={formation.id}
-                  >
-                    <div className="management-card-heading">
-                      <button
-                        aria-label={`Afficher les groupes de ${formation.name}`}
-                        aria-pressed={selectedFormationId === String(formation.id)}
-                        className="management-icon management-icon-indigo management-formation-select"
-                        onClick={() =>
-                          setSelectedFormationId((current) =>
-                            current === String(formation.id) ? '' : String(formation.id),
-                          )
-                        }
-                        type="button"
+            <Panel className="formation-directory-panel">
+              <header className="formation-directory-heading">
+                <div>
+                  <h2>Formations et groupes</h2>
+                  <p>{visibleFormations.length} formation(s) affichée(s) sur {formations.length}</p>
+                </div>
+                <div aria-label="Mode d’affichage" className="student-view-toggle">
+                  <Button aria-label="Afficher en cartes" aria-pressed={directoryView === 'cards'} className="student-view-toggle-button" onClick={() => setDirectoryView('cards')} title="Cartes" type="button" variant={directoryView === 'cards' ? 'primary' : 'secondary'}>
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="8" height="7" rx="1.5" /><rect x="13" y="4" width="8" height="7" rx="1.5" /><rect x="3" y="13" width="8" height="7" rx="1.5" /><rect x="13" y="13" width="8" height="7" rx="1.5" /></svg>
+                  </Button>
+                  <Button aria-label="Afficher en tableau" aria-pressed={directoryView === 'table'} className="student-view-toggle-button" onClick={() => setDirectoryView('table')} title="Tableau" type="button" variant={directoryView === 'table' ? 'primary' : 'secondary'}>
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M9 9v11M15 9v11" /></svg>
+                  </Button>
+                </div>
+              </header>
+              <div className="formation-directory-filters">
+                <label className="sp-form-field">
+                  Rechercher
+                  <input className="sp-field" onChange={(event) => setDirectorySearch(event.target.value)} placeholder="Formation ou groupe" type="search" value={directorySearch} />
+                </label>
+                <label className="sp-form-field">
+                  Module
+                  <select className="sp-field" onChange={(event) => setModuleFilter(event.target.value)} value={moduleFilter}>
+                    <option value="">Tous les modules</option>
+                    {state.data.filters.subjects.map((subject) => <option key={subject.id} value={String(subject.id)}>{subject.name}</option>)}
+                  </select>
+                </label>
+                <label className="sp-form-field">
+                  Formation / niveau
+                  <select className="sp-field" onChange={(event) => setLevelFilter(event.target.value)} value={levelFilter}>
+                    <option value="">Tous les niveaux</option>
+                    {formations.map((formation) => <option key={formation.id} value={String(formation.id)}>{formation.name}</option>)}
+                  </select>
+                </label>
+                <label className="sp-form-field">
+                  Formateur
+                  <select className="sp-field" onChange={(event) => setTeacherFilter(event.target.value)} value={teacherFilter}>
+                    <option value="">Tous les formateurs</option>
+                    {state.data.filters.teachers.map((teacher) => <option key={teacher.id} value={String(teacher.id)}>{teacher.name}</option>)}
+                  </select>
+                </label>
+                <span className="management-result-count">{visibleFormations.length} résultat(s)</span>
+              </div>
+              {visibleFormations.length === 0 ? (
+                <EmptyState title="Aucune formation ne correspond à ces filtres." />
+              ) : directoryView === 'cards' ? (
+                <div className="formation-directory-list">
+                  {visibleFormations.map((formation) => {
+                    let groups = state.data.filters.groups.filter(
+                      (group) => String(group.formationId) === String(formation.id),
+                    );
+                    if (teacherFilter) {
+                      groups = groups.filter((group) => String(group.teacherId ?? '') === teacherFilter);
+                    }
+                    const subjectIds = state.data.subjectIdsByFormation[String(formation.id)] ?? [];
+                    return (
+                      <Panel
+                        className={`management-card management-formation-card${selectedFormationId === String(formation.id) ? ' is-selected' : ''}`}
+                        key={formation.id}
                       >
-                        F
-                      </button>
-                      <div>
-                        <h2>{formation.name}</h2>
-                        <p>{formation.active ? 'Formation active' : 'Formation inactive'}</p>
-                      </div>
-                    </div>
-                    {formation.description && (
-                      <p className="management-description">
-                        {formation.description.trim().split(/\\s+/).filter(Boolean).slice(0, 50).join(' ')}
-                        {formation.description.trim().split(/\\s+/).filter(Boolean).length > 50 ? '…' : ''}
-                      </p>
-                    )}
-                    <div className="management-metrics">
-                      <div>
-                        <span>Durée</span>
-                        <strong>{formation.duration || 'Non définie'}</strong>
-                      </div>
-                      <div>
-                        <span>Volume hebdomadaire</span>
-                        <strong>{formation.hoursPerWeek ?? '—'} h</strong>
-                      </div>
-                      <div>
-                        <span>Groupes</span>
-                        <strong>{groups.length}</strong>
-                      </div>
-                    </div>
-                    <div className="management-chip-list">
-                      {subjectIds.map((subjectId) => {
-                        const subject = state.data.filters.subjects.find(
-                          (item) => String(item.id) === String(subjectId),
-                        );
-                        return subject ? (
-                          <span className="management-chip" key={subjectId}>
-                            {subject.name}
-                          </span>
-                        ) : null;
-                      })}
-                    </div>
-                    <div className="management-group-list">
-                      {groups.map((group) => (
-                        <div className="management-group-row" key={group.id}>
-                          <span>
-                            <strong>{group.name}</strong>
-                            <small>
-                              {group.startsOn || 'Début non défini'} –{' '}
-                              {group.endsOn || 'Fin non définie'}
-                            </small>
-                          </span>
-                          <span
-                            className={
-                              group.active
-                                ? 'management-status-active'
-                                : 'management-status-inactive'
+                        <div className="management-card-heading">
+                          <button
+                            aria-label={`Afficher les groupes de ${formation.name}`}
+                            aria-pressed={selectedFormationId === String(formation.id)}
+                            className="management-icon management-icon-indigo management-formation-select"
+                            onClick={() =>
+                              setSelectedFormationId((current) =>
+                                current === String(formation.id) ? '' : String(formation.id),
+                              )
                             }
-                          >
-                            {group.active ? 'Actif' : 'Inactif'}
-                          </span>
-                        </div>
-                      ))}
-                      {groups.length === 0 && (
-                        <p className="management-muted">Aucun groupe rattaché à cette formation.</p>
-                      )}
-                    </div>
-                    {canManage && (
-                      <div className="management-card-actions">
-                        {formation.active && (
-                          <Button
-                            onClick={() => startGroupForm(String(formation.id))}
                             type="button"
                           >
-                            + Groupe
-                          </Button>
+                            F
+                          </button>
+                          <div>
+                            <h2>{formation.name}</h2>
+                            <p>{formation.active ? 'Formation active' : 'Formation inactive'}</p>
+                          </div>
+                        </div>
+                        {formation.description && (
+                          <p className="management-description">
+                            {formation.description.trim().split(/\s+/).filter(Boolean).slice(0, 50).join(' ')}
+                            {formation.description.trim().split(/\s+/).filter(Boolean).length > 50 ? '…' : ''}
+                          </p>
                         )}
-                        <Button
-                          onClick={() => startFormationForm(formation)}
-                          type="button"
-                          variant="secondary"
-                        >
-                          Modifier
-                        </Button>
-                        <Button
-                          onClick={() => void handleDeleteFormation(formation.id)}
-                          type="button"
-                          variant="danger"
-                        >
-                          Supprimer
-                        </Button>
-                      </div>
-                    )}
-                  </Panel>
-                );
-              })}
-            </div>
+                        <div className="management-metrics">
+                          <div><span>Durée</span><strong>{formation.duration || 'Non définie'}</strong></div>
+                          <div><span>Volume hebdomadaire</span><strong>{formation.hoursPerWeek ?? '—'} h</strong></div>
+                          <div><span>Groupes</span><strong>{groups.length}</strong></div>
+                        </div>
+                        <div className="management-chip-list">
+                          {subjectIds.map((subjectId) => {
+                            const subject = state.data.filters.subjects.find(
+                              (item) => String(item.id) === String(subjectId),
+                            );
+                            return subject ? <span className="management-chip" key={subjectId}>{subject.name}</span> : null;
+                          })}
+                          {subjectIds.length === 0 && <span className="management-muted">Aucun module associé</span>}
+                        </div>
+                        <div className="management-group-list">
+                          {groups.map((group) => {
+                            const teacher = state.data.filters.teachers.find((item) => String(item.id) === String(group.teacherId));
+                            const count = studentCounts.get(String(group.id)) ?? 0;
+                            const groupCourses = state.data.courses.filter((course) => String(course.groupId) === String(group.id));
+                            return (
+                              <div className="management-group-row" key={group.id}>
+                                <span>
+                                  <strong>{group.name}</strong>
+                                  <small>{group.startsOn || 'Début non défini'} – {group.endsOn || 'Fin non définie'}</small>
+                                  <small>{teacher ? `Formateur : ${teacher.name}` : 'Formateur non défini'} · {count} étudiant(s) · {groupCourses.length} cours / semaine</small>
+                                </span>
+                                <span className={group.active ? 'management-status-active' : 'management-status-inactive'}>
+                                  {group.active ? 'Actif' : 'Inactif'}
+                                </span>
+                              </div>
+                            );
+                          })}
+                          {groups.length === 0 && <p className="management-muted">Aucun groupe rattaché à cette formation.</p>}
+                        </div>
+                        {canManage && (
+                          <div className="management-card-actions">
+                            {formation.active && <Button onClick={() => startGroupForm(String(formation.id))} type="button">+ Groupe</Button>}
+                            <Button onClick={() => startFormationForm(formation)} type="button" variant="secondary">Modifier</Button>
+                            <Button onClick={() => void handleDeleteFormation(formation.id)} type="button" variant="danger">Supprimer</Button>
+                          </div>
+                        )}
+                      </Panel>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="formation-directory-table-wrap">
+                  <table className="formation-directory-table">
+                    <thead><tr><th>Formation</th><th>Groupe</th><th>Modules</th><th>Formateur</th><th>Étudiants</th><th>Cours / sem.</th><th>Dates</th><th>Statut</th></tr></thead>
+                    <tbody>
+                      {visibleFormations.flatMap((formation) => {
+                        let groups = state.data.filters.groups.filter((group) => String(group.formationId) === String(formation.id));
+                        if (teacherFilter) groups = groups.filter((group) => String(group.teacherId ?? '') === teacherFilter);
+                        const moduleNames = (state.data.subjectIdsByFormation[String(formation.id)] ?? [])
+                          .map((id) => state.data.filters.subjects.find((subject) => String(subject.id) === String(id))?.name)
+                          .filter((name): name is string => Boolean(name));
+                        const formationGroups = groups.length ? groups : [null];
+                        return formationGroups.map((group) => {
+                          const teacher = group
+                            ? state.data.filters.teachers.find((item) => String(item.id) === String(group.teacherId))
+                            : undefined;
+                          const groupCourses = group
+                            ? state.data.courses.filter((course) => String(course.groupId) === String(group.id))
+                            : [];
+                          return (
+                            <tr key={`${formation.id}-${group?.id ?? 'no-group'}`}>
+                              <td><strong>{formation.name}</strong><small>{formation.duration || 'Durée non définie'} · {formation.hoursPerWeek ?? '—'} h / semaine</small></td>
+                              <td>{group?.name ?? 'Aucun groupe'}{group && <small>{group.capacity} places maximum</small>}</td>
+                              <td><div className="management-chip-list">{moduleNames.length ? moduleNames.map((name) => <span className="management-chip" key={name}>{name}</span>) : <span className="management-muted">Aucun module</span>}</div></td>
+                              <td>{teacher?.name ?? (group ? 'Non défini' : '—')}</td>
+                              <td>{group ? `${studentCounts.get(String(group.id)) ?? 0} / ${group.capacity}` : '—'}</td>
+                              <td>{group ? groupCourses.length : '—'}</td>
+                              <td>{group ? `${group.startsOn ?? '—'} – ${group.endsOn ?? '—'}` : '—'}</td>
+                              <td><span className={group?.active && formation.active ? 'management-status-active' : 'management-status-inactive'}>{group ? group.active ? 'Groupe actif' : 'Groupe inactif' : formation.active ? 'Formation active' : 'Formation inactive'}</span></td>
+                            </tr>
+                          );
+                        });
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Panel>
           )}
           {selectedFormation && (
             <section aria-label={`Groupes de ${selectedFormation.name}`} className="space-y-3">
@@ -1012,7 +1453,7 @@ export function FormationGroupsPage() {
               {selectedGroups.length === 0 ? (
                 <EmptyState title="Aucun groupe pour cette formation." />
               ) : (
-                <div className="management-card-grid management-group-grid">
+                <div className="formation-group-card-list">
                   {selectedGroups.map((group) => {
                     const count = studentCounts.get(String(group.id)) ?? 0;
                     const remaining = Math.max(0, group.capacity - count);
@@ -1118,8 +1559,16 @@ export function StudentsPage() {
   const { profile } = useAuth();
   const planning = usePlanningData();
   const [search, setSearch] = useState('');
+  const [groupFilter, setGroupFilter] = useState('');
+  const [levelFilter, setLevelFilter] = useState('');
+  const [studentView, setStudentView] = useState<'table' | 'cards'>('table');
   const [reloadKey, setReloadKey] = useState(0);
   const [state, setState] = useState<StudentState>({ status: 'loading' });
+  const [attendanceState, setAttendanceState] = useState<
+    | { status: 'loading' }
+    | { status: 'error'; message: string }
+    | { status: 'loaded'; rate: number | null; recordedCount: number }
+  >({ status: 'loading' });
   const [editingId, setEditingId] = useState<string | number | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -1128,14 +1577,12 @@ export function StudentsPage() {
     setErrorState(value);
     if (value) notify(value, 'error');
   };
-  const [message, setMessageState] = useState<string | null>(null);
   const setMessage = (value: string | null) => {
-    setMessageState(value);
     if (value) notify(value, 'success');
   };
   const [enrollmentIds, setEnrollmentIds] = useState<Record<string, Array<string | number>>>({});
   const [form, setForm] = useState<StudentRecordInput>({
-    firstName: '', lastName: '', email: '', telephone: '', parentTelephone: '', city: '', address: '', educationLevel: '',
+    firstName: '', lastName: '', email: '', telephone: '', guardianName: '', guardianEmail: '', parentTelephone: '', guardianCity: '', city: '', address: '', educationLevel: '',
   });
   const canManage = profile?.role === 'admin' || profile?.role === 'director';
 
@@ -1151,6 +1598,20 @@ export function StudentsPage() {
       }
     }
     void load();
+    return () => { active = false; };
+  }, [profile?.centreId, reloadKey]);
+
+  useEffect(() => {
+    let active = true;
+    if (!profile?.centreId) return;
+    setAttendanceState({ status: 'loading' });
+    void getCentreAttendanceSummary(getSupabaseClient(), profile.centreId)
+      .then((summary) => {
+        if (active) setAttendanceState({ status: 'loaded', ...summary });
+      })
+      .catch((cause: unknown) => {
+        if (active) setAttendanceState({ status: 'error', message: errorMessage(cause) });
+      });
     return () => { active = false; };
   }, [profile?.centreId, reloadKey]);
 
@@ -1180,18 +1641,60 @@ export function StudentsPage() {
     } catch (cause) { setError(errorMessage(cause)); }
   }
 
+  const levels = useMemo(() => {
+    if (state.status !== 'loaded') return [];
+    return [...new Set(state.students.map((student) => student.educationLevel).filter((value): value is string => Boolean(value)))].sort((a, b) => a.localeCompare(b, 'fr'));
+  }, [state]);
+  const groupIdsByStudentId = useMemo(() => {
+    const result = new Map<string, Set<string>>();
+    if (state.status !== 'loaded') return result;
+    const groupIdByCourseId = new Map<string, string>();
+    if (planning.state.status === 'loaded') {
+      for (const course of planning.state.data.courses) {
+        if (course.groupId !== null) groupIdByCourseId.set(String(course.id), String(course.groupId));
+      }
+    }
+    for (const student of state.students) {
+      const groupIds = new Set<string>();
+      if (student.groupId !== null) groupIds.add(String(student.groupId));
+      for (const courseId of enrollmentIds[String(student.id)] ?? []) {
+        const groupId = groupIdByCourseId.get(String(courseId));
+        if (groupId) groupIds.add(groupId);
+      }
+      result.set(String(student.id), groupIds);
+    }
+    return result;
+  }, [enrollmentIds, planning.state, state]);
   const visibleStudents = useMemo(() => {
     if (state.status !== 'loaded') return [];
     const normalized = search.trim().toLocaleLowerCase('fr');
     return state.students.filter((student) =>
-      [student.firstName, student.lastName, student.email, student.telephone, student.parentTelephone, student.city, student.groupName]
-        .filter(Boolean).join(' ').toLocaleLowerCase('fr').includes(normalized),
+      [student.firstName, student.lastName, student.email, student.telephone, student.guardianName, student.guardianEmail, student.parentTelephone, student.guardianCity, student.city, student.groupName]
+        .filter(Boolean).join(' ').toLocaleLowerCase('fr').includes(normalized) &&
+      (!groupFilter || groupIdsByStudentId.get(String(student.id))?.has(groupFilter) === true) &&
+      (!levelFilter || student.educationLevel === levelFilter),
     );
-  }, [search, state]);
+  }, [groupFilter, groupIdsByStudentId, levelFilter, search, state]);
+  const totalActiveEnrollments = state.status === 'loaded'
+    ? state.students.reduce((total, student) => total + student.courseCount, 0)
+    : 0;
+  const studentsWithActiveEnrollments = state.status === 'loaded'
+    ? state.students.filter((student) => student.courseCount > 0).length
+    : 0;
+  const groupOccupancy = useMemo(() => {
+    if (state.status !== 'loaded') return new Map<string, number>();
+    const counts = new Map<string, number>();
+    for (const student of state.students) {
+      for (const groupId of groupIdsByStudentId.get(String(student.id)) ?? []) {
+        counts.set(groupId, (counts.get(groupId) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [groupIdsByStudentId, state]);
 
   function startCreate() {
     setEditingId(null);
-    setForm({ firstName: '', lastName: '', email: '', telephone: '', parentTelephone: '', city: '', address: '', educationLevel: '' });
+    setForm({ firstName: '', lastName: '', email: '', telephone: '', guardianName: '', guardianEmail: '', parentTelephone: '', guardianCity: '', city: '', address: '', educationLevel: '' });
     setError(null);
     setMessage(null);
     setFormOpen(true);
@@ -1204,7 +1707,10 @@ export function StudentsPage() {
       lastName: student.lastName,
       email: student.email ?? '',
       telephone: student.telephone ?? '',
+      guardianName: student.guardianName ?? '',
+      guardianEmail: student.guardianEmail ?? '',
       parentTelephone: student.parentTelephone ?? '',
+      guardianCity: student.guardianCity ?? '',
       city: student.city ?? '',
       address: student.address ?? '',
       educationLevel: student.educationLevel ?? '',
@@ -1269,11 +1775,15 @@ export function StudentsPage() {
     { key: 'lastName', label: 'Nom', required: true },
     { key: 'email', label: 'E-mail', type: 'email' },
     { key: 'telephone', label: 'Téléphone de l’étudiant', type: 'tel' },
+    { key: 'guardianName', label: 'Nom du parent / tuteur' },
+    { key: 'guardianEmail', label: 'E-mail du parent / tuteur', type: 'email' },
     { key: 'parentTelephone', label: 'Téléphone du parent / tuteur', type: 'tel' },
+    { key: 'guardianCity', label: 'Ville du parent / tuteur' },
     { key: 'city', label: 'Ville' },
     { key: 'address', label: 'Adresse' },
     { key: 'educationLevel', label: 'Niveau d’études' },
   ];
+  const planningData = planning.state.status === 'loaded' ? planning.state.data : null;
 
   return (
     <PageFrame
@@ -1282,7 +1792,6 @@ export function StudentsPage() {
       title="Étudiants"
     >
       {error && <Alert tone="error"><p>{error}</p></Alert>}
-      {message && <Alert tone="success"><p>{message}</p></Alert>}
       {formOpen && canManage && (
         <Modal label={editingId === null ? 'Nouvel étudiant' : 'Modifier l’étudiant'} onClose={() => setFormOpen(false)}>
         <Panel className="management-editor">
@@ -1317,13 +1826,16 @@ export function StudentsPage() {
         </Panel>
         </Modal>
       )}
-      <div className="management-toolbar">
-        <label className="sp-form-field">
-          Rechercher un étudiant
-          <input className="sp-field" onChange={(event) => setSearch(event.target.value)} placeholder="Nom, e-mail, ville ou groupe" type="search" value={search} />
-        </label>
-        {state.status === 'loaded' && <span className="management-result-count">{visibleStudents.length} / {state.students.length} étudiants</span>}
-      </div>
+      {state.status === 'loaded' && (
+        <section aria-label="Statistiques des étudiants" className="student-overview-stats">
+          <article className="is-highlighted"><span>Total des étudiants</span><strong>{state.students.length}</strong><small>{visibleStudents.length} affiché(s) selon les filtres</small></article>
+          <article><span>Taux de présence</span><strong>{attendanceState.status === 'loaded' && attendanceState.rate !== null ? `${Math.round(attendanceState.rate)}%` : attendanceState.status === 'loading' ? '…' : '—'}</strong><small>{attendanceState.status === 'loaded' ? `${attendanceState.recordedCount} présence(s) enregistrée(s)` : attendanceState.status === 'error' ? 'Indisponible' : 'Chargement'}</small></article>
+          <article><span>Inscriptions actives</span><strong>{totalActiveEnrollments}</strong><small>{studentsWithActiveEnrollments} étudiant(s) inscrit(s) à au moins un cours</small></article>
+        </section>
+      )}
+      {attendanceState.status === 'error' && (
+        <Alert tone="error"><p>Le taux de présence n’a pas pu être calculé.</p><p>{attendanceState.message}</p></Alert>
+      )}
       {state.status === 'loading' && <Panel><LoadingState label="Chargement des étudiants…" /></Panel>}
       {state.status === 'error' && (
         <Alert tone="error">
@@ -1332,11 +1844,101 @@ export function StudentsPage() {
           <Button onClick={() => setReloadKey((key) => key + 1)} type="button" variant="secondary">Réessayer</Button>
         </Alert>
       )}
-      {state.status === 'loaded' && (visibleStudents.length === 0 ? (
-        <EmptyState title={search ? 'Aucun résultat pour cette recherche.' : 'Aucun étudiant enregistré dans ce centre.'} />
-      ) : (
-        <div className="management-card-grid management-four-column-grid management-student-grid">
-          {visibleStudents.map((student) => (
+      {state.status === 'loaded' && (
+        <Panel className="student-directory-panel">
+          <header className="student-directory-heading">
+            <div><h2>Gestion des étudiants</h2><p>{visibleStudents.length} étudiant(s) affiché(s) sur {state.students.length}</p></div>
+            <div aria-label="Mode d’affichage" className="student-view-toggle">
+              <Button aria-label="Afficher en tableau" aria-pressed={studentView === 'table'} className="student-view-toggle-button" onClick={() => setStudentView('table')} title="Tableau" type="button" variant={studentView === 'table' ? 'primary' : 'secondary'}>
+                <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M9 9v11M15 9v11" /></svg>
+              </Button>
+              <Button aria-label="Afficher en cartes" aria-pressed={studentView === 'cards'} className="student-view-toggle-button" onClick={() => setStudentView('cards')} title="Cartes" type="button" variant={studentView === 'cards' ? 'primary' : 'secondary'}>
+                <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="8" height="7" rx="1.5" /><rect x="13" y="4" width="8" height="7" rx="1.5" /><rect x="3" y="13" width="8" height="7" rx="1.5" /><rect x="13" y="13" width="8" height="7" rx="1.5" /></svg>
+              </Button>
+            </div>
+          </header>
+          <div className="student-directory-filters">
+            <label className="sp-form-field">
+              Rechercher par nom
+              <input className="sp-field" onChange={(event) => setSearch(event.target.value)} placeholder="Nom, e-mail, téléphone…" type="search" value={search} />
+            </label>
+            <label className="sp-form-field">
+              Groupe
+              <select className="sp-field" onChange={(event) => setGroupFilter(event.target.value)} value={groupFilter}>
+                <option value="">Tous les groupes</option>
+                {planningData?.filters.groups.map((group) => (
+                  <option key={group.id} value={String(group.id)}>{group.name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="sp-form-field">
+              Niveau
+              <select className="sp-field" onChange={(event) => setLevelFilter(event.target.value)} value={levelFilter}>
+                <option value="">Tous les niveaux</option>
+                {levels.map((level) => <option key={level} value={level}>{level}</option>)}
+              </select>
+            </label>
+            <span className="management-result-count">{visibleStudents.length} résultat(s)</span>
+          </div>
+          {visibleStudents.length === 0 ? (
+            <EmptyState title={search || groupFilter || levelFilter ? 'Aucun résultat avec ces filtres.' : 'Aucun étudiant enregistré dans ce centre.'} />
+          ) : studentView === 'table' ? (
+            <div className="student-directory-table-wrap">
+              <table className="student-directory-table">
+                <thead><tr><th>Nom</th><th>Niveau</th><th>Groupes</th><th>Tuteur</th><th>Inscrit</th><th>Inscriptions</th>{canManage && <th>Actions</th>}</tr></thead>
+                <tbody>
+                  {visibleStudents.map((student) => {
+                    const studentGroups = planningData
+                      ? [...(groupIdsByStudentId.get(String(student.id)) ?? [])]
+                        .map((groupId) => planningData.filters.groups.find((item) => String(item.id) === groupId))
+                        .filter((group): group is PlanningData['filters']['groups'][number] => Boolean(group))
+                      : [];
+                    return (
+                      <tr key={student.id}>
+                        <td><strong>{student.firstName} {student.lastName}</strong>{student.telephone && <a href={`tel:${student.telephone}`}>{student.telephone}</a>}{student.email && <a href={`mailto:${student.email}`}>{student.email}</a>}</td>
+                        <td><span className="student-level-badge">{student.educationLevel || 'Non renseigné'}</span></td>
+                        <td>
+                          {studentGroups.length ? (
+                            <div className="student-directory-group-list">
+                              {studentGroups.map((group) => {
+                                const occupied = groupOccupancy.get(String(group.id)) ?? 0;
+                                const remaining = Math.max(0, group.capacity - occupied);
+                                const lowCapacity = remaining <= 5;
+                                const teacher = planningData?.filters.teachers.find((item) => String(item.id) === String(group.teacherId));
+                                return (
+                                  <span className={`student-group-badge${lowCapacity ? ' is-warning' : ''}`} key={group.id}>
+                                    {lowCapacity && <span aria-hidden="true">⚠ </span>}
+                                    {group.name} - {group.formationName ?? 'Formation non définie'}
+                                    <small>{remaining === 0 ? 'Groupe complet' : `${remaining} place(s) restante(s)`}</small>
+                                    {teacher && <small>Formateur : {teacher.name}</small>}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          ) : groupIdsByStudentId.get(String(student.id))?.size ? (
+                            <span className="management-muted">Chargement des groupes…</span>
+                          ) : <span className="management-muted">Non affecté</span>}
+                        </td>
+                        <td>
+                          <div className="student-guardian-details">
+                            <strong>{student.guardianName || '—'}</strong>
+                            {student.guardianEmail && <a href={`mailto:${student.guardianEmail}`}>{student.guardianEmail}</a>}
+                            {student.parentTelephone && <a href={`tel:${student.parentTelephone}`}>{student.parentTelephone}</a>}
+                            {student.guardianCity && <span>{student.guardianCity}</span>}
+                          </div>
+                        </td>
+                        <td>{student.createdAt ? new Date(student.createdAt).toLocaleDateString('fr-FR') : '—'}</td>
+                        <td><span className={`student-enrollment-badge${student.courseCount ? ' is-active' : ''}`}>{student.courseCount ? `${student.courseCount} active(s)` : 'Aucune'}</span></td>
+                        {canManage && <td><div className="student-directory-actions"><Button onClick={() => startEdit(student)} type="button" variant="secondary">Modifier</Button><Button onClick={() => void removeStudent(student)} type="button" variant="danger">Supprimer</Button></div></td>}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="management-card-grid management-four-column-grid management-student-grid">
+              {visibleStudents.map((student) => (
             <Panel className="management-student-card" key={student.id}>
               <header className="management-student-heading">
                 <span aria-hidden="true" className="management-avatar management-student-avatar">{initials(`${student.firstName} ${student.lastName}`)}</span>
@@ -1348,13 +1950,43 @@ export function StudentsPage() {
               <div className="management-student-details">
                 {student.email && <a href={`mailto:${student.email}`}><span aria-hidden="true">✉</span>{student.email}</a>}
                 {student.telephone && <a href={`tel:${student.telephone}`}><span aria-hidden="true">☎</span>{student.telephone}</a>}
-                {student.parentTelephone && <a href={`tel:${student.parentTelephone}`}><span aria-hidden="true">☎</span>Parent : {student.parentTelephone}</a>}
                 {student.city && <span><span aria-hidden="true">⌖</span>{student.city}</span>}
               </div>
+              {(student.guardianName || student.guardianEmail || student.parentTelephone || student.guardianCity) && (
+                <div className="student-card-guardian">
+                  <strong>Parent / tuteur</strong>
+                  {student.guardianName && <span>{student.guardianName}</span>}
+                  {student.guardianEmail && <a href={`mailto:${student.guardianEmail}`}>{student.guardianEmail}</a>}
+                  {student.parentTelephone && <a href={`tel:${student.parentTelephone}`}>{student.parentTelephone}</a>}
+                  {student.guardianCity && <span>{student.guardianCity}</span>}
+                </div>
+              )}
+              {planningData && (
+                <div className="student-card-groups">
+                  {groupIdsByStudentId.get(String(student.id))?.size === 0 && <span className="management-muted">Groupe non affecté</span>}
+                  {[...(groupIdsByStudentId.get(String(student.id)) ?? [])].map((groupId) => {
+                    const group = planningData.filters.groups.find((item) => String(item.id) === groupId);
+                    if (!group) return null;
+                    const remaining = Math.max(0, group.capacity - (groupOccupancy.get(groupId) ?? 0));
+                    const teacher = planningData.filters.teachers.find((item) => String(item.id) === String(group.teacherId));
+                    return (
+                      <span className={`student-group-badge${remaining <= 5 ? ' is-warning' : ''}`} key={group.id}>
+                        {remaining <= 5 && <span aria-hidden="true">⚠ </span>}
+                        {group.name} - {group.formationName ?? 'Formation non définie'}
+                        <small>{remaining === 0 ? 'Groupe complet' : `${remaining} place(s) restante(s)`}{teacher ? ` · ${teacher.name}` : ''}</small>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+              {!planningData && groupIdsByStudentId.get(String(student.id))?.size ? (
+                <span className="management-muted">Chargement des groupes…</span>
+              ) : null}
               <footer className="management-student-footer">
-                <span>{student.groupName || 'Non affecté'}</span>
-                <span>{student.courseCount} cours</span>
+                <span>{student.educationLevel || 'Niveau non renseigné'}</span>
+                <span>{student.courseCount} inscription(s)</span>
               </footer>
+              {student.createdAt && <p className="management-muted">Inscrit le {new Date(student.createdAt).toLocaleDateString('fr-FR')}</p>}
               {canManage && planning.state.status === 'loaded' && (
                 <div className="sp-form-grid">
                   <label className="sp-form-field">
@@ -1397,8 +2029,10 @@ export function StudentsPage() {
               )}
             </Panel>
           ))}
-        </div>
-      ))}
+            </div>
+          )}
+        </Panel>
+      )}
     </PageFrame>
   );
 }
@@ -1430,6 +2064,7 @@ export function AttendancePage() {
   const { profile } = useAuth();
   const { state: planningState, reload } = usePlanningData();
   const [date, setDate] = useState(() => isoDate(new Date()));
+  const [selectedGroupId, setSelectedGroupId] = useState('');
   const [sheet, setSheet] = useState<AttendanceSheet | null>(null);
   const [absenceAlerts, setAbsenceAlerts] = useState<AbsenceAlert[]>([]);
   const [alertsLoading, setAlertsLoading] = useState(false);
@@ -1439,9 +2074,8 @@ export function AttendancePage() {
     setErrorState(value);
     if (value) notify(value, 'error');
   };
-  const [message, setMessageState] = useState<string | null>(null);
+  const [savingKey, setSavingKey] = useState<string | null>(null);
   const setMessage = (value: string | null) => {
-    setMessageState(value);
     if (value) notify(value, 'success');
   };
   const [revision, setRevision] = useState(0);
@@ -1466,6 +2100,26 @@ export function AttendancePage() {
         );
       });
   }, [date, planningState]);
+  const visibleCourseSheets = useMemo(() => {
+    if (!sheet) return [];
+    return sheet.courses.filter((courseSheet) => {
+      const occurrence = occurrences.find((item) => String(item.id) === String(courseSheet.courseId));
+      return !selectedGroupId || String(occurrence?.groupId ?? '') === selectedGroupId;
+    });
+  }, [occurrences, selectedGroupId, sheet]);
+  const attendanceTotals = useMemo(() => visibleCourseSheets.reduce(
+    (totals, course) => {
+      for (const student of course.students) {
+        if (student.status === 'present') totals.present += 1;
+        else if (student.status === 'absent') totals.absent += 1;
+        else if (student.status === 'retard') totals.late += 1;
+        else totals.unmarked += 1;
+      }
+      return totals;
+    },
+    { present: 0, absent: 0, late: 0, unmarked: 0 },
+  ), [visibleCourseSheets]);
+  const canRecordAttendance = profile?.role === 'formateur';
 
   useEffect(() => {
     if (planningState.status !== 'loaded' || !profile?.centreId) return;
@@ -1514,12 +2168,18 @@ export function AttendancePage() {
     studentId: string | number,
     status: AttendanceStatus,
   ) {
+    if (!canRecordAttendance) {
+      setError('La modification des présences est réservée au formateur.');
+      return;
+    }
     if (!profile?.centreId) {
       setError('Votre profil n’est rattaché à aucun centre.');
       return;
     }
     setError(null);
     setMessage(null);
+    const key = `${courseId}|${studentId}`;
+    setSavingKey(key);
     try {
       await saveAttendance(
         getSupabaseClient(),
@@ -1533,24 +2193,62 @@ export function AttendancePage() {
       setRevision((current) => current + 1);
     } catch (cause) {
       setError(errorMessage(cause));
+    } finally {
+      setSavingKey(null);
+    }
+  }
+
+  async function markCoursePresent(courseId: string | number, students: AttendanceSheet['courses'][number]['students']) {
+    const centreId = profile?.centreId;
+    if (!canRecordAttendance || !centreId) {
+      setError('La modification des présences est réservée au formateur.');
+      return;
+    }
+    if (students.length === 0) return;
+    setSavingKey(String(courseId));
+    setError(null);
+    setMessage(null);
+    try {
+      await Promise.all(students.map(({ student }) => saveAttendance(
+        getSupabaseClient(),
+        centreId,
+        courseId,
+        student.id,
+        date,
+        'present',
+      )));
+      setMessage(`Présence enregistrée pour les ${students.length} étudiants du groupe.`);
+    } catch (cause) {
+      setError(errorMessage(cause));
+    } finally {
+      setSavingKey(null);
+      setRevision((current) => current + 1);
     }
   }
 
   return (
     <PageFrame
       actions={
-        <label className="sp-form-field management-date-field">
-          Date de la séance
-          <input
-            className="sp-field"
-            onChange={(event) => setDate(event.target.value)}
-            type="date"
-            value={date}
-          />
-        </label>
+        <div className="attendance-filters">
+          <label className="sp-form-field">
+            Date de la séance
+            <input className="sp-field" onChange={(event) => setDate(event.target.value)} type="date" value={date} />
+          </label>
+          <label className="sp-form-field">
+            Groupe
+            <select className="sp-field" onChange={(event) => setSelectedGroupId(event.target.value)} value={selectedGroupId}>
+              <option value="">Tous les groupes</option>
+              {planningState.status === 'loaded' && planningState.data.filters.groups.map((group) => (
+                <option key={group.id} value={String(group.id)}>{group.name}{group.formationName ? ` · ${group.formationName}` : ''}</option>
+              ))}
+            </select>
+          </label>
+        </div>
       }
-      description="Consultez les séances du jour et enregistrez les présences, retards ou absences."
-      title="Présences"
+      description={canRecordAttendance
+        ? 'Sélectionnez un groupe et une séance pour marquer chaque étudiant présent, en retard ou absent.'
+        : 'Consultez les présences enregistrées par les formateurs. Cette vue est en lecture seule.'}
+      title="Suivi des présences"
     >
       <PlanningLoadState retry={reload} state={planningState} />
       {planningState.status === 'loaded' && (
@@ -1597,8 +2295,15 @@ export function AttendancePage() {
           )}
         </Panel>
       )}
-      {message && <Alert tone="success">{message}</Alert>}
       {error && <Alert tone="error">{error}</Alert>}
+      {!loading && planningState.status === 'loaded' && sheet && visibleCourseSheets.length > 0 && (
+        <section aria-label="Bilan des présences du groupe" className="attendance-status-summary">
+          <article className="is-present"><strong>{attendanceTotals.present}</strong><span>Présents</span></article>
+          <article className="is-absent"><strong>{attendanceTotals.absent}</strong><span>Absents</span></article>
+          <article className="is-late"><strong>{attendanceTotals.late}</strong><span>En retard</span></article>
+          <article className="is-unmarked"><strong>{attendanceTotals.unmarked}</strong><span>Non marqués</span></article>
+        </section>
+      )}
       {loading && (
         <Panel>
           <LoadingState label="Chargement de la feuille de présence…" />
@@ -1606,74 +2311,90 @@ export function AttendancePage() {
       )}
       {!loading &&
         planningState.status === 'loaded' &&
-        (!sheet || sheet.courses.length === 0 ? (
+        (!sheet || visibleCourseSheets.length === 0 ? (
           <EmptyState
-            title="Aucun cours prévu à cette date."
+            title={selectedGroupId ? 'Aucune séance de ce groupe à cette date.' : 'Aucun cours prévu à cette date.'}
             description={
               planningState.data.closedDates[date]
                 ? `Centre fermé : ${planningState.data.closedDates[date]}`
-                : 'Choisissez une autre date pour consulter les séances.'
+                : 'Choisissez une autre date ou un autre groupe pour consulter les séances.'
             }
           />
         ) : (
-          <div className="management-attendance-grid">
-            {sheet.courses.map((courseSheet) => {
+          <div className="attendance-group-list">
+            {visibleCourseSheets.map((courseSheet) => {
               const occurrence = occurrences.find(
                 (item) => String(item.id) === String(courseSheet.courseId),
               );
               if (!occurrence) return null;
               const present = courseSheet.students.filter(
-                (item) => item.status === 'present' || item.status === 'retard',
+                (item) => item.status === 'present',
               ).length;
+              const group = planningState.data.filters.groups.find(
+                (item) => String(item.id) === String(occurrence.groupId),
+              );
               return (
-                <Panel className="management-attendance-course" key={courseSheet.courseId}>
+                <Panel className="attendance-session-panel" key={courseSheet.courseId}>
                   <header className="management-attendance-heading">
                     <div>
                       <p className="planning-progress-eyebrow">
-                        {formatCourseTime(occurrence)} ·{' '}
-                        {occurrence.roomName || 'Salle non définie'}
+                        {group?.formationName ?? 'Formation'} · {group?.name ?? occurrence.groupName ?? 'Groupe non défini'}
                       </p>
                       <h2>{occurrence.subjectName}</h2>
                       <p>
-                        {occurrence.teacherName}
-                        {occurrence.groupName ? ` · ${occurrence.groupName}` : ''}
+                        {formatCourseTime(occurrence)} · {occurrence.roomName || 'Salle non définie'} · {occurrence.teacherName}
                       </p>
                     </div>
-                    <span className="management-attendance-count">
-                      {present} / {courseSheet.students.length} présents
-                    </span>
+                    <div className="attendance-session-actions">
+                      <span className="management-attendance-count">
+                        {present} / {courseSheet.students.length} présents
+                      </span>
+                      {canRecordAttendance && courseSheet.students.length > 0 && (
+                        <Button
+                          disabled={savingKey !== null}
+                          onClick={() => void markCoursePresent(occurrence.id, courseSheet.students)}
+                          type="button"
+                          variant="secondary"
+                        >
+                          {savingKey === String(occurrence.id) ? 'Enregistrement…' : 'Marquer le groupe présent'}
+                        </Button>
+                      )}
+                    </div>
                   </header>
                   {courseSheet.students.length === 0 ? (
                     <p className="management-muted">Aucun étudiant inscrit à ce cours.</p>
                   ) : (
                     <div className="management-attendance-list">
                       {courseSheet.students.map(({ student, status }) => (
-                        <div className="management-attendance-row" key={student.id}>
-                          <strong>
-                            {student.firstName} {student.lastName}
-                          </strong>
-                          <div
-                            aria-label={`Présence de ${student.firstName} ${student.lastName}`}
-                            className="management-status-actions"
-                          >
-                            {(
-                              [
-                                ['present', 'Présent'],
-                                ['retard', 'Retard'],
-                                ['absent', 'Absent'],
-                              ] as const
-                            ).map(([value, label]) => (
-                              <button
-                                aria-pressed={status === value}
-                                className={`management-status-button${status === value ? ' is-selected' : ''}`}
-                                key={value}
-                                onClick={() => void updateStatus(occurrence.id, student.id, value)}
-                                type="button"
-                              >
-                                {label}
-                              </button>
-                            ))}
+                        <div className={`attendance-student-row${status ? ` is-${status}` : ''}`} key={student.id}>
+                          <div className="attendance-student-name">
+                            <span aria-hidden="true" className="management-avatar">{initials(`${student.firstName} ${student.lastName}`)}</span>
+                            <span><strong>{student.firstName} {student.lastName}</strong><small>{status ? `Statut : ${status === 'present' ? 'Présent' : status === 'absent' ? 'Absent' : 'En retard'}` : 'Non marqué'}</small></span>
                           </div>
+                          {canRecordAttendance ? (
+                            <div aria-label={`Présence de ${student.firstName} ${student.lastName}`} className="management-status-actions">
+                              {([
+                                ['present', 'Présent'],
+                                ['absent', 'Absent'],
+                                ['retard', 'Retard'],
+                              ] as const).map(([value, label]) => {
+                                return (
+                                  <button
+                                    aria-pressed={status === value}
+                                    className={`management-status-button attendance-status-button is-${value}${status === value ? ' is-selected' : ''}`}
+                                    disabled={savingKey !== null}
+                                    key={value}
+                                    onClick={() => void updateStatus(occurrence.id, student.id, value)}
+                                    type="button"
+                                  >
+                                    {label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <span className="attendance-readonly-status">{status ? (status === 'present' ? 'Présent' : status === 'absent' ? 'Absent' : 'En retard') : 'Non marqué'}</span>
+                          )}
                         </div>
                       ))}
                     </div>

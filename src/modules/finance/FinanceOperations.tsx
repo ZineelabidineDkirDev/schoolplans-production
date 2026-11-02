@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
-import { Alert, Button, LoadingState, confirmAction } from '../../components/ui';
+import { Alert, Button, LoadingState, confirmAction, notify } from '../../components/ui';
 import { getSupabaseClient } from '../../data/supabase/client';
 import { useAuth } from '../auth/AuthProvider';
 
@@ -8,8 +8,8 @@ type Account = { id: string; name: string; account_type: 'cash' | 'bank'; openin
 type Movement = { id: string; account_id: string; movement_type: 'inflow' | 'outflow' | 'transfer_in' | 'transfer_out' | 'adjustment'; amount: number | string; movement_date: string; description: string; transfer_group_id: string | null };
 
 function OperationsModal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
-  return <div className="finance-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-    <section aria-modal="true" className="finance-modal" role="dialog">
+  return <div className="finance-modal-backdrop app-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <section aria-modal="true" className="finance-modal app-modal" role="dialog">
       <header className="finance-modal-header"><div><p className="sp-page-eyebrow">Dépenses et trésorerie</p><h2>{title}</h2></div><button type="button" className="finance-modal-close" aria-label="Fermer" onClick={onClose}>×</button></header>
       {children}
     </section>
@@ -46,7 +46,9 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const setNotice = (value: string | null) => {
+    if (value) notify(value, 'success');
+  };
   const [reloadKey, setReloadKey] = useState(0);
   const [section, setSection] = useState<'expenses' | 'treasury'>('expenses');
   const [modal, setModal] = useState<'expense' | 'account' | 'movement' | 'transfer' | null>(null);
@@ -221,7 +223,6 @@ export function FinanceOperations({ onChange }: { onChange: () => void }) {
 
   return <section className="finance-operations-module">
     {error && <Alert tone="error"><p>{error}</p></Alert>}
-    {notice && <Alert tone="success"><p>{notice}</p></Alert>}
     <div className="finance-operation-tabs">
       <Button type="button" variant={section === 'expenses' ? 'primary' : 'secondary'} onClick={() => setSection('expenses')}>Dépenses</Button>
       <Button type="button" variant={section === 'treasury' ? 'primary' : 'secondary'} onClick={() => setSection('treasury')}>Trésorerie</Button>

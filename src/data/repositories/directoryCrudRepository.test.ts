@@ -46,10 +46,22 @@ describe('directory CRUD repository', () => {
 
   it('creates and updates teacher identity fields without changing profile linkage', async () => {
     const { client, calls } = clientFor({ singles: { formateurs: { id: 9 } } });
-    await expect(createCentreTeacher(client, 'c1', { name: ' Fatima ', email: ' fatima@example.test ' })).resolves.toBe(9);
-    await expect(updateCentreTeacher(client, 'c1', 9, { name: 'Fatima B.', email: '' })).resolves.toBeUndefined();
-    expect(calls).toContainEqual({ table: 'formateurs', method: 'insert', args: [{ centre_id: 'c1', nom: 'Fatima', email: 'fatima@example.test' }] });
-    expect(calls).toContainEqual({ table: 'formateurs', method: 'update', args: [{ nom: 'Fatima B.', email: null }] });
+    await expect(createCentreTeacher(client, 'c1', {
+      firstName: ' Fatima ', lastName: ' Benali ', email: ' fatima@example.test ', telephone: ' 0612345678 ',
+    })).resolves.toBe(9);
+    await expect(updateCentreTeacher(client, 'c1', 9, {
+      firstName: 'Fatima', lastName: 'B.', email: '', telephone: '',
+    })).resolves.toBeUndefined();
+    expect(calls).toContainEqual({
+      table: 'formateurs',
+      method: 'insert',
+      args: [{ centre_id: 'c1', nom: 'Fatima Benali', email: 'fatima@example.test', telephone: '0612345678' }],
+    });
+    expect(calls).toContainEqual({
+      table: 'formateurs',
+      method: 'update',
+      args: [{ nom: 'Fatima B.', email: null, telephone: null }],
+    });
   });
 
   it('protects a teacher linked to a login profile', async () => {
@@ -66,7 +78,17 @@ describe('directory CRUD repository', () => {
 
   it('validates teacher email before writing', async () => {
     const { client, from } = clientFor();
-    await expect(createCentreTeacher(client, 'c1', { name: 'Fatima', email: 'bad' })).rejects.toThrow('adresse e-mail');
+    await expect(createCentreTeacher(client, 'c1', {
+      firstName: 'Fatima', lastName: 'Benali', email: 'bad', telephone: '',
+    })).rejects.toThrow('adresse e-mail');
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it('validates a personal phone number before writing', async () => {
+    const { client, from } = clientFor();
+    await expect(createCentreTeacher(client, 'c1', {
+      firstName: 'Fatima', lastName: 'Benali', email: '', telephone: 'bad-phone',
+    })).rejects.toThrow('numéro de téléphone');
     expect(from).not.toHaveBeenCalled();
   });
 });

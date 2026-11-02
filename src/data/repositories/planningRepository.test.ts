@@ -55,7 +55,7 @@ const writablePlanningData: PlanningData = {
       },
     ],
     subjects: [{ id: 3, name: 'Français', domainName: 'Langues' }],
-    teachers: [{ id: 11, name: 'Nadia Martin', email: null, profileId: null }],
+    teachers: [{ id: 11, name: 'Nadia Martin', email: null, telephone: null, createdAt: null, profileId: null }],
     rooms: [{ id: 4, name: 'Salle 2', type: 'Standard', capacity: 30 }],
   },
   subjectIdsByFormation: { '2': [3] },
@@ -143,6 +143,10 @@ describe('planning repository scope', () => {
     expect(selections).toContainEqual({
       table: 'formations',
       columns: 'id,nom,duree,heures_par_semaine,heures_totales,description,actif',
+    });
+    expect(selections).toContainEqual({
+      table: 'formateurs',
+      columns: 'id,nom,email,telephone,created_at,profile_id',
     });
     for (const table of [
       'cours',

@@ -410,7 +410,7 @@ export function SupportsPage() {
         eyebrow="Espace pédagogique"
         title="Cours en ligne"
       />
-      {message && <Alert tone={message.tone}>{message.text}</Alert>}
+      {message?.tone === 'error' && <Alert tone="error">{message.text}</Alert>}
       {state.status === 'loaded' && state.studentFound && (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <button

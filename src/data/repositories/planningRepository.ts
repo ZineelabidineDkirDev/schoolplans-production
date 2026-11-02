@@ -148,7 +148,7 @@ export async function getPlanningData(
 
   let teachersQuery = client
     .from('formateurs')
-    .select('id,nom,email,profile_id')
+    .select('id,nom,email,telephone,created_at,profile_id')
     .eq('centre_id', centreId);
   if (teacherId !== null) teachersQuery = teachersQuery.eq('id', teacherId);
 
@@ -316,6 +316,8 @@ export async function getPlanningData(
     id: identifier(teacher.id, 'formateur'),
     name: text(teacher.nom, 'nom du formateur'),
     email: optionalText(teacher.email),
+    telephone: optionalText(teacher.telephone),
+    createdAt: optionalText(teacher.created_at),
     profileId: optionalText(teacher.profile_id),
   }));
 

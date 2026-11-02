@@ -73,8 +73,34 @@ function AuthenticatedContent() {
 
 function ApplicationShell() {
   const location = useLocation();
-  const [openNavGroups, setOpenNavGroups] = useState({ students: false, teachers: false });
+  const [openNavGroups, setOpenNavGroups] = useState<Record<string, boolean>>({
+    students: true,
+    teachers: true,
+    student: true,
+    pilotage: true,
+    organisation: true,
+    pedagogie: true,
+  });
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileNavOpen(false);
+    };
+    const closeOnDesktopResize = () => {
+      if (window.innerWidth > 900) setMobileNavOpen(false);
+    };
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', closeOnEscape);
+    window.addEventListener('resize', closeOnDesktopResize);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', closeOnEscape);
+      window.removeEventListener('resize', closeOnDesktopResize);
+    };
+  }, [mobileNavOpen]);
   useEffect(() => {
     const section = location.pathname.split('/')[2] ?? '';
     // Sur mobile/tablette, garder les groupes repliés à l'ouverture du menu.
@@ -83,6 +109,10 @@ function ApplicationShell() {
     setOpenNavGroups((current) => ({
       students: current.students || ['vs', 'vp', 'vi', 'vnotes'].includes(section),
       teachers: current.teachers || ['vf', 'vk', 'vl', 'vfg', 'vhelp', 'vc'].includes(section),
+      student: current.student || ['vcal', 'vr', 'vm', 'vq', 'vk', 'vnotes', 'vrapport'].includes(section),
+      pilotage: current.pilotage || ['vd', 'vrapport', 'vfinance', 'vsub'].includes(section),
+      organisation: current.organisation || ['vcal', 'vr', 'vh', 'vpcentre'].includes(section),
+      pedagogie: current.pedagogie || ['vf', 'vl', 'vk', 'vfg', 'vc', 'vhelp', 'vn', 'vm', 'vq'].includes(section),
     }));
   }, [location.pathname]);
   const {
@@ -227,37 +257,10 @@ function ApplicationShell() {
   const visibleSections = getVisibleSections(profile.role, permissions);
 
   return (
-    <div className="sp-app">
+    <div className={`sp-app${sidebarCollapsed ? ' is-sidebar-collapsed' : ''}`}>
       <header className="sp-app-header">
-        <Link aria-label={`Accueil — ${activeCentre?.nom ?? 'centre'}`} className="sp-app-brand" to="/app">
-          <span className="sp-app-brand-mark sp-app-centre-logo">
-            {activeCentre?.logo_url ? (
-              <img alt="" src={activeCentre.logo_url} />
-            ) : (
-              <span aria-hidden="true">⌂</span>
-            )}
-          </span>
-          <span className="sp-app-brand-name" title={activeCentre?.nom ?? undefined}>
-            {activeCentre?.nom ?? (centresLoading ? 'Chargement du centre…' : 'Centre non défini')}
-          </span>
-          {activeCentre?.type_abonnement && (
-            <span className="sp-app-pack-badge" title="Forfait du centre">{activeCentre.type_abonnement}</span>
-          )}
-          {activeCentre?.date_expiration && (() => {
-            const expiration = new Date(`${activeCentre.date_expiration}T12:00:00`);
-            const today = new Date();
-            const localToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-            const days = Math.ceil((expiration.getTime() - localToday.getTime()) / 86400000);
-            return (
-              <span
-                className={`sp-app-expiry-badge${days < 0 ? ' is-expired' : days <= 30 ? ' is-expiring' : ''}`}
-                title={days < 0 ? `Forfait expiré depuis ${-days} jour(s)` : `Expiration dans ${days} jour(s)`}
-              >
-                <span aria-hidden="true">⌛</span>
-                {activeCentre.date_expiration.split('-').reverse().join('/')}
-              </span>
-            );
-          })()}
+        <Link aria-label="Accueil Madrassa-Ti" className="sp-app-brand" to="/app">
+          Madrassa-Ti
         </Link>
         <div aria-label="Utilisateur connecté" className="sp-user">
           <strong>{profile.fullName || session?.user.email}</strong>
@@ -283,73 +286,65 @@ function ApplicationShell() {
           Déconnexion
         </Button>
       </header>
-        {profile.role === 'super_admin' && (
-          <div aria-label="Informations du centre actif" className="sp-centre-banner" tabIndex={0}>
-            <div className="sp-centre-banner-logo">
-              {activeCentre?.logo_url ? (
-                <img alt={`Logo de ${activeCentre.nom}`} src={activeCentre.logo_url} />
-              ) : (
-                <span aria-hidden="true">⌂</span>
-              )}
-            </div>
-            <div className="sp-centre-banner-content">
-              <div className="sp-centre-banner-heading">
-                <span className="sp-centre-banner-eyebrow">Centre actif</span>
-                <strong title={activeCentre?.nom ?? undefined}>
-                  {activeCentre?.nom ?? (centresLoading ? 'Chargement du centre…' : 'Centre non défini')}
-                </strong>
-                {activeCentre && (
-                  <span className={`sp-centre-pill ${activeCentre.actif ? 'is-active' : 'is-suspended'}`}>
-                    <span aria-hidden="true" className="sp-centre-pill-dot" />
-                    {activeCentre.actif ? 'Actif' : 'Suspendu'}
-                  </span>
-                )}
-              </div>
-              <div className="sp-centre-banner-meta">
-                {activeCentre?.type_abonnement && (
-                  <span><small>Pack</small><b>{activeCentre.type_abonnement}</b></span>
-                )}
-                {activeCentre?.statut_abonnement && (
-                  <span><small>Abonnement</small><b>{activeCentre.statut_abonnement}</b></span>
-                )}
-                {activeCentre?.date_expiration && (() => {
-                  const today = new Date();
-                  const localToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-                  const days = Math.round((new Date(`${activeCentre.date_expiration}T12:00:00`).getTime() - new Date(`${localToday}T12:00:00`).getTime()) / 86400000);
-                  return (
-                    <span className={days < 0 ? 'is-expired' : days <= 30 ? 'is-expiring' : ''}>
-                      <small>Expiration</small>
-                      <b>{activeCentre.date_expiration.split('-').reverse().join('/')}</b>
-                      <em>{days < 0 ? `Expiré depuis ${-days} j` : days === 0 ? 'Expire aujourd’hui' : `${days} j restants`}</em>
-                    </span>
-                  );
-                })()}
-                {!activeCentre?.type_abonnement && !activeCentre?.statut_abonnement && !activeCentre?.date_expiration && (
-                  <span className="sp-centre-no-subscription">Abonnement non défini</span>
-                )}
-              </div>
-            </div>
-            {profile.role === 'super_admin' && (
-              <div className="sp-centre-switcher">
-                <label htmlFor="sp-centre-select">Changer de centre</label>
-                <select
-                  disabled={centresLoading || centres.length === 0}
-                  id="sp-centre-select"
-                  onChange={(event) => setActiveCentreId(event.target.value || null)}
-                  value={profile.centreId ?? ''}
-                >
-                  {centres.length === 0 && <option value="">Aucun centre actif</option>}
-                  {centres.map((centre) => (
-                    <option key={centre.id} value={centre.id}>{centre.nom}</option>
-                  ))}
-                </select>
-                {centresError && <small className="sp-centre-banner-error">{centresError}</small>}
-              </div>
+      <div aria-label="Informations sur l’abonnement du centre" className="sp-centre-banner sp-centre-top-banner">
+        <div className="sp-centre-banner-content">
+          <div className="sp-centre-banner-heading">
+            <span className="sp-centre-banner-eyebrow">Centre actif</span>
+            <strong title={activeCentre?.nom ?? undefined}>
+              {activeCentre?.nom ?? (centresLoading ? 'Chargement du centre…' : 'Centre non défini')}
+            </strong>
+            {activeCentre && (
+              <span className={`sp-centre-pill ${activeCentre.actif ? 'is-active' : 'is-suspended'}`}>
+                <span aria-hidden="true" className="sp-centre-pill-dot" />
+                {activeCentre.actif ? 'Actif' : 'Suspendu'}
+              </span>
             )}
           </div>
+          <div className="sp-centre-banner-meta">
+            {activeCentre?.type_abonnement && (
+              <span><small>Type / forfait</small><b>{activeCentre.type_abonnement}</b></span>
+            )}
+            {activeCentre?.statut_abonnement && (
+              <span><small>Statut d’abonnement</small><b>{activeCentre.statut_abonnement}</b></span>
+            )}
+            {activeCentre?.date_debut && (
+              <span><small>Début</small><b>{activeCentre.date_debut.split('-').reverse().join('/')}</b></span>
+            )}
+            {activeCentre?.date_expiration && (() => {
+              const today = new Date();
+              const localToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+              const days = Math.round((new Date(`${activeCentre.date_expiration}T12:00:00`).getTime() - new Date(`${localToday}T12:00:00`).getTime()) / 86400000);
+              return (
+                <span className={days < 0 ? 'is-expired' : days <= 30 ? 'is-expiring' : ''}>
+                  <small>Fin de l’abonnement</small>
+                  <b>{activeCentre.date_expiration.split('-').reverse().join('/')}</b>
+                  <em>{days < 0 ? `Expiré depuis ${-days} j` : days === 0 ? 'Expire aujourd’hui' : `${days} j restants`}</em>
+                </span>
+              );
+            })()}
+            {!activeCentre?.type_abonnement && !activeCentre?.statut_abonnement && !activeCentre?.date_expiration && (
+              <span className="sp-centre-no-subscription">Abonnement non défini</span>
+            )}
+          </div>
+        </div>
+        {profile.role === 'super_admin' && (
+          <div className="sp-centre-switcher">
+            <label htmlFor="sp-centre-select">Changer de centre</label>
+            <select
+              disabled={centresLoading || centres.length === 0}
+              id="sp-centre-select"
+              onChange={(event) => setActiveCentreId(event.target.value || null)}
+              value={activeCentreId ?? ''}
+            >
+              {centres.length === 0 && <option value="">Aucun centre actif</option>}
+              {centres.map((centre) => (
+                <option key={centre.id} value={centre.id}>{centre.nom}</option>
+              ))}
+            </select>
+            {centresError && <small className="sp-centre-banner-error">{centresError}</small>}
+          </div>
         )}
-
-
+      </div>
       <div className="sp-app-wrap">
         <button
           aria-controls="sp-dashboard-navigation"
@@ -359,7 +354,6 @@ function ApplicationShell() {
           onClick={() => {
             const nextOpen = !mobileNavOpen;
             setMobileNavOpen(nextOpen);
-            if (nextOpen) setOpenNavGroups({ students: false, teachers: false });
           }}
           type="button"
         >
@@ -368,23 +362,68 @@ function ApplicationShell() {
           </svg>
           <span>{mobileNavOpen ? 'Fermer le menu' : 'Rubriques du centre'}</span>
         </button>
-        {createPortal(<nav aria-label="Navigation principale" className={`sp-app-nav${mobileNavOpen ? ' is-mobile-open' : ''}`} id="sp-dashboard-navigation">
-          <NavLink className={({ isActive }) => navItemClass(isActive)} end onClick={() => setMobileNavOpen(false)} to="/app">
+        {createPortal(<>
+          {mobileNavOpen && (
+            <button
+              aria-label="Fermer le menu du tableau de bord"
+              className="sp-app-nav-backdrop"
+              onClick={() => setMobileNavOpen(false)}
+              type="button"
+            />
+          )}
+          <nav aria-label="Navigation principale" className={`sp-app-nav${mobileNavOpen ? ' is-mobile-open' : ''}${sidebarCollapsed ? ' is-collapsed' : ''}`} id="sp-dashboard-navigation">
+          <button
+            aria-label="Fermer le menu du tableau de bord"
+            className="sp-app-nav-close"
+            onClick={() => setMobileNavOpen(false)}
+            type="button"
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" /></svg>
+          </button>
+          <div className="sp-sidebar-centre">
+            <Link aria-label={`Accueil — ${activeCentre?.nom ?? 'centre'}`} className="sp-sidebar-centre-brand" to="/app">
+              <span className="sp-sidebar-centre-logo">
+                {activeCentre?.logo_url ? <img alt="" src={activeCentre.logo_url} /> : <span aria-hidden="true">⌂</span>}
+              </span>
+              <span className="sp-sidebar-centre-name">
+                <small>Centre actif</small>
+                <strong title={activeCentre?.nom ?? undefined}>
+                  {activeCentre?.nom ?? (centresLoading ? 'Chargement du centre…' : 'Centre non défini')}
+                </strong>
+              </span>
+            </Link>
+          </div>
+          <button
+            aria-label={sidebarCollapsed ? 'Développer le menu latéral' : 'Réduire le menu latéral'}
+            aria-pressed={sidebarCollapsed}
+            className="sp-sidebar-collapse"
+            onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
+            title={sidebarCollapsed ? 'Développer le menu' : 'Réduire le menu'}
+            type="button"
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d={sidebarCollapsed ? 'm9 18 6-6-6-6' : 'm15 18-6-6 6-6'} />
+            </svg>
+          </button>
+          <div className="sp-nav-section">
+            <span className="sp-nav-section-label">Espace</span>
+          <NavLink aria-label="Accueil" className={({ isActive }) => navItemClass(isActive)} end onClick={() => setMobileNavOpen(false)} title="Accueil" to="/app">
             <NavIcon section="home" />
             <span className="sp-nav-label">Accueil</span>
           </NavLink>
           {profile.role === 'super_admin' && (
-            <NavLink className={({ isActive }) => navItemClass(isActive)} onClick={() => setMobileNavOpen(false)} to="/app/vz">
+            <NavLink aria-label="Gérer les centres" className={({ isActive }) => navItemClass(isActive)} onClick={() => setMobileNavOpen(false)} title="Gérer les centres" to="/app/vz">
               <NavIcon section="vz" />
               <span className="sp-nav-label">Gérer les centres</span>
             </NavLink>
           )}
+          </div>
           {(() => {
-            const studentItems = visibleSections.filter((section) =>
-              ['vs', 'vp', 'vi', 'vnotes'].includes(section),
-            );
+            const studentItems = profile.role === 'etudiant'
+              ? visibleSections
+              : visibleSections.filter((section) => ['vs', 'vp', 'vi', 'vnotes'].includes(section));
             const teacherItems = visibleSections.filter((section) =>
-              ['vf', 'vk', 'vl', 'vfg', 'vhelp', 'vc'].includes(section),
+              profile.role !== 'etudiant' && ['vf', 'vk', 'vl', 'vfg', 'vhelp', 'vc'].includes(section),
             );
             const grouped = new Set([...studentItems, ...teacherItems]);
             const directItems = visibleSections.filter(
@@ -392,9 +431,11 @@ function ApplicationShell() {
             );
             const renderItem = (section: AppSection) => (
               <NavLink
+                aria-label={SECTION_LABELS[section]}
                 className={({ isActive }) => navItemClass(isActive)}
                 key={section}
                 onClick={() => setMobileNavOpen(false)}
+                title={SECTION_LABELS[section]}
                 to={`/app/${section}`}
               >
                 <NavIcon section={section} />
@@ -407,19 +448,21 @@ function ApplicationShell() {
               </NavLink>
             );
             const renderGroup = (
-              id: 'students' | 'teachers',
+              id: string,
               label: string,
               items: AppSection[],
               iconSection: AppSection,
             ) => {
               if (!items.length) return null;
-              const expanded = window.matchMedia('(max-width: 900px)').matches || openNavGroups[id];
+              const expanded = openNavGroups[id] ?? true;
               const active = items.some((section) => location.pathname === `/app/${section}`);
               return (
-                <div className="sp-nav-group" key={id}>
+                <div className="sp-nav-section" key={id}>
+                  <div className="sp-nav-group">
                   <button
                     aria-expanded={expanded}
                     className={`sp-nav-group-toggle${active ? ' active' : ''}`}
+                    title={label}
                     onClick={() => setOpenNavGroups((current) => ({ ...current, [id]: !current[id] }))}
                     type="button"
                   >
@@ -429,19 +472,38 @@ function ApplicationShell() {
                       <path d="m7 10 5 5 5-5" />
                     </svg>
                   </button>
-                  {expanded && <div className="sp-nav-submenu">{items.map(renderItem)}</div>}
+                  {(expanded || sidebarCollapsed) && (
+                    <div className="sp-nav-submenu">{items.map(renderItem)}</div>
+                  )}
+                  </div>
                 </div>
               );
             };
+            const groupedDirectItems: { label: string; sections: AppSection[] }[] = [
+              { label: 'Pilotage', sections: ['vd', 'vrapport', 'vfinance', 'vsub'] },
+              { label: 'Organisation', sections: ['vcal', 'vr', 'vh', 'vpcentre'] },
+              { label: 'Pédagogie', sections: ['vf', 'vl', 'vk', 'vfg', 'vc', 'vhelp', 'vn', 'vm', 'vq'] },
+            ] as const;
             return (
               <>
-                {renderGroup('students', 'Étudiants', studentItems, 'vs')}
+                {renderGroup(
+                  profile.role === 'etudiant' ? 'student' : 'students',
+                  profile.role === 'etudiant' ? 'Étudiant' : 'Étudiants',
+                  studentItems,
+                  profile.role === 'etudiant' ? studentItems[0] : 'vs',
+                )}
                 {renderGroup('teachers', 'Formateurs & pédagogie', teacherItems, 'vf')}
-                {directItems.map(renderItem)}
+                {groupedDirectItems.map(({ label, sections }) => {
+                  const items = directItems.filter((section) => sections.includes(section));
+                  return items.length ? (
+                    renderGroup(label.toLowerCase(), label, items, items[0])
+                  ) : null;
+                })}
               </>
             );
           })()}
-        </nav>, document.body)}
+          </nav>
+        </>, document.body)}
 
         <main className="sp-app-content">
           {profile.role === 'super_admin' && !activeCentreId && (

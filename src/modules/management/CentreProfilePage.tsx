@@ -108,7 +108,7 @@ export function CentreProfilePage() {
         eyebrow="Gestion du centre"
         title="Profil du centre"
       />
-      {message && <Alert tone={message.tone}>{message.text}</Alert>}
+      {message?.tone === 'error' && <Alert tone="error">{message.text}</Alert>}
       {state.status === 'loading' && (
         <Panel>
           <LoadingState label="Chargement du profil du centre…" />

@@ -194,6 +194,7 @@ function EnrollmentChart({
           value: series.slice(0, index + 1).reduce((total, current) => total + current.value, 0),
         }))
       : series;
+  const periodTotal = series.reduce((total, point) => total + point.value, 0);
   const maximum = Math.max(1, ...plotted.map((point) => point.value));
 
   if (!series.length) {
@@ -213,7 +214,8 @@ function EnrollmentChart({
   const yMaximum = Math.ceil(maximum / interval) * interval;
   const x = (index: number) =>
     left + (plotted.length > 1 ? (index / (plotted.length - 1)) * plotWidth : plotWidth / 2);
-  const y = (value: number) => top + plotHeight - (value / yMaximum) * plotHeight;
+  const clampY = (value: number) => Math.max(top, Math.min(top + plotHeight, value));
+  const y = (value: number) => clampY(top + plotHeight - (value / yMaximum) * plotHeight);
   const tickIndexes =
     plotted.length <= 6
       ? plotted.map((_, index) => index)
@@ -227,11 +229,11 @@ function EnrollmentChart({
       const next = coordinates[index + 1] ?? point;
       const firstControl = [
         previous[0] + (point[0] - beforePrevious[0]) / 6,
-        Math.min(top + plotHeight, previous[1] + (point[1] - beforePrevious[1]) / 6),
+        clampY(previous[1] + (point[1] - beforePrevious[1]) / 6),
       ];
       const secondControl = [
         point[0] - (next[0] - previous[0]) / 6,
-        Math.min(top + plotHeight, point[1] - (next[1] - previous[1]) / 6),
+        clampY(point[1] - (next[1] - previous[1]) / 6),
       ];
       return `C${firstControl[0]},${firstControl[1]} ${secondControl[0]},${secondControl[1]} ${point[0]},${point[1]}`;
     })
@@ -241,9 +243,28 @@ function EnrollmentChart({
       ? `${curvePath} L${coordinates.at(-1)?.[0]},${top + plotHeight} L${coordinates[0][0]},${top + plotHeight} Z`
       : '';
 
+  const chartModeLabel = { line: 'Courbe', bar: 'Barres', cum: 'Cumul' }[mode];
+
   return (
-    <div className="dashboard-chart" role="img" aria-label="Évolution des inscriptions">
-      <svg className="dashboard-chart-svg" viewBox={`0 0 ${width} ${height}`} aria-hidden="true">
+    <div className="dashboard-enrollment-chart">
+      <div className="dashboard-chart-summary">
+        <strong>{periodTotal.toLocaleString('fr-MA')}</strong>
+        <span>
+          {mode === 'cum' ? 'inscriptions cumulées en fin de période' : 'inscriptions sur la période'}
+        </span>
+      </div>
+      <div
+        className="dashboard-chart"
+        role="img"
+        aria-label={`Évolution des inscriptions, affichage ${chartModeLabel.toLocaleLowerCase('fr')}`}
+      >
+      <svg
+        aria-hidden="true"
+        className="dashboard-chart-svg"
+        height={height}
+        viewBox={`0 0 ${width} ${height}`}
+        width={width}
+      >
         <defs>
           <linearGradient id="dashboard-chart-fill" x1="0" x2="0" y1="0" y2="1">
             <stop offset="0" stopColor="var(--brand)" stopOpacity=".22" />
@@ -303,24 +324,261 @@ function EnrollmentChart({
                 width={barWidth}
                 x={x(index) - barWidth / 2}
                 y={y(point.value)}
-              />
+              >
+                <title>{point.label} : {point.value} inscription(s)</title>
+              </rect>
             );
           })
         ) : (
           <>
             {coordinates.length > 1 && <path className="dashboard-chart-area" d={areaPath} />}
             <path className="dashboard-chart-line" d={curvePath} />
-            {coordinates.length === 1 && (
+            {coordinates.map((point, index) => (
               <circle
                 className="dashboard-chart-point"
-                cx={coordinates[0][0]}
-                cy={coordinates[0][1]}
-                r="4"
+                cx={point[0]}
+                cy={point[1]}
+                key={`${plotted[index].label}-${index}`}
+                r="3.5"
               />
-            )}
+            ))}
+            {coordinates.map((point, index) => (
+              <circle
+                className="dashboard-chart-hit-area"
+                cx={point[0]}
+                cy={point[1]}
+                key={`point-${plotted[index].label}-${index}`}
+                r="10"
+              >
+                <title>{plotted[index].label} : {plotted[index].value} inscription(s)</title>
+              </circle>
+            ))}
           </>
         )}
+        {periodTotal === 0 && (
+          <text
+            className="dashboard-chart-empty"
+            dominantBaseline="middle"
+            textAnchor="middle"
+            x={left + plotWidth / 2}
+            y={top + plotHeight / 2}
+          >
+            Aucune inscription sur cette période
+          </text>
+        )}
       </svg>
+      </div>
+    </div>
+  );
+}
+
+function AttendanceTrendChart({
+  presences,
+  range,
+}: {
+  presences: DashboardData['presences'];
+  range: DashboardDateRange;
+}) {
+  const from = new Date(`${range.from}T12:00:00`);
+  const to = new Date(`${range.to}T12:00:00`);
+  if (!Number.isFinite(from.getTime()) || !Number.isFinite(to.getTime()) || to < from) {
+    return <p className="sp-muted">Choisissez une période valide.</p>;
+  }
+
+  const monthly = to.getTime() - from.getTime() > 62 * 86400000;
+  const buckets = new Map<string, { label: string; present: number; absent: number }>();
+  for (const date = new Date(from); date <= to;) {
+    const key = monthly
+      ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+      : `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    buckets.set(key, {
+      label: monthly
+        ? date.toLocaleDateString('fr-FR', { month: 'short' })
+        : String(date.getDate()),
+      present: 0,
+      absent: 0,
+    });
+    if (monthly) date.setMonth(date.getMonth() + 1, 1);
+    else date.setDate(date.getDate() + 1);
+  }
+
+  for (const presence of presences) {
+    const date = presence.date.slice(0, 10);
+    if (date < range.from || date > range.to) continue;
+    const key = monthly ? date.slice(0, 7) : date;
+    const bucket = buckets.get(key);
+    if (!bucket) continue;
+    if (presence.status === 'absent') bucket.absent += 1;
+    else bucket.present += 1;
+  }
+
+  const values = [...buckets.entries()].map(([key, value]) => ({ key, ...value }));
+  const measured = values.filter((bucket) => bucket.present + bucket.absent > 0);
+  const total = measured.reduce((sum, bucket) => sum + bucket.present + bucket.absent, 0);
+  if (!measured.length) {
+    return <p className="sp-muted">Aucun pointage de présence sur cette période.</p>;
+  }
+
+  const width = 760;
+  const height = 250;
+  const left = 42;
+  const right = 16;
+  const top = 14;
+  const bottom = 34;
+  const plotWidth = width - left - right;
+  const plotHeight = height - top - bottom;
+  const barWidth = Math.max(3, Math.min(24, (plotWidth / values.length) * 0.62));
+  const tickIndexes =
+    values.length <= 6
+      ? values.map((_, index) => index)
+      : Array.from({ length: 6 }, (_, index) => Math.round((index * (values.length - 1)) / 5));
+
+  return (
+    <div className="dashboard-attendance-chart">
+      <div className="dashboard-attendance-summary">
+        <strong>{total.toLocaleString('fr-MA')}</strong>
+        <span>pointages · les retards comptent comme présence</span>
+      </div>
+      <div className="dashboard-chart" role="img" aria-label="Présences et absences par période">
+        <svg className="dashboard-chart-svg" viewBox={`0 0 ${width} ${height}`} aria-hidden="true">
+          {[0, 25, 50, 75, 100].map((rate) => {
+            const y = top + plotHeight - (rate / 100) * plotHeight;
+            return (
+              <g key={rate}>
+                <line className="dashboard-chart-grid" x1={left} x2={width - right} y1={y} y2={y} />
+                <text className="dashboard-chart-label" textAnchor="end" x={left - 8} y={y + 4}>
+                  {rate}%
+                </text>
+              </g>
+            );
+          })}
+          {values.map((bucket, index) => {
+            const pointCount = bucket.present + bucket.absent;
+            if (!pointCount) return null;
+            const x = left + (values.length > 1 ? (index / (values.length - 1)) * plotWidth : plotWidth / 2);
+            const presentHeight = (bucket.present / pointCount) * plotHeight;
+            const absentHeight = plotHeight - presentHeight;
+            return (
+              <g key={bucket.key}>
+                {bucket.absent > 0 && (
+                  <rect
+                    fill="var(--line)"
+                    height={absentHeight}
+                    rx="3"
+                    width={barWidth}
+                    x={x - barWidth / 2}
+                    y={top}
+                  />
+                )}
+                {bucket.present > 0 && (
+                  <rect
+                    className="dashboard-chart-bar"
+                    height={presentHeight}
+                    rx="3"
+                    width={barWidth}
+                    x={x - barWidth / 2}
+                    y={top + absentHeight}
+                  />
+                )}
+                <title>
+                  {bucket.key}: {bucket.present} présence(s), {bucket.absent} absence(s)
+                </title>
+              </g>
+            );
+          })}
+          {tickIndexes.map((index) => {
+            const bucket = values[index];
+            const x = left + (values.length > 1 ? (index / (values.length - 1)) * plotWidth : plotWidth / 2);
+            return (
+              <text
+                className="dashboard-chart-label"
+                key={`${bucket.key}-${index}`}
+                textAnchor={index === 0 ? 'start' : index === values.length - 1 ? 'end' : 'middle'}
+                x={x}
+                y={height - 8}
+              >
+                {bucket.label}
+              </text>
+            );
+          })}
+        </svg>
+      </div>
+      <div className="dashboard-attendance-legend">
+        <span><i className="is-present" /> Présences</span>
+        <span><i className="is-absent" /> Absences</span>
+      </div>
+    </div>
+  );
+}
+
+function SessionsByWeekdayChart({ counts }: { counts: number[] }) {
+  const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+  const maximum = Math.max(1, ...counts);
+
+  return (
+    <div className="dashboard-weekday-chart" role="img" aria-label="Nombre de cours programmés par jour">
+      {days.map((day, index) => {
+        const count = counts[index] ?? 0;
+        const percentage = (count / maximum) * 100;
+        return (
+          <div className="dashboard-weekday-column" key={day} title={`${day} : ${count} cours`}>
+            <strong>{count}</strong>
+            <div className="dashboard-weekday-track">
+              <span style={{ height: `${percentage}%` }} />
+            </div>
+            <small>{day.slice(0, 3)}</small>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function AttendanceStatusChart({ presences }: { presences: DashboardData['presences'] }) {
+  const statuses = [
+    { label: 'Présents', value: presences.filter((presence) => presence.status === 'present').length, color: '#14b8a6' },
+    { label: 'En retard', value: presences.filter((presence) => presence.status === 'retard').length, color: '#f59e0b' },
+    { label: 'Absents', value: presences.filter((presence) => presence.status === 'absent').length, color: '#ef4444' },
+    {
+      label: 'Autres statuts',
+      value: presences.filter((presence) => !['present', 'retard', 'absent'].includes(presence.status)).length,
+      color: '#94a3b8',
+    },
+  ].filter((status) => status.value > 0);
+  const total = statuses.reduce((sum, status) => sum + status.value, 0);
+
+  if (!total) return <p className="sp-muted">Aucun pointage sur cette période.</p>;
+
+  let progress = 0;
+  const gradient = statuses
+    .map((status) => {
+      const start = progress;
+      progress += (status.value / total) * 100;
+      return `${status.color} ${start}% ${progress}%`;
+    })
+    .join(', ');
+
+  return (
+    <div className="dashboard-attendance-status">
+      <div
+        aria-label={`Répartition de ${total} pointages`}
+        className="dashboard-attendance-donut"
+        role="img"
+        style={{ background: `conic-gradient(${gradient})` }}
+      >
+        <div>
+          <strong>{total}</strong>
+          <span>pointages</span>
+        </div>
+      </div>
+      <ul className="dashboard-attendance-status-legend">
+        {statuses.map((status) => (
+          <li key={status.label}>
+            <span><i style={{ background: status.color }} />{status.label}</span>
+            <strong>{status.value} ({Math.round((status.value / total) * 100)}%)</strong>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -426,12 +684,21 @@ function TeacherDashboard({ data }: { data: DashboardData }) {
     (presence) => presence.status === 'present' || presence.status === 'retard',
   ).length;
   const attendanceRate = presences.length ? Math.round((presentCount / presences.length) * 100) : 0;
+  const studentCount = new Set(enrollments.map((enrollment) => String(enrollment.studentId))).size;
   const monthEnd = new Date();
   const monthStart = new Date(monthEnd.getFullYear(), monthEnd.getMonth() - 5, 1);
   const sixMonthRange = {
     from: `${monthStart.getFullYear()}-${String(monthStart.getMonth() + 1).padStart(2, '0')}-01`,
     to: `${monthEnd.getFullYear()}-${String(monthEnd.getMonth() + 1).padStart(2, '0')}-${String(monthEnd.getDate()).padStart(2, '0')}`,
   };
+  const recentPresences = presences.filter(
+    (presence) => presence.date >= sixMonthRange.from && presence.date <= sixMonthRange.to,
+  );
+  const weeklyCourseCounts = Array.from({ length: 6 }, () => 0);
+  for (const course of data.courses) {
+    const weekday = (course.weekday + 6) % 7;
+    if (weekday >= 0 && weekday < weeklyCourseCounts.length) weeklyCourseCounts[weekday] += 1;
+  }
   const upcoming = getNextCourseDates(data.courses);
   const subjectNames = new Map(data.subjects.map((subject) => [String(subject.id), subject.name]));
   const monthlyData = {
@@ -445,9 +712,9 @@ function TeacherDashboard({ data }: { data: DashboardData }) {
       aria-labelledby="dashboard-title"
     >
       <PageHeader
-        description="Votre activité pédagogique"
+        description={`Suivez vos cours, vos étudiants et les présences enregistrées pour ${data.linkedTeacher.name}.`}
         eyebrow="Espace formateur"
-        title="Mon tableau de bord"
+        title={`Bonjour ${data.linkedTeacher.name}`}
       />
 
       <div className="dashboard-kpis">
@@ -457,6 +724,20 @@ function TeacherDashboard({ data }: { data: DashboardData }) {
           icon="book"
           title="Mes cours"
           value={data.courses.length}
+        />
+        <DashboardMetric
+          description="Inscrits à vos cours"
+          detailIcon="users"
+          icon="users"
+          title="Mes étudiants"
+          value={studentCount}
+        />
+        <DashboardMetric
+          description="Matières distinctes"
+          detailIcon="book"
+          icon="formations"
+          title="Mes matières"
+          value={new Set(data.courses.map((course) => String(course.subjectId)).filter((id) => id !== 'null')).size}
         />
         <DashboardMetric
           description="Sur mes cours"
@@ -474,11 +755,23 @@ function TeacherDashboard({ data }: { data: DashboardData }) {
         />
       </div>
 
+      <Panel className="teacher-quick-actions">
+        <div>
+          <h2>Actions rapides</h2>
+          <p className="sp-muted">Accédez directement à vos tâches pédagogiques.</p>
+        </div>
+        <div className="teacher-quick-action-links">
+          <Link className="sp-btn" to="/app/vp">Faire l’appel</Link>
+          <Link className="sp-btn sp-btn-ghost" to="/app/vcal">Mon planning</Link>
+          <Link className="sp-btn sp-btn-ghost" to="/app/vrapport">Mes rapports</Link>
+        </div>
+      </Panel>
+
       <TeacherStudentCityMap values={data.studentCities} />
 
       <div className="dashboard-columns">
         <Panel>
-          <h2>Évolution de mes inscriptions</h2>
+          <h2>Évolution des inscriptions à mes cours</h2>
           <EnrollmentChart data={monthlyData} range={sixMonthRange} mode="line" />
         </Panel>
         <Panel className="dashboard-panel">
@@ -504,6 +797,37 @@ function TeacherDashboard({ data }: { data: DashboardData }) {
           ) : (
             <Alert>Aucun prochain cours.</Alert>
           )}
+        </Panel>
+      </div>
+
+      <Panel className="dashboard-panel">
+        <div className="dashboard-heading">
+          <div>
+            <h2>Présences et absences de mes cours</h2>
+            <p className="sp-muted">Suivi des pointages enregistrés au cours des six derniers mois.</p>
+          </div>
+        </div>
+        <AttendanceTrendChart presences={presences} range={sixMonthRange} />
+      </Panel>
+
+      <div className="dashboard-analytics-grid">
+        <Panel className="dashboard-panel">
+          <div className="dashboard-heading">
+            <div>
+              <h2>Mes cours par jour</h2>
+              <p className="sp-muted">Répartition hebdomadaire des cours qui vous sont attribués.</p>
+            </div>
+          </div>
+          <SessionsByWeekdayChart counts={weeklyCourseCounts} />
+        </Panel>
+        <Panel className="dashboard-panel">
+          <div className="dashboard-heading">
+            <div>
+              <h2>Répartition de mes pointages</h2>
+              <p className="sp-muted">Présences, retards et absences sur les six derniers mois.</p>
+            </div>
+          </div>
+          <AttendanceStatusChart presences={recentPresences} />
         </Panel>
       </div>
 
@@ -593,7 +917,9 @@ export function DashboardPage() {
                 presences: [],
                 requests: [],
                 formationCount: null,
+                activeFormationCount: null,
                 groupCount: null,
+                financeFollowUp: null,
                 popularFormations: [],
                 closedDates: [],
                 cancelledOccurrences: [],
@@ -678,6 +1004,29 @@ export function DashboardPage() {
     new Set(data.cancelledOccurrences),
   );
   const pendingRequests = data.requests.filter((request) => request.status === 'en_attente').length;
+  const outstandingBalance = data.financeFollowUp?.outstandingAmount ?? null;
+  const today = new Date();
+  const todayDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const todayCourseIds = new Set(todayMetrics.occurrences.map((course) => String(course.id)));
+  const expectedTodayAttendance = data.enrollments.filter((enrollment) =>
+    todayCourseIds.has(String(enrollment.courseId)),
+  ).length;
+  const todayAttendanceKeys = new Set(data.presences
+    .filter((presence) => presence.date.slice(0, 10) === todayDate && todayCourseIds.has(String(presence.courseId)))
+    .map((presence) => `${presence.courseId}|${presence.studentId}`));
+  const missingTodayAttendance = Math.max(0, expectedTodayAttendance - todayAttendanceKeys.size);
+  const selectedCourseIds = new Set(metrics.occurrences.map((course) => String(course.id)));
+  const filteredPresences = data.presences.filter(
+    (presence) =>
+      presence.date >= range.from &&
+      presence.date <= range.to &&
+      selectedCourseIds.has(String(presence.courseId)),
+  );
+  const weeklyOccurrenceCounts = Array.from({ length: 6 }, () => 0);
+  for (const occurrence of metrics.occurrences) {
+    const weekday = (occurrence.weekday + 6) % 7;
+    if (weekday >= 0 && weekday < weeklyOccurrenceCounts.length) weeklyOccurrenceCounts[weekday] += 1;
+  }
 
   return (
     <section
@@ -685,9 +1034,9 @@ export function DashboardPage() {
       aria-labelledby="dashboard-title"
     >
       <PageHeader
-        description="Indicateurs calculés à partir des données de la période choisie."
-        eyebrow="Vue d’ensemble du centre"
-        title="Tableau de bord"
+        description="Suivez les effectifs, les inscriptions, les séances et l’activité de votre centre sur la période choisie."
+        eyebrow={profile?.role === 'director' ? 'Pilotage du centre' : 'Vue d’ensemble du centre'}
+        title={profile?.role === 'director' ? 'Tableau de bord du centre' : 'Tableau de bord'}
       />
 
       <div className="dashboard-toolbar" aria-label="Période du tableau de bord">
@@ -821,112 +1170,144 @@ export function DashboardPage() {
           title="Groupes"
           value={data.groupCount ?? '—'}
         />
+        <DashboardMetric
+          description="Séances sur la période"
+          detailIcon="clock"
+          icon="clock"
+          title="Séances planifiées"
+          value={metrics.occurrences.length}
+        />
+        <DashboardMetric
+          description="Pointages sur la période"
+          detailIcon="check"
+          icon="check"
+          title="Présences enregistrées"
+          value={metrics.attendanceCount}
+        />
       </div>
 
-      <Panel className="dashboard-panel">
-        <div className="dashboard-heading">
-          <div>
-            <h2>Actions prioritaires</h2>
-            <p className="sp-muted">Les éléments qui demandent une intervention de l’administration.</p>
+      <div className="dashboard-operations-chart-grid">
+        <Panel className="dashboard-panel dashboard-operations-panel">
+          <div className="dashboard-heading">
+            <div>
+              <h2>Notes opérationnelles</h2>
+              <p className="sp-muted">Les points à vérifier pour assurer le bon fonctionnement du centre.</p>
+            </div>
           </div>
-        </div>
-        <div className="grid gap-3 md:grid-cols-3">
-          <Link
-            className="dashboard-card block no-underline transition hover:-translate-y-0.5 hover:shadow-md"
-            to="/app/vi"
-          >
-            <span className="dashboard-metric-icon"><DashboardIcon name="clock" /></span>
-            <div>
-              <b>Demandes à traiter</b>
-              <strong>{pendingRequests}</strong>
-              <small>{pendingRequests === 0 ? 'Aucune demande en attente' : 'Ouvrir les demandes d’inscription'}</small>
-            </div>
-          </Link>
-          <Link
-            className="dashboard-card block no-underline transition hover:-translate-y-0.5 hover:shadow-md"
-            to="/app/vp"
-          >
-            <span className="dashboard-metric-icon"><DashboardIcon name="check" /></span>
-            <div>
-              <b>Suivi des présences</b>
-              <strong>{metrics.attendanceCount}</strong>
-              <small>Consulter et contrôler les présences de la période</small>
-            </div>
-          </Link>
-          <Link
-            className="dashboard-card block no-underline transition hover:-translate-y-0.5 hover:shadow-md"
-            to="/app/vcal"
-          >
-            <span className="dashboard-metric-icon"><DashboardIcon name="formations" /></span>
-            <div>
-              <b>Programme du jour</b>
-              <strong>{todayMetrics.occurrences.length}</strong>
-              <small>{todayMetrics.occurrences.length === 0 ? 'Aucune séance planifiée aujourd’hui' : 'Voir les séances planifiées aujourd’hui'}</small>
-            </div>
-          </Link>
-        </div>
-      </Panel>
+          <div className="dashboard-operations-list">
+            <Link className="dashboard-operations-item" to="/app/vi">
+              <span className="dashboard-metric-icon"><DashboardIcon name="clock" /></span>
+              <span>
+                <strong>Demandes à traiter</strong>
+                <small>{pendingRequests === 0 ? 'Aucune demande en attente' : 'Ouvrir les demandes d’inscription'}</small>
+              </span>
+              <b>{pendingRequests}</b>
+            </Link>
+            <Link className="dashboard-operations-item" to="/app/vp">
+              <span className="dashboard-metric-icon"><DashboardIcon name="check" /></span>
+              <span>
+                <strong>Appels à compléter aujourd’hui</strong>
+                <small>{missingTodayAttendance > 0 ? 'Ouvrir le suivi des présences' : 'Les appels des séances du jour sont à jour'}</small>
+              </span>
+              <b>{missingTodayAttendance}</b>
+            </Link>
+            <Link className="dashboard-operations-item" to="/app/vcal">
+              <span className="dashboard-metric-icon"><DashboardIcon name="formations" /></span>
+              <span>
+                <strong>Programme du jour</strong>
+                <small>{todayMetrics.occurrences.length === 0 ? 'Aucune séance planifiée aujourd’hui' : 'Consulter les séances du jour'}</small>
+              </span>
+              <b>{todayMetrics.occurrences.length}</b>
+            </Link>
+            <Link className="dashboard-operations-item" to="/app/vfg">
+              <span className="dashboard-metric-icon"><DashboardIcon name="book" /></span>
+              <span>
+                <strong>Formations en cours</strong>
+                <small>Formations actives selon les dates des groupes</small>
+              </span>
+              <b>{data.activeFormationCount ?? '—'}</b>
+            </Link>
+            <Link className="dashboard-operations-item" to="/app/vfinance">
+              <span className="dashboard-metric-icon"><DashboardIcon name="check" /></span>
+              <span>
+                <strong>Suivi des paiements</strong>
+                <small>
+                  {data.financeFollowUp
+                    ? `${data.financeFollowUp.outstandingChargeCount} frais restant(s) à encaisser`
+                    : 'Consulter le suivi financier'}
+                </small>
+              </span>
+              <b>
+                {outstandingBalance === null
+                  ? '—'
+                  : new Intl.NumberFormat('fr-MA', {
+                      style: 'currency',
+                      currency: 'MAD',
+                      maximumFractionDigits: 2,
+                    }).format(outstandingBalance)}
+              </b>
+            </Link>
+            <Link className="dashboard-operations-item" to="/app/vi">
+              <span className="dashboard-metric-icon"><DashboardIcon name="users" /></span>
+              <span>
+                <strong>Liste d’attente étudiants</strong>
+                <small>
+                  {pendingRequests === 0
+                    ? 'Aucune demande d’inscription en attente'
+                    : 'Demandes d’inscription à examiner'}
+                </small>
+              </span>
+              <b>{pendingRequests}</b>
+            </Link>
+          </div>
+        </Panel>
 
-      <div className="dashboard-columns dashboard-main-grid">
         <Panel className="dashboard-panel">
           <div className="dashboard-heading dashboard-chart-heading">
             <h2>Évolution des inscriptions</h2>
             <div className="dashboard-chart-controls" aria-label="Mode du graphique">
-              {(['line', 'bar', 'cum'] as const).map((mode) => (
+              {([
+                { mode: 'line', label: 'Courbe', icon: 'line' },
+                { mode: 'bar', label: 'Histogramme', icon: 'bars' },
+                { mode: 'cum', label: 'Cumul', icon: 'cumulative' },
+              ] as const).map(({ mode, label, icon }) => (
                 <button
                   aria-pressed={chartMode === mode}
-                  aria-label={{ line: 'Courbe', bar: 'Barres', cum: 'Cumul' }[mode]}
                   className={`dashboard-chart-mode${chartMode === mode ? ' active' : ''}`}
                   key={mode}
                   onClick={() => setChartMode(mode)}
                   type="button"
-                  title={{ line: 'Courbe', bar: 'Barres', cum: 'Cumul' }[mode]}
+                  title={label}
                 >
-                  <DashboardIcon name={{ line: 'line', bar: 'bars', cum: 'cumulative' }[mode]} />
+                  <DashboardIcon name={icon} />
+                  <span>{label}</span>
                 </button>
               ))}
             </div>
           </div>
           <EnrollmentChart data={data} range={range} mode={chartMode} />
         </Panel>
-        <div className="dashboard-side-cards">
-          <Panel className="dashboard-panel dashboard-side-metric">
-            <span className="dashboard-side-icon">
-              <DashboardIcon name="check" />
-            </span>
+      </div>
+
+      <div className="dashboard-analytics-grid">
+        <Panel className="dashboard-panel">
+          <div className="dashboard-heading">
             <div>
-              <b>Taux de présence</b>
-              <small>Période choisie</small>
-              <strong>
-                {metrics.attendanceRate === null ? '—' : `${Math.round(metrics.attendanceRate)}%`}
-              </strong>
-              <small>
-                {metrics.attendanceCount} présence(s); tout statut autre que « absent » compte comme
-                présent.
-              </small>
+              <h2>Activité par jour</h2>
+              <p className="sp-muted">Séances planifiées selon la période et les filtres choisis.</p>
             </div>
-          </Panel>
-          <Panel className="dashboard-panel dashboard-side-metric">
-            <span className="dashboard-side-icon">
-              <DashboardIcon name="clock" />
-            </span>
+          </div>
+          <SessionsByWeekdayChart counts={weeklyOccurrenceCounts} />
+        </Panel>
+        <Panel className="dashboard-panel">
+          <div className="dashboard-heading">
             <div>
-              <b>Demandes d’inscription</b>
-              <small>Tous statuts</small>
-              <ul className="dashboard-status-list">
-                <li>
-                  En attente <strong>{metrics.requestCounts.pending}</strong>
-                </li>
-                <li>
-                  Approuvées <strong>{metrics.requestCounts.approved}</strong>
-                </li>
-                <li>
-                  Refusées <strong>{metrics.requestCounts.refused}</strong>
-                </li>
-              </ul>
+              <h2>Répartition des pointages</h2>
+              <p className="sp-muted">Présences, retards et absences pour les séances sélectionnées.</p>
             </div>
-          </Panel>
-        </div>
+          </div>
+          <AttendanceStatusChart presences={filteredPresences} />
+        </Panel>
       </div>
 
       <div className="dashboard-data-grid">

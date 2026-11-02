@@ -169,12 +169,12 @@ export function Modal({
 
   return (
     <div
-      className="sp-modal-backdrop"
+      className="sp-modal-backdrop app-modal-backdrop"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <section aria-label={label} aria-modal="true" className="sp-modal" role="dialog">
+      <section aria-label={label} aria-modal="true" className="sp-modal app-modal" role="dialog">
         <button
           aria-label="Fermer la fenêtre"
           className="sp-modal-close"
@@ -323,12 +323,12 @@ export function ToastViewport() {
       </div>
       {confirmation && (
         <div
-          className="sp-modal-backdrop sp-confirm-backdrop"
+          className="sp-modal-backdrop app-modal-backdrop sp-confirm-backdrop"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) resolveConfirmation(false);
           }}
         >
-          <section aria-labelledby="sp-confirm-title" aria-modal="true" className="sp-modal sp-confirm-modal" role="alertdialog">
+          <section aria-labelledby="sp-confirm-title" aria-modal="true" className="sp-modal app-modal sp-confirm-modal" role="alertdialog">
             <div className="sp-confirm-symbol" aria-hidden="true">!</div>
             <span className="sp-confirm-badge">Action sensible</span>
             <h2 id="sp-confirm-title">{confirmation.title}</h2>

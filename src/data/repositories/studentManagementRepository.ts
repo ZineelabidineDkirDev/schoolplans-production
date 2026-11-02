@@ -6,7 +6,10 @@ export type StudentRecordInput = {
   lastName: string;
   email: string;
   telephone: string;
+  guardianName: string;
+  guardianEmail: string;
   parentTelephone: string;
+  guardianCity: string;
   city: string;
   address: string;
   educationLevel: string;
@@ -26,6 +29,10 @@ function validate(centreId: string, input: StudentRecordInput): void {
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw new Error('L’adresse e-mail de l’étudiant est invalide.');
   }
+  const guardianEmail = input.guardianEmail.trim();
+  if (guardianEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guardianEmail)) {
+    throw new Error('L’adresse e-mail du parent ou tuteur est invalide.');
+  }
 }
 
 function toRow(centreId: string, input: StudentRecordInput) {
@@ -35,7 +42,10 @@ function toRow(centreId: string, input: StudentRecordInput) {
     nom: input.lastName.trim(),
     email: normalize(input.email),
     telephone: normalize(input.telephone),
+    nom_parent: normalize(input.guardianName),
+    email_parent: normalize(input.guardianEmail),
     telephone_parent: normalize(input.parentTelephone),
+    ville_parent: normalize(input.guardianCity),
     ville: normalize(input.city),
     adresse: normalize(input.address),
     niveau_etudes: normalize(input.educationLevel),

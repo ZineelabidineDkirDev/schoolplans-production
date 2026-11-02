@@ -44,10 +44,14 @@ function parseStudents(
       lastName: optionalString(row.nom, 'nom') ?? '',
       email: optionalString(row.email, 'e-mail'),
       telephone: optionalString(row.telephone, 'téléphone'),
+      guardianName: optionalString(row.nom_parent, 'nom du tuteur'),
+      guardianEmail: optionalString(row.email_parent, 'e-mail du tuteur'),
       parentTelephone: optionalString(row.telephone_parent, 'téléphone du parent'),
+      guardianCity: optionalString(row.ville_parent, 'ville du tuteur'),
       city: optionalString(row.ville, 'ville'),
       address: optionalString(row.adresse, 'adresse'),
       educationLevel: optionalString(row.niveau_etudes, 'niveau'),
+      createdAt: optionalString(row.created_at, 'date d’inscription'),
       groupId,
       groupName: groupId ? (groups.get(String(groupId)) ?? null) : null,
       courseCount: courseCounts.get(String(row.id)) ?? 0,
@@ -63,7 +67,7 @@ export async function getCentreStudents(
   const [studentsResult, groupsResult, enrollmentsResult] = await Promise.all([
     client
       .from('etudiants')
-      .select('id,prenom,nom,email,telephone,telephone_parent,ville,adresse,niveau_etudes,groupe_id')
+      .select('id,prenom,nom,email,telephone,nom_parent,email_parent,telephone_parent,ville_parent,ville,adresse,niveau_etudes,groupe_id,created_at')
       .eq('centre_id', centreId)
       .order('nom'),
     client.from('groupes').select('id,nom').eq('centre_id', centreId),
@@ -86,6 +90,34 @@ export async function getCentreStudents(
   return parseStudents(rows(studentsResult.data, 'étudiants'), groups, courseCounts);
 }
 
+export async function getCentreAttendanceSummary(
+  client: SupabaseClient,
+  centreId: string,
+): Promise<{ rate: number | null; recordedCount: number }> {
+  if (!centreId) throw new Error('Sélectionnez un centre avant de consulter les présences.');
+  const { data, error } = await client
+    .from('presences')
+    .select('statut')
+    .eq('centre_id', centreId)
+    .limit(10000);
+  if (error) throw error;
+  const attendanceRows = rows(data, 'présences');
+  if (
+    attendanceRows.some(
+      (row) => row.statut !== 'present' && row.statut !== 'retard' && row.statut !== 'absent',
+    )
+  ) {
+    throw new Error('Réponse Supabase invalide : statut de présence inattendu.');
+  }
+  return {
+    rate: attendanceRows.length
+      ? (attendanceRows.filter((row) => row.statut !== 'absent').length / attendanceRows.length) *
+        100
+      : null,
+    recordedCount: attendanceRows.length,
+  };
+}
+
 export async function getAttendanceSheet(
   client: SupabaseClient,
   centreId: string,
@@ -99,7 +131,7 @@ export async function getAttendanceSheet(
   const [studentsResult, groupsResult, enrollmentsResult, attendanceResult] = await Promise.all([
     client
       .from('etudiants')
-      .select('id,prenom,nom,email,telephone,telephone_parent,ville,adresse,niveau_etudes,groupe_id')
+      .select('id,prenom,nom,email,telephone,nom_parent,email_parent,telephone_parent,ville_parent,ville,adresse,niveau_etudes,groupe_id,created_at')
       .eq('centre_id', centreId)
       .order('nom'),
     client.from('groupes').select('id,nom').eq('centre_id', centreId),

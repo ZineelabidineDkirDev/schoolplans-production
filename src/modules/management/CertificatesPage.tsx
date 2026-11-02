@@ -247,7 +247,7 @@ export function CertificatesPage() {
         eyebrow="Gestion pédagogique"
         title="Certificats"
       />
-      {message && <Alert tone={message.tone}>{message.text}</Alert>}
+      {message?.tone === 'error' && <Alert tone="error">{message.text}</Alert>}
       {state.status === 'loading' && (
         <Panel>
           <LoadingState label="Chargement des certificats…" />

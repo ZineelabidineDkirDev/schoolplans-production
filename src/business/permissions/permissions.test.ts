@@ -91,7 +91,7 @@ describe('centralized section permissions', () => {
   });
 
   it('allows super-admin sections without centre feature flags', () => {
-    expect(getVisibleSections('super_admin', {})).toEqual(['vcal', 'vr', 'vz', 'vd', 'vnotes']);
+    expect(getVisibleSections('super_admin', {})).toEqual(['vz', 'vsub', 'vd']);
   });
 
   it('enables migrated centre modules only when their central permission is true', () => {

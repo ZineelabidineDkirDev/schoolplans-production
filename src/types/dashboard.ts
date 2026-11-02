@@ -4,6 +4,7 @@ export type DashboardCourse = {
   id: StudentIdentifier;
   teacherId: StudentIdentifier | null;
   subjectId: StudentIdentifier | null;
+  groupId: StudentIdentifier | null;
   weekday: number;
   startsAt: string;
   endsAt: string;
@@ -41,6 +42,7 @@ export type DashboardStudentCity = {
 
 export type DashboardPresence = {
   courseId: StudentIdentifier;
+  studentId: StudentIdentifier;
   date: string;
   status: string;
 };
@@ -61,7 +63,12 @@ export type DashboardData = {
   presences: DashboardPresence[];
   requests: DashboardRegistrationRequest[];
   formationCount: number | null;
+  activeFormationCount: number | null;
   groupCount: number | null;
+  financeFollowUp: {
+    outstandingAmount: number;
+    outstandingChargeCount: number;
+  } | null;
   popularFormations: DashboardPopularFormation[];
   closedDates: string[];
   cancelledOccurrences: string[];

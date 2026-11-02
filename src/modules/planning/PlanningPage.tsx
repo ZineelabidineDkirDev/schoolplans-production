@@ -154,14 +154,12 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
   const [week, setWeek] = useState(() => getMonday(new Date()));
   const [selectedDay, setSelectedDay] = useState(() => Math.min((new Date().getDay() + 6) % 7, 5));
   const [editor, setEditor] = useState<EditorState | null>(null);
-  const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [closureDialogOpen, setClosureDialogOpen] = useState(false);
   const [closureDate, setClosureDate] = useState('');
   const [closureLabel, setClosureLabel] = useState('');
   const [closureError, setClosureError] = useState<string | null>(null);
-  const [closureMessage, setClosureMessage] = useState<string | null>(null);
   const [filters, setFilters] = useState<PlanningFilters>({
     formationId: '',
     groupId: '',
@@ -311,7 +309,6 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
       ? (data.subjectIdsByFormation[String(firstGroup.formationId)]?.[0]?.toString() ?? '')
       : '';
     setActionError(null);
-    setActionMessage(null);
     setEditor({
       occurrenceDate: date,
       groupId: firstGroup?.id.toString() ?? '',
@@ -331,7 +328,6 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
     if (!canManage || !data) return;
     if (profile?.role === 'formateur' && String(occurrence.teacherId) !== teacherId) return;
     setActionError(null);
-    setActionMessage(null);
     setEditor({
       courseId: occurrence.id,
       occurrenceDate: occurrence.date,
@@ -369,10 +365,8 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
   async function performAction(action: () => Promise<void>, success: string, close = true) {
     setSaving(true);
     setActionError(null);
-    setActionMessage(null);
     try {
       await action();
-      setActionMessage(success);
       notify(success, 'success');
       setReloadKey((key) => key + 1);
       if (close) setEditor(null);
@@ -457,7 +451,6 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
     setClosureDate('');
     setClosureLabel('');
     setClosureError(null);
-    setClosureMessage(null);
     setClosureDialogOpen(true);
   }
 
@@ -466,12 +459,10 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
     if (!profile || !canManageClosures) return;
     setSaving(true);
     setClosureError(null);
-    setClosureMessage(null);
     try {
       await savePlanningClosure(getSupabaseClient(), actor, closureDate, closureLabel);
       setClosureDate('');
       setClosureLabel('');
-      setClosureMessage('Jour fermé ajouté.');
       notify('Jour fermé ajouté.', 'success');
       setReloadKey((key) => key + 1);
     } catch (error) {
@@ -487,10 +478,8 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
     if (!await confirmAction(`Retirer la fermeture du ${date.split('-').reverse().join('/')} ?`)) return;
     setSaving(true);
     setClosureError(null);
-    setClosureMessage(null);
     try {
       await deletePlanningClosure(getSupabaseClient(), actor, date);
-      setClosureMessage('Jour fermé retiré.');
       notify('Jour fermé retiré.', 'success');
       setReloadKey((key) => key + 1);
     } catch (error) {
@@ -857,7 +846,6 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
         </Alert>
       )}
 
-      {actionMessage && <Alert tone="success">{actionMessage}</Alert>}
 
       {data && (
         <>
@@ -956,11 +944,11 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
       )}
 
       {editor && data && (
-        <div className="planning-dialog-backdrop" onMouseDown={() => !saving && setEditor(null)}>
+        <div className="planning-dialog-backdrop app-modal-backdrop" onMouseDown={() => !saving && setEditor(null)}>
           <section
             aria-labelledby="planning-editor-title"
             aria-modal="true"
-            className="planning-dialog"
+            className="planning-dialog app-modal"
             onMouseDown={(event) => event.stopPropagation()}
             role="dialog"
           >
@@ -1185,13 +1173,13 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
 
       {closureDialogOpen && (
         <div
-          className="planning-dialog-backdrop"
+          className="planning-dialog-backdrop app-modal-backdrop"
           onMouseDown={() => !saving && setClosureDialogOpen(false)}
         >
           <section
             aria-labelledby="planning-closures-title"
             aria-modal="true"
-            className="planning-dialog planning-closures-dialog"
+            className="planning-dialog planning-closures-dialog app-modal"
             onMouseDown={(event) => event.stopPropagation()}
             role="dialog"
           >
@@ -1233,7 +1221,6 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
               </Button>
             </form>
             {closureError && <Alert tone="error">{closureError}</Alert>}
-            {closureMessage && <Alert tone="success">{closureMessage}</Alert>}
             {state.status === 'error' && (
               <Alert tone="error">
                 La liste des jours fermés n’a pas pu être rechargée. {state.message}

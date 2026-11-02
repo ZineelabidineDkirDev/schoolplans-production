@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { Alert, Button, LoadingState } from '../../components/ui';
+import { Alert, Button, LoadingState, confirmAction, notify } from '../../components/ui';
 import { getSupabaseClient } from '../../data/supabase/client';
 import { useAuth } from '../auth/AuthProvider';
 import { FinanceOperations } from './FinanceOperations';
@@ -36,8 +36,8 @@ function readableFinanceError(cause: unknown, fallback: string): string {
 
 
 function Popup({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
-  return <div className="finance-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-    <section aria-modal="true" className="finance-modal" role="dialog" aria-labelledby="finance-modal-title">
+  return <div className="finance-modal-backdrop app-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <section aria-modal="true" className="finance-modal app-modal" role="dialog" aria-labelledby="finance-modal-title">
       <header className="finance-modal-header"><div><p className="sp-page-eyebrow">Tableau de bord financier</p><h2 id="finance-modal-title">{title}</h2></div><button type="button" className="finance-modal-close" aria-label="Fermer" onClick={onClose}>×</button></header>
       {children}
     </section>
@@ -59,7 +59,9 @@ export function FinanceDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const setNotice = (value: string | null) => {
+    if (value) notify(value, 'success');
+  };
   const [reloadKey, setReloadKey] = useState(0);
   const [view, setView] = useState<'students' | 'expenses' | 'receipts' | 'payroll'>('students');
   const [modal, setModal] = useState<'charge' | 'payment' | 'payroll' | 'advance' | null>(null);
@@ -169,7 +171,7 @@ export function FinanceDashboardPage() {
   }
 
   async function cancelCharge(charge: Charge) {
-    if (!profile?.centreId || !window.confirm('Annuler les frais « ' + charge.label + ' » ? Les paiements existants seront conservés.')) return;
+    if (!profile?.centreId || !await confirmAction('Annuler les frais « ' + charge.label + ' » ? Les paiements existants seront conservés.', { title: 'Annuler les frais', confirmLabel: 'Annuler les frais' })) return;
     setSaving(true); setError(null); setNotice(null);
     try {
       const { error } = await getSupabaseClient().from('finance_student_charges').update({ status: 'cancelled', updated_at: new Date().toISOString() }).eq('id', charge.id).eq('centre_id', profile.centreId);
@@ -258,7 +260,7 @@ export function FinanceDashboardPage() {
       if (overlapping) { setError(overlappingPayrollMessage + ' Paie concernée : ' + overlapping.period_start + ' → ' + overlapping.period_end + ' (' + overlapping.status + ').'); return; }
     }
     const prompt = status === 'cancelled' ? 'Annuler cette rémunération ?' : 'Valider cette rémunération ?';
-    if (!window.confirm(prompt)) return;
+    if (!await confirmAction(prompt, { title: status === 'cancelled' ? 'Annuler la rémunération' : 'Valider la rémunération', confirmLabel: status === 'cancelled' ? 'Annuler la rémunération' : 'Valider' })) return;
     setSaving(true); setError(null); setNotice(null);
     try {
       const { error } = await getSupabaseClient().rpc('finance_change_teacher_payroll_status', {
@@ -274,7 +276,7 @@ export function FinanceDashboardPage() {
   async function markPayrollPaid(item: Payroll) {
     if (!profile?.centreId) return;
     if (!payrollAccountId) { setError('Sélectionnez une caisse ou un compte bancaire actif pour régler la rémunération.'); return; }
-    if (!window.confirm('Confirmer le paiement de ' + money(numeric(item.amount_due)) + ' à ' + teacherName(item.teacher_id) + ' depuis « ' + (accounts.find((account) => account.id === payrollAccountId)?.name ?? 'compte sélectionné') + ' » ?')) return;
+    if (!await confirmAction('Confirmer le paiement de ' + money(numeric(item.amount_due)) + ' à ' + teacherName(item.teacher_id) + ' depuis « ' + (accounts.find((account) => account.id === payrollAccountId)?.name ?? 'compte sélectionné') + ' » ?', { title: 'Confirmer le paiement', confirmLabel: 'Confirmer le paiement' })) return;
     setSaving(true); setError(null); setNotice(null);
     try {
       const { error } = await getSupabaseClient().rpc('finance_pay_teacher_payroll', { p_payroll_id: item.id, p_account_id: payrollAccountId });
@@ -298,7 +300,6 @@ export function FinanceDashboardPage() {
   return <section className="sp-page finance-page">
     <div className="finance-page-heading"><div><p className="sp-page-eyebrow">Gestion de l’établissement</p><h1 className="sp-page-title">Tableau de bord financier</h1><p className="sp-muted">Suivez les recettes, les dépenses, les justificatifs et les rémunérations du centre.</p></div><span className="finance-currency-pill">Devise : MAD</span></div>
     {error && <Alert tone="error"><p>{error}</p></Alert>}
-    {notice && <Alert tone="success"><p>{notice}</p></Alert>}
     <div className="finance-metrics-grid">{metrics.map((metric) => <article className={'finance-metric-card finance-tone-' + metric.tone} key={metric.label}><p>{metric.label}</p><strong>{metric.value}</strong><span>{metric.note}</span></article>)}</div>
 
     <nav aria-label="Sous-rubriques financières" className="finance-subnav">

@@ -61,6 +61,7 @@ function parseCourses(
     id: identifier(row.id, 'cours'),
     teacherId: optionalIdentifier(row.formateur_id),
     subjectId: optionalIdentifier(row.matiere_id),
+    groupId: optionalIdentifier(row.groupe_id),
     weekday: typeof row.jour === 'number' ? row.jour : Number(row.jour),
     startsAt: string(row.debut, 'heure de début'),
     endsAt: string(row.fin, 'heure de fin'),
@@ -143,6 +144,7 @@ function parseStudentCities(value: unknown): DashboardStudentCity[] {
 function parsePresences(value: unknown): DashboardPresence[] {
   return rows(value, 'présences').map((row) => ({
     courseId: identifier(row.cours_id, 'cours de présence'),
+    studentId: identifier(row.etudiant_id, 'étudiant de présence'),
     date: string(row.date, 'date de présence'),
     status: string(row.statut, 'statut de présence'),
   }));
@@ -157,6 +159,36 @@ function parseRequests(value: unknown): DashboardRegistrationRequest[] {
 
 function parseDates(value: unknown, field: string): string[] {
   return rows(value, field).map((row) => string(row.date, `date ${field}`));
+}
+
+function dateKey(date: Date): string {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-');
+}
+
+function parseActiveFormationCount(value: unknown, today: string): number {
+  const activeFormationIds = new Set<string>();
+  for (const group of rows(value, 'groupes en cours')) {
+    if (group.actif !== true || group.formation_id === null || group.formation_id === undefined) {
+      continue;
+    }
+    const startsOn = optionalString(group.date_debut);
+    const endsOn = optionalString(group.date_fin);
+    if ((startsOn && startsOn > today) || (endsOn && endsOn < today)) continue;
+    activeFormationIds.add(String(identifier(group.formation_id, 'formation en cours')));
+  }
+  return activeFormationIds.size;
+}
+
+function parseAmount(value: unknown, field: string): number {
+  const amount = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(amount) || amount < 0) {
+    throw new Error(`Réponse Supabase invalide : montant ${field} incorrect.`);
+  }
+  return amount;
 }
 
 export async function getDashboardData(
@@ -200,7 +232,9 @@ export async function getDashboardData(
         presences: [],
         requests: [],
         formationCount: null,
+        activeFormationCount: null,
         groupCount: null,
+        financeFollowUp: null,
         popularFormations: [],
         closedDates: [],
         cancelledOccurrences: [],
@@ -210,7 +244,7 @@ export async function getDashboardData(
 
   let courseQuery = client
     .from('cours')
-    .select('id,formateur_id,matiere_id,jour,debut,fin,valable_du,valable_au,salle_id');
+    .select('id,formateur_id,matiere_id,groupe_id,jour,debut,fin,valable_du,valable_au,salle_id');
   courseQuery = courseQuery.eq('centre_id', centreId);
   if (teacherId !== null) courseQuery = courseQuery.eq('formateur_id', teacherId);
 
@@ -224,7 +258,7 @@ export async function getDashboardData(
     .eq('centre_id', centreId);
   const presencesQuery = client
     .from('presences')
-    .select('cours_id,date,statut')
+    .select('cours_id,etudiant_id,date,statut')
     .eq('centre_id', centreId)
     .limit(10000);
   if (teacherId !== null) {
@@ -257,7 +291,7 @@ export async function getDashboardData(
       courseIds.length
         ? client
             .from('presences')
-            .select('cours_id,date,statut')
+            .select('cours_id,etudiant_id,date,statut')
             .eq('centre_id', centreId)
             .in('cours_id', courseIds)
             .limit(10000)
@@ -290,7 +324,9 @@ export async function getDashboardData(
       presences: parsePresences(presencesResult.data),
       requests: [],
       formationCount: null,
+      activeFormationCount: null,
       groupCount: null,
+      financeFollowUp: null,
       popularFormations: [],
       closedDates: [],
       cancelledOccurrences: [],
@@ -332,7 +368,10 @@ export async function getDashboardData(
     client.from('salles').select('id,nom').eq('centre_id', centreId),
     client.from('domaines').select('id,nom'),
     client.from('formations').select('id,nom').eq('centre_id', centreId),
-    client.from('groupes').select('id,formation_id').eq('centre_id', centreId),
+    client
+      .from('groupes')
+      .select('id,formation_id,actif,date_debut,date_fin')
+      .eq('centre_id', centreId),
     client.from('etudiants').select('groupe_id').eq('centre_id', centreId),
   ]);
 
@@ -377,6 +416,50 @@ export async function getDashboardData(
         : (domainNames.get(String(subject.domaine_id)) ?? null),
   }));
   const courses = parseCourses(coursesResult.data, roomNames);
+  const today = dateKey(new Date());
+  let financeFollowUp: DashboardData['financeFollowUp'] = null;
+  if (role === 'director' || role === 'admin') {
+    const chargesResult = await client
+      .from('finance_student_charges')
+      .select('id,amount_due')
+      .eq('centre_id', centreId)
+      .in('status', ['open', 'partial']);
+    if (chargesResult.error) throw chargesResult.error;
+    const charges = rows(chargesResult.data, 'frais à encaisser');
+    const chargeIds = charges.map((charge) => identifier(charge.id, 'frais à encaisser'));
+    const paymentsResult = chargeIds.length
+      ? await client
+          .from('finance_payments')
+          .select('charge_id,amount')
+          .eq('centre_id', centreId)
+          .in('charge_id', chargeIds)
+      : { data: [], error: null };
+    if (paymentsResult.error) throw paymentsResult.error;
+
+    const paidByCharge = new Map<string, number>();
+    for (const payment of rows(paymentsResult.data, 'paiements des frais à encaisser')) {
+      const chargeId = String(identifier(payment.charge_id, 'frais payé'));
+      paidByCharge.set(
+        chargeId,
+        (paidByCharge.get(chargeId) ?? 0) + parseAmount(payment.amount, 'de paiement'),
+      );
+    }
+    let outstandingAmount = 0;
+    let outstandingChargeCount = 0;
+    for (const charge of charges) {
+      const chargeId = String(identifier(charge.id, 'frais à encaisser'));
+      const remaining = Math.max(
+        0,
+        parseAmount(charge.amount_due, 'dû') - (paidByCharge.get(chargeId) ?? 0),
+      );
+      if (remaining > 0) {
+        outstandingAmount += remaining;
+        outstandingChargeCount += 1;
+      }
+    }
+    financeFollowUp = { outstandingAmount, outstandingChargeCount };
+  }
+
   return {
     linkedTeacher: null,
     courses,
@@ -388,7 +471,9 @@ export async function getDashboardData(
     presences: parsePresences(presencesResult.data),
     requests: parseRequests(requestsResult.data),
     formationCount: formationCountResult.count,
+    activeFormationCount: parseActiveFormationCount(groupsResult.data, today),
     groupCount: groupCountResult.count,
+    financeFollowUp,
     popularFormations: parsePopularFormations(
       formationsResult.data,
       groupsResult.data,

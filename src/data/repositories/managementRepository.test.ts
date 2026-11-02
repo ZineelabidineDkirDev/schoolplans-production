@@ -1,13 +1,18 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
-import { getAttendanceSheet, getCentreStudents, saveAttendance } from './managementRepository';
+import {
+  getAttendanceSheet,
+  getCentreAttendanceSummary,
+  getCentreStudents,
+  saveAttendance,
+} from './managementRepository';
 
 function createClient(dataByTable: Record<string, unknown[]>) {
   const calls: Array<{ table: string; method: string; args: unknown[] }> = [];
   const filters: Array<{ table: string; column: string; value: unknown }> = [];
   const from = vi.fn((table: string) => {
     const query: Record<string, (...args: never[]) => unknown> = {};
-    for (const method of ['select', 'order', 'in']) {
+    for (const method of ['select', 'order', 'in', 'limit']) {
       query[method] = (...args: never[]) => {
         calls.push({ table, method, args });
         return query;
@@ -37,10 +42,15 @@ const studentRow = {
   nom: 'Benali',
   email: 'amina@example.test',
   telephone: null,
+  nom_parent: 'Karim Benali',
+  email_parent: 'karim@example.test',
+  telephone_parent: '+212600000000',
+  ville_parent: 'Rabat',
   ville: 'Rabat',
   adresse: null,
   niveau_etudes: 'Supérieur',
   groupe_id: 4,
+  created_at: '2026-10-30T12:00:00Z',
 };
 
 describe('management repository', () => {
@@ -61,10 +71,14 @@ describe('management repository', () => {
         lastName: 'Benali',
         email: 'amina@example.test',
         telephone: null,
-        parentTelephone: null,
+        guardianName: 'Karim Benali',
+        guardianEmail: 'karim@example.test',
+        parentTelephone: '+212600000000',
+        guardianCity: 'Rabat',
         city: 'Rabat',
         address: null,
         educationLevel: 'Supérieur',
+        createdAt: '2026-10-30T12:00:00Z',
         groupId: 4,
         groupName: 'Groupe A',
         courseCount: 2,
@@ -76,6 +90,22 @@ describe('management repository', () => {
       table: 'inscriptions',
       column: 'centre_id',
       value: 'centre-a',
+    });
+  });
+
+  it('calculates the overall attendance rate from recorded attendance statuses', async () => {
+    const { client } = createClient({
+      presences: [
+        { statut: 'present' },
+        { statut: 'retard' },
+        { statut: 'absent' },
+        { statut: 'present' },
+      ],
+    });
+
+    await expect(getCentreAttendanceSummary(client, 'centre-a')).resolves.toEqual({
+      rate: 75,
+      recordedCount: 4,
     });
   });
 

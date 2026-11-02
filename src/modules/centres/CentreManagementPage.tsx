@@ -585,7 +585,7 @@ export function CentreManagementPage() {
         title="Gérer les centres"
       />
 
-      {message && <Alert tone={message.tone}>{message.text}</Alert>}
+      {message && message.tone !== 'success' && <Alert tone={message.tone}>{message.text}</Alert>}
       {state.status === 'loaded' && state.warning && <Alert tone="warning">{state.warning}</Alert>}
 
       {formOpen && (
@@ -885,7 +885,10 @@ export function CentreManagementPage() {
                   <select
                     className="sp-field"
                     disabled={!configCapabilities.subscription}
-                    onChange={(event) => setConfigForm((current) => ({ ...current, pack: event.target.value }))}
+                    onChange={(event) => {
+                      const pack = event.target.value;
+                      setConfigForm((current) => ({ ...current, pack, rights: rightsForPack(pack) }));
+                    }}
                     value={configForm.pack}
                   >
                     <option value="">Choisir un pack…</option>
@@ -939,7 +942,11 @@ export function CentreManagementPage() {
                       <input
                         checked={configForm.rights[key] === true}
                         className="h-4 w-4"
-                        disabled={!configCapabilities.rights}
+                        disabled={
+                          !configCapabilities.rights ||
+                          (PACK_RIGHTS[configForm.pack] !== undefined &&
+                            !PACK_RIGHTS[configForm.pack].includes(key))
+                        }
                         onChange={(event) => setConfigForm((current) => ({
                           ...current,
                           rights: { ...current.rights, [key]: event.target.checked },
