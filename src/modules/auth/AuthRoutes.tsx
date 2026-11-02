@@ -451,7 +451,6 @@ function ApplicationShell() {
               id: string,
               label: string,
               items: AppSection[],
-              iconSection: AppSection,
             ) => {
               if (!items.length) return null;
               const expanded = openNavGroups[id] ?? true;
@@ -466,7 +465,6 @@ function ApplicationShell() {
                     onClick={() => setOpenNavGroups((current) => ({ ...current, [id]: !current[id] }))}
                     type="button"
                   >
-                    <NavIcon section={iconSection} />
                     <span className="sp-nav-label">{label}</span>
                     <svg aria-hidden="true" className={`sp-nav-chevron${expanded ? ' is-open' : ''}`} viewBox="0 0 24 24">
                       <path d="m7 10 5 5 5-5" />
@@ -490,13 +488,12 @@ function ApplicationShell() {
                   profile.role === 'etudiant' ? 'student' : 'students',
                   profile.role === 'etudiant' ? 'Étudiant' : 'Étudiants',
                   studentItems,
-                  profile.role === 'etudiant' ? studentItems[0] : 'vs',
                 )}
-                {renderGroup('teachers', 'Formateurs & pédagogie', teacherItems, 'vf')}
+                {renderGroup('teachers', 'Formateurs & pédagogie', teacherItems)}
                 {groupedDirectItems.map(({ label, sections }) => {
                   const items = directItems.filter((section) => sections.includes(section));
                   return items.length ? (
-                    renderGroup(label.toLowerCase(), label, items, items[0])
+                    renderGroup(label.toLowerCase(), label, items)
                   ) : null;
                 })}
               </>

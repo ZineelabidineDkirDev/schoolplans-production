@@ -5838,6 +5838,14 @@ button:disabled {
   box-shadow: 0 17px 45px rgb(17 32 58 / 7%);
 }
 
+.sp-contact-honeypot {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
 .sp-landing-form-heading {
   display: flex;
   align-items: center;
@@ -12109,5 +12117,126 @@ textarea.sp-field,
 
   .enrollment-request-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+:root {
+  --dashboard-accent-gradient: linear-gradient(
+    to right bottom,
+    rgb(2, 6, 23) 0%,
+    rgb(23, 37, 84) 52%,
+    rgb(30, 64, 175) 100%
+  );
+  --dashboard-stat-gradient: var(--dashboard-accent-gradient);
+}
+
+.sp-app > .sp-centre-top-banner {
+  background: var(--dashboard-accent-gradient) !important;
+  color: #fff !important;
+}
+
+.sp-app > .sp-centre-top-banner .sp-centre-banner-heading > strong,
+.sp-app > .sp-centre-top-banner .sp-centre-banner-eyebrow,
+.sp-app > .sp-centre-top-banner .sp-centre-banner-meta small,
+.sp-app > .sp-centre-top-banner .sp-centre-banner-meta b,
+.sp-app > .sp-centre-top-banner .sp-centre-banner-meta em,
+.sp-app > .sp-centre-top-banner .sp-centre-no-subscription {
+  color: #fff;
+}
+
+.dashboard-metric strong,
+.dashboard-side-metric > div > strong,
+.dashboard-panel p.text-2xl,
+.finance-metric-card > strong,
+.student-portal-metric > strong {
+  background: var(--dashboard-stat-gradient);
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --dashboard-stat-gradient: linear-gradient(
+      to right bottom,
+      #f8fafc 0%,
+      #bfdbfe 52%,
+      #60a5fa 100%
+    );
+  }
+}
+
+:root[data-theme='dark'] {
+  --dashboard-stat-gradient: linear-gradient(
+    to right bottom,
+    #f8fafc 0%,
+    #bfdbfe 52%,
+    #60a5fa 100%
+  );
+}
+
+.sp-app-nav,
+.sp-app-nav:hover,
+.sp-app-nav:focus-within {
+  border-color: #e2e8f0 !important;
+  background: #fff !important;
+  color: #0f172a !important;
+}
+
+.sp-app-nav .sp-sidebar-centre-brand,
+.sp-app-nav .sp-sidebar-centre-name small,
+.sp-app-nav .sp-sidebar-centre-name strong,
+.sp-app-nav .sp-nav-section-label,
+.sp-app-nav .sp-nav-link,
+.sp-app-nav .sp-nav-group-toggle,
+.sp-app-nav .sp-nav-submenu .sp-nav-link {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+}
+
+.sp-app-nav .sp-nav-link,
+.sp-app-nav .sp-nav-group-toggle {
+  background: transparent !important;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.sp-app-nav .sp-nav-link:hover,
+.sp-app-nav .sp-nav-link:focus-visible,
+.sp-app-nav .sp-nav-link.active,
+.sp-app-nav .sp-nav-group-toggle:hover,
+.sp-app-nav .sp-nav-group-toggle:focus-visible,
+.sp-app-nav .sp-nav-group-toggle.active,
+.sp-app-nav .sp-nav-submenu .sp-nav-link:hover,
+.sp-app-nav .sp-nav-submenu .sp-nav-link:focus-visible,
+.sp-app-nav .sp-nav-submenu .sp-nav-link.active {
+  background: var(--dashboard-accent-gradient) !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  box-shadow: 0 8px 18px rgb(2 6 23 / 28%) !important;
+}
+
+.sp-app-nav .sp-nav-link.active::before {
+  display: none;
+}
+
+.sp-app-nav .sp-sidebar-collapse {
+  border-color: #e2e8f0 !important;
+  background: #fff !important;
+  color: #0f172a !important;
+}
+
+.sp-app-nav .sp-sidebar-collapse:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+@media (max-width: 900px) {
+  .sp-app-nav .sp-app-nav-close {
+    border-color: #cbd5e1 !important;
+    background: #f8fafc !important;
+    color: #0f172a !important;
   }
 }

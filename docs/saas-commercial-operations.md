@@ -12,6 +12,21 @@
 
 The app does not collect card details, provide bank coordinates, confirm transfers, issue tax invoices, or renew subscriptions automatically. Do not mark a payment as verified based only on the customer’s message; confirm it independently and retain the supporting transaction reference.
 
+## Vercel routing and public contact
+
+- The Vite SPA has two HTML entry points, `index.html` and `react-app.html`. Vercel must rewrite direct navigation and refreshes for client-side routes such as `/login` and `/app` to `react-app.html`; static assets must remain served normally.
+- Password setup/reset links use the current site origin. Before production, add the production URL (and only the preview origins actually used) to Supabase Auth's allowed redirect URLs.
+- The contact Edge Function accepts only the configured `ALLOWED_ORIGINS`; if that secret is absent, it permits only `https://madrassa-ti.vercel.app`. Each entry must be an origin only (scheme + host + optional port), without a path or trailing slash. Configure `CONTACT_EMAIL` as `zainmawada2@gmail.com`, `RESEND_API_KEY`, and `RESEND_FROM_EMAIL` in Supabase Edge Function secrets. The sender must be verified in Resend. Do not put these secrets in Vite variables or the repository.
+- The contact form requires Cloudflare Turnstile in addition to its server-validated honeypot and minimum/maximum completion-time check. Configure the public `VITE_TURNSTILE_SITE_KEY` in Vercel and the private `TURNSTILE_SECRET_KEY` in Supabase Edge Function secrets; the function verifies the token and checks its hostname against the request origin.
+- Before enabling Turnstile, disclose Cloudflare's anti-bot processing in the privacy information and confirm the applicable transfer/retention terms. The legal page still requires operator and processor details to be completed and reviewed.
+- Test the contact flow only after the Edge Function is deployed with the verified Resend sender and Turnstile keys. Confirm a permitted origin succeeds, an unapproved origin is rejected, and Resend confirms the message. Do not send test messages to a real customer.
+
+## Preproduction migration gate
+
+- Apply schema changes only to a separately identified, non-production Supabase project after confirming its project reference in the Supabase dashboard.
+- The root `supabase/migrations/` directory contains the subscription/demo-request migrations. Additional finance, entitlements, student and teacher schema changes are currently under `backend/supabase/migrations/`; the backend README says these are not applied by the v1 workflow. Do not assume the two directories have the same remote migration history or run both blindly.
+- Before applying anything, compare the preproduction schema and migration history against both directories, resolve ordering/dependencies, then apply the reviewed migration set and verify the resulting schema/RLS. Record the project reference and migration versions. Never use `db push` against production as part of this gate.
+
 ## Before accepting a commercial order
 
 - Confirm the legal seller name, business address, registration/tax identifiers, applicable tax treatment, and invoice numbering requirements with a local accountant or legal adviser.

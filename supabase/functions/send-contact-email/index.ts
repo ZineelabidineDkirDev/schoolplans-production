@@ -1,14 +1,21 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
-const allowedOrigins = (Deno.env.get("ALLOWED_ORIGINS") ?? "")
+const configuredOrigins = (Deno.env.get("ALLOWED_ORIGINS") ?? "")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+const allowedOrigins = configuredOrigins.length > 0
+  ? configuredOrigins
+  : ["https://madrassa-ti.vercel.app"];
+
+function isAllowedOrigin(origin: string | null) {
+  return Boolean(origin && allowedOrigins.includes(origin));
+}
 
 function corsHeaders(origin: string | null) {
-  const permittedOrigin = origin && allowedOrigins.includes(origin)
+  const permittedOrigin = isAllowedOrigin(origin)
     ? origin
-    : (allowedOrigins[0] ?? "null");
+    : "null";
   return {
     "Access-Control-Allow-Origin": permittedOrigin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -26,7 +33,10 @@ serve(async (req) => {
   const origin = req.headers.get("origin");
 
   if (req.method === "OPTIONS") {
-    return new Response("ok", { status: 200, headers: corsHeaders(origin) });
+    return new Response("ok", {
+      status: isAllowedOrigin(origin) ? 200 : 403,
+      headers: corsHeaders(origin),
+    });
   }
 
   console.log("send-contact-email request", {
@@ -39,32 +49,93 @@ serve(async (req) => {
     return json(405, { error: "Method not allowed" }, origin);
   }
 
-  if (allowedOrigins.length && origin && !allowedOrigins.includes(origin)) {
+  if (!isAllowedOrigin(origin)) {
     console.warn("Contact email rejected: origin not allowed", { origin });
     return json(403, { error: "Origin not allowed" }, origin);
   }
 
   const apiKey = Deno.env.get("RESEND_API_KEY");
-  const recipient = Deno.env.get("CONTACT_EMAIL") ?? "zainmawada@gmail.com";
-  const sender = Deno.env.get("RESEND_FROM_EMAIL") ?? "Madrassa-Ti <onboarding@resend.dev>";
+  const recipient = Deno.env.get("CONTACT_EMAIL") ?? "zainmawada2@gmail.com";
+  const sender = Deno.env.get("RESEND_FROM_EMAIL") ?? "";
+  const turnstileSecret = Deno.env.get("TURNSTILE_SECRET_KEY") ?? "";
 
   // Never log secret values. Log only whether the required setting is present.
   console.log("Contact email configuration", {
     hasResendApiKey: Boolean(apiKey),
     hasRecipient: Boolean(recipient),
     hasSender: Boolean(sender),
+    hasTurnstileSecret: Boolean(turnstileSecret),
   });
 
-  if (!apiKey) {
-    console.error("Contact email not sent: RESEND_API_KEY is missing");
-    return json(503, { error: "Configuration email incomplète : RESEND_API_KEY est absent." }, origin);
+  if (!apiKey || !sender || !turnstileSecret) {
+    console.error("Contact email not sent: required email configuration is missing", {
+      hasResendApiKey: Boolean(apiKey),
+      hasSender: Boolean(sender),
+      hasTurnstileSecret: Boolean(turnstileSecret),
+    });
+    return json(503, {
+      error: "Configuration e-mail/sécurité incomplète : RESEND_API_KEY, RESEND_FROM_EMAIL et TURNSTILE_SECRET_KEY doivent être configurés.",
+    }, origin);
   }
 
   let body: Record<string, unknown>;
   try {
-    body = await req.json();
+    const parsed: unknown = await req.json();
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return json(400, { error: "Invalid request body" }, origin);
+    }
+    body = parsed as Record<string, unknown>;
   } catch {
     return json(400, { error: "Invalid JSON" }, origin);
+  }
+
+  if (String(body.website ?? "").trim()) {
+    return json(400, { error: "Demande invalide." }, origin);
+  }
+
+  const formStartedAt = Number(body.form_started_at);
+  const formElapsedMs = Date.now() - formStartedAt;
+  if (!Number.isFinite(formStartedAt) || formElapsedMs < 2000 || formElapsedMs > 2 * 60 * 60 * 1000) {
+    return json(400, { error: "Le formulaire a expiré. Rechargez la page puis réessayez." }, origin);
+  }
+
+  const turnstileToken = String(body.turnstile_token ?? "").trim();
+  if (!turnstileToken) {
+    return json(400, { error: "La vérification anti-robot est requise." }, origin);
+  }
+
+  try {
+    const verificationBody = new FormData();
+    verificationBody.append("secret", turnstileSecret);
+    verificationBody.append("response", turnstileToken);
+    const verificationResponse = await fetch(
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+      { method: "POST", body: verificationBody },
+    );
+    if (!verificationResponse.ok) {
+      console.error("Cloudflare Turnstile verification request failed", {
+        status: verificationResponse.status,
+      });
+      return json(502, { error: "Impossible de vérifier la protection anti-robot. Réessayez." }, origin);
+    }
+
+    const verificationResult: unknown = await verificationResponse.json();
+    if (
+      !verificationResult ||
+      typeof verificationResult !== "object" ||
+      !("success" in verificationResult) ||
+      verificationResult.success !== true ||
+      !("hostname" in verificationResult) ||
+      verificationResult.hostname !== new URL(origin ?? "").hostname
+    ) {
+      console.warn("Contact email rejected: Turnstile token is invalid for this origin", { origin });
+      return json(400, { error: "La vérification anti-robot a échoué. Réessayez." }, origin);
+    }
+  } catch (error) {
+    console.error("Cloudflare Turnstile verification failed", {
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return json(502, { error: "Impossible de vérifier la protection anti-robot. Réessayez." }, origin);
   }
 
   const fields = ["type", "name", "email", "phone", "subject", "message"] as const;

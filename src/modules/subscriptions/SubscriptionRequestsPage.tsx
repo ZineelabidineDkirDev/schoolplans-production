@@ -453,7 +453,7 @@ export function SubscriptionRequestsPage() {
 
       const { error: emailError } = await client.auth.resetPasswordForEmail(
         request.email.trim().toLowerCase(),
-        { redirectTo: 'https://madrassa-ti.vercel.app/login' },
+        { redirectTo: `${window.location.origin}/login` },
       );
       if (emailError) {
         throw new Error(`Le lien n’a pas été envoyé : ${emailError.message}. Aucun centre, compte ou période d’essai n’a été modifié. Attendez avant de réessayer.`);
@@ -581,7 +581,7 @@ export function SubscriptionRequestsPage() {
 
         // Envoyer le lien officiel Supabase de réinitialisation : le mot de passe
         // temporaire n’est jamais affiché à l’écran ni enregistré dans la demande.
-        const redirectTo = 'https://madrassa-ti.vercel.app/login';
+        const redirectTo = `${window.location.origin}/login`;
         const { error: emailError } = await client.auth.resetPasswordForEmail(
           request.email.trim().toLowerCase(),
           { redirectTo },

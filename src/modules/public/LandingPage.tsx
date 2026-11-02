@@ -238,6 +238,12 @@ export function LandingPage() {
   const [demoSubmitting, setDemoSubmitting] = useState(false);
   const [subscriptionSubmitting, setSubscriptionSubmitting] = useState(false);
   const pricingViewport = useRef<HTMLDivElement>(null);
+  const contactFormStartedAt = useRef(Date.now());
+  const contactTurnstileContainer = useRef<HTMLDivElement>(null);
+  const turnstileWidgetId = useRef<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const [turnstileLoadError, setTurnstileLoadError] = useState(false);
+  const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY?.trim() ?? '';
 
   useEffect(() => {
     const syncScroll = () => setScrolled(window.scrollY > 40);
@@ -254,6 +260,57 @@ export function LandingPage() {
     viewport.scrollLeft = step * 2;
     setPricingIndex(2);
   }, []);
+
+  useEffect(() => {
+    if (!turnstileSiteKey) return;
+
+    let cancelled = false;
+    let script = document.querySelector<HTMLScriptElement>('script[data-cloudflare-turnstile]');
+    const createdScript = !script;
+    if (!script) {
+      script = document.createElement('script');
+      script.dataset.cloudflareTurnstile = 'true';
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      script.async = true;
+      script.defer = true;
+    }
+
+    const renderWidget = () => {
+      if (cancelled || !window.turnstile || !contactTurnstileContainer.current || turnstileWidgetId.current) {
+        return;
+      }
+      try {
+        turnstileWidgetId.current = window.turnstile.render(contactTurnstileContainer.current, {
+          sitekey: turnstileSiteKey,
+          callback: setTurnstileToken,
+          'expired-callback': () => setTurnstileToken(''),
+          'error-callback': () => {
+            setTurnstileToken('');
+            setTurnstileLoadError(true);
+          },
+        });
+      } catch (error) {
+        console.error('Cloudflare Turnstile failed to render:', error);
+        setTurnstileLoadError(true);
+      }
+    };
+    const handleScriptError = () => setTurnstileLoadError(true);
+
+    script.addEventListener('load', renderWidget);
+    script.addEventListener('error', handleScriptError);
+    if (window.turnstile) renderWidget();
+    else if (createdScript) document.head.appendChild(script);
+
+    return () => {
+      cancelled = true;
+      script?.removeEventListener('load', renderWidget);
+      script?.removeEventListener('error', handleScriptError);
+      if (turnstileWidgetId.current) {
+        window.turnstile?.remove?.(turnstileWidgetId.current);
+        turnstileWidgetId.current = null;
+      }
+    };
+  }, [turnstileSiteKey]);
 
   function syncPricingIndex() {
     const viewport = pricingViewport.current;
@@ -330,6 +387,14 @@ export function LandingPage() {
 
   async function submitContact(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!turnstileSiteKey || !turnstileToken) {
+      setContactMessage(
+        turnstileLoadError
+          ? 'La vérification anti-robot est indisponible. Réessayez plus tard ou contactez-nous par e-mail ou WhatsApp.'
+          : 'Complétez la vérification anti-robot avant l’envoi.',
+      );
+      return;
+    }
     const formElement = event.currentTarget;
     const data = new FormData(formElement);
     setContactMessage('');
@@ -340,6 +405,9 @@ export function LandingPage() {
       phone: String(data.get('phone') ?? '').trim(),
       subject: String(data.get('subject') ?? '').trim(),
       message: String(data.get('message') ?? '').trim(),
+      website: String(data.get('website') ?? ''),
+      form_started_at: String(data.get('form_started_at') ?? ''),
+      turnstile_token: turnstileToken,
     };
 
     try {
@@ -348,7 +416,16 @@ export function LandingPage() {
       });
       if (error) throw error;
       setContactMessage('Votre demande a bien été envoyée. Notre équipe vous répondra prochainement.');
+      contactFormStartedAt.current = Date.now();
       formElement.reset();
+      setTurnstileToken('');
+      if (turnstileWidgetId.current) {
+        window.turnstile?.reset?.(turnstileWidgetId.current);
+      }
+      const startTimeInput = formElement.elements.namedItem('form_started_at');
+      if (startTimeInput instanceof HTMLInputElement) {
+        startTimeInput.value = String(contactFormStartedAt.current);
+      }
     } catch (error) {
       console.error('Contact form submission failed:', error);
 
@@ -1229,6 +1306,11 @@ export function LandingPage() {
             </a>
           </div>
           <form className="sp-landing-contact-form" onSubmit={submitContact}>
+            <div aria-hidden="true" className="sp-contact-honeypot">
+              <label htmlFor="contact-website">Ne pas remplir ce champ</label>
+              <input autoComplete="off" id="contact-website" name="website" tabIndex={-1} type="text" />
+            </div>
+            <input name="form_started_at" type="hidden" defaultValue={contactFormStartedAt.current} />
             <div className="sp-landing-form-heading">
               <b>Demande d’information</b>
               <span>Réponse rapide</span>
@@ -1279,12 +1361,17 @@ export function LandingPage() {
                 rows={5}
               />
             </label>
+            {turnstileSiteKey ? (
+              <div aria-label="Vérification anti-robot" className="sp-contact-turnstile" ref={contactTurnstileContainer} />
+            ) : null}
             <button className="sp-landing-submit" type="submit">
               Envoyer la demande →
             </button>
             <p>
               {contactMessage ||
-                'Votre demande sera envoyée par e-mail à notre équipe.'}
+                (turnstileSiteKey
+                  ? 'Complétez la vérification anti-robot pour envoyer votre demande.'
+                  : 'Le formulaire est temporairement indisponible. Contactez-nous par e-mail ou WhatsApp.')}
             </p>
           </form>
         </div>
