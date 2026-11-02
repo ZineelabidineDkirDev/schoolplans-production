@@ -33,6 +33,7 @@ import {
 import { assignStudentToGroup, getStudentCourseEnrollmentIds, setStudentCourseEnrollment } from '../../data/repositories/studentAssignmentRepository';
 import { createCentreRoom, updateCentreRoom, deleteCentreRoom, createCentreTeacher, updateCentreTeacher, deleteCentreTeacher, type RoomInput, type TeacherInput } from '../../data/repositories/directoryCrudRepository';
 import { getSupabaseClient } from '../../data/supabase/client';
+import { exportTableToExcel, exportTableToPdf } from '../../utils/tableExport';
 import type { PlanningData, PlanningOccurrence } from '../../types/planning';
 import type { AttendanceSheet, AttendanceStatus, ManagedStudent } from '../../types/management';
 import { useAuth } from '../auth/AuthProvider';
@@ -2075,6 +2076,7 @@ export function AttendancePage() {
     if (value) notify(value, 'error');
   };
   const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [exporting, setExporting] = useState<'excel' | 'pdf' | null>(null);
   const setMessage = (value: string | null) => {
     if (value) notify(value, 'success');
   };
@@ -2120,6 +2122,75 @@ export function AttendancePage() {
     { present: 0, absent: 0, late: 0, unmarked: 0 },
   ), [visibleCourseSheets]);
   const canRecordAttendance = profile?.role === 'formateur';
+
+  async function exportAttendance(format: 'excel' | 'pdf') {
+    const columns = [
+      { label: 'Date', width: 1.1 },
+      { label: 'Formation', width: 1.7 },
+      { label: 'Groupe', width: 1.3 },
+      { label: 'Cours / module', width: 1.5 },
+      { label: 'Étudiant', width: 1.8 },
+      { label: 'Statut', width: 1 },
+      { label: 'Formateur', width: 1.5 },
+      { label: 'Horaire', width: 1 },
+      { label: 'Salle', width: 1.2 },
+    ];
+    const rows = visibleCourseSheets.flatMap((courseSheet) => {
+      const occurrence = occurrences.find(
+        (item) => String(item.id) === String(courseSheet.courseId),
+      );
+      if (!occurrence) return [];
+      const group = planningState.status === 'loaded'
+        ? planningState.data.filters.groups.find(
+          (item) => String(item.id) === String(occurrence.groupId),
+        )
+        : undefined;
+      return courseSheet.students.map(({ student, status }) => [
+        date,
+        group?.formationName ?? 'Formation',
+        group?.name ?? occurrence.groupName ?? 'Groupe non défini',
+        occurrence.subjectName,
+        `${student.firstName} ${student.lastName}`,
+        status === 'present' ? 'Présent' : status === 'absent' ? 'Absent' : status === 'retard' ? 'En retard' : 'Non marqué',
+        occurrence.teacherName,
+        formatCourseTime(occurrence),
+        occurrence.roomName || 'Salle non définie',
+      ]);
+    });
+
+    setExporting(format);
+    try {
+      const groupName = selectedGroupId
+        ? planningState.status === 'loaded'
+          ? planningState.data.filters.groups.find(
+            (group) => String(group.id) === selectedGroupId,
+          )?.name ?? 'groupe'
+          : 'groupe'
+        : 'tous-les-groupes';
+      const safeGroupName = groupName.trim().replace(/[^a-zA-Z0-9_-]+/g, '-');
+      if (format === 'excel') {
+        await exportTableToExcel(
+          `presences-${date}-${safeGroupName}.xlsx`,
+          'Présences',
+          columns,
+          rows,
+        );
+      } else {
+        await exportTableToPdf(
+          `presences-${date}-${safeGroupName}.pdf`,
+          `Présences du ${formatAbsenceDate(date)}${selectedGroupId ? ` · ${groupName}` : ''}`,
+          columns,
+          rows,
+        );
+      }
+      setMessage(`Export ${format.toUpperCase()} des présences téléchargé.`);
+    } catch (cause) {
+      const message = errorMessage(cause);
+      setError(`Impossible de générer l’export ${format.toUpperCase()} des présences : ${message}`);
+    } finally {
+      setExporting(null);
+    }
+  }
 
   useEffect(() => {
     if (planningState.status !== 'loaded' || !profile?.centreId) return;
@@ -2243,6 +2314,24 @@ export function AttendancePage() {
               ))}
             </select>
           </label>
+          <div className="management-toolbar">
+            <Button
+              disabled={!visibleCourseSheets.length || exporting !== null}
+              onClick={() => void exportAttendance('excel')}
+              type="button"
+              variant="secondary"
+            >
+              {exporting === 'excel' ? 'Export Excel…' : 'Exporter Excel'}
+            </Button>
+            <Button
+              disabled={!visibleCourseSheets.length || exporting !== null}
+              onClick={() => void exportAttendance('pdf')}
+              type="button"
+              variant="secondary"
+            >
+              {exporting === 'pdf' ? 'Export PDF…' : 'Exporter PDF'}
+            </Button>
+          </div>
         </div>
       }
       description={canRecordAttendance

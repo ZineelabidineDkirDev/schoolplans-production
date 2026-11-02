@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Alert, Button, LoadingState, confirmAction, notify } from '../../components/ui';
 import { getSupabaseClient } from '../../data/supabase/client';
+import { exportTableToExcel, exportTableToPdf } from '../../utils/tableExport';
 import { useAuth } from '../auth/AuthProvider';
 import { FinanceOperations } from './FinanceOperations';
 
@@ -57,6 +58,7 @@ export function FinanceDashboardPage() {
   const [advances, setAdvances] = useState<TeacherAdvance[]>([]);
   const [advanceRepayments, setAdvanceRepayments] = useState<AdvanceRepayment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState<'excel' | 'pdf' | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const setNotice = (value: string | null) => {
@@ -137,6 +139,55 @@ export function FinanceDashboardPage() {
   const payrollNet = Math.max(0, payrollGross - numeric(payrollForm.advanceDeduction));
   const paidForCharge = (chargeId: string) => payments.filter((payment) => payment.charge_id === chargeId).reduce((sum, payment) => sum + numeric(payment.amount), 0);
   const outstanding = charges.reduce((sum, charge) => sum + Math.max(0, numeric(charge.amount_due) - paidForCharge(charge.id)), 0);
+  const paymentExportColumns = [
+    { label: 'N° reçu', width: 1.1 },
+    { label: 'Étudiant', width: 1.8 },
+    { label: 'Frais', width: 2 },
+    { label: 'Montant (MAD)', width: 1.2 },
+    { label: 'Mode de paiement', width: 1.5 },
+    { label: 'Date', width: 1.7 },
+    { label: 'Référence', width: 1.5 },
+  ];
+  const paymentExportRows = payments.map((payment) => {
+    const charge = charges.find((item) => item.id === payment.charge_id);
+    return [
+      payment.receipt_number,
+      charge ? studentName(charge.student_id) : '—',
+      charge?.label ?? 'Frais archivés',
+      numeric(payment.amount),
+      METHODS.find((method) => method.value === payment.payment_method)?.label ?? payment.payment_method,
+      new Date(payment.paid_at).toLocaleString('fr-MA'),
+      payment.reference ?? '',
+    ];
+  });
+
+  async function exportPayments(format: 'excel' | 'pdf') {
+    setExporting(format);
+    try {
+      const fileDate = today();
+      if (format === 'excel') {
+        await exportTableToExcel(
+          `paiements-${fileDate}.xlsx`,
+          'Paiements',
+          paymentExportColumns,
+          paymentExportRows,
+        );
+      } else {
+        await exportTableToPdf(
+          `paiements-${fileDate}.pdf`,
+          'Liste des paiements du centre',
+          paymentExportColumns,
+          paymentExportRows,
+        );
+      }
+      notify(`Export ${format.toUpperCase()} des paiements téléchargé.`, 'success');
+    } catch (cause) {
+      console.error('Payment export failed:', cause);
+      notify(`Impossible de générer l’export ${format.toUpperCase()} des paiements.`, 'error');
+    } finally {
+      setExporting(null);
+    }
+  }
 
   function openCharge(charge?: Charge) {
     setError(null); setEditingChargeId(charge?.id ?? null);
@@ -315,7 +366,7 @@ export function FinanceDashboardPage() {
     </section>}
 
     {view === 'expenses' && <FinanceOperations onChange={reload} />}
-    {view === 'receipts' && <section className="finance-content-panel"><div className="finance-content-heading"><div><h2>Reçus et justificatifs</h2><p>Retrouvez chaque encaissement et imprimez un reçu à remettre à l’étudiant.</p></div></div><div className="finance-table-wrap"><table className="finance-table"><thead><tr><th>N° reçu</th><th>Étudiant</th><th>Frais</th><th>Montant</th><th>Mode</th><th>Date</th><th>Justificatif</th></tr></thead><tbody>{payments.map((payment) => { const charge = charges.find((item) => item.id === payment.charge_id); return <tr key={payment.id}><td><strong>{payment.receipt_number}</strong></td><td>{charge ? studentName(charge.student_id) : '—'}</td><td>{charge?.label ?? 'Frais archivés'}</td><td>{money(numeric(payment.amount))}</td><td>{METHODS.find((method) => method.value === payment.payment_method)?.label ?? payment.payment_method}</td><td>{new Date(payment.paid_at).toLocaleString('fr-MA')}</td><td><Button type="button" variant="secondary" onClick={() => { const receipt = '<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Reçu ' + payment.receipt_number + '</title><style>body{font:16px Arial;margin:40px;color:#172033}header{border-bottom:2px solid #173b6c;padding-bottom:18px;margin-bottom:24px}h1{color:#173b6c}table{width:100%;border-collapse:collapse;margin-top:24px}td{padding:12px;border-bottom:1px solid #ddd}.amount{font-size:24px;font-weight:bold}footer{margin-top:60px;color:#667}</style></head><body><header><h1>REÇU DE PAIEMENT</h1><p>SchoolPlans · Centre de formation</p></header><p><strong>Numéro :</strong> ' + payment.receipt_number + '</p><p><strong>Date :</strong> ' + new Date(payment.paid_at).toLocaleString('fr-MA') + '</p><p><strong>Étudiant :</strong> ' + (charge ? studentName(charge.student_id) : '—') + '</p><p><strong>Objet :</strong> ' + (charge?.label ?? 'Frais de formation') + '</p><p><strong>Mode de paiement :</strong> ' + (METHODS.find((method) => method.value === payment.payment_method)?.label ?? payment.payment_method) + '</p><p class="amount">Montant reçu : ' + money(numeric(payment.amount)) + '</p>' + (payment.reference ? '<p>Référence : ' + payment.reference + '</p>' : '') + '<footer>Document généré depuis le tableau de bord financier.</footer><script>window.onload=()=>window.print()</script></body></html>'; const blob = new Blob([receipt], { type: 'text/html;charset=utf-8' }); const url = URL.createObjectURL(blob); const win = window.open(url, '_blank'); if (!win) { URL.revokeObjectURL(url); setError('Autorisez les fenêtres popup pour imprimer le reçu.'); } }}>Imprimer le reçu</Button></td></tr>; })}{payments.length === 0 && <tr><td colSpan={7}>Aucun reçu disponible.</td></tr>}</tbody></table></div><p className="finance-security-note">Les paiements restent dans l’historique pour préserver la traçabilité comptable.</p></section>}
+    {view === 'receipts' && <section className="finance-content-panel"><div className="finance-content-heading"><div><h2>Reçus et justificatifs</h2><p>Retrouvez chaque encaissement et imprimez un reçu à remettre à l’étudiant.</p></div><div className="finance-toolbar"><Button type="button" variant="secondary" disabled={!payments.length || exporting !== null} onClick={() => void exportPayments('excel')}>{exporting === 'excel' ? 'Export Excel…' : 'Exporter Excel'}</Button><Button type="button" variant="secondary" disabled={!payments.length || exporting !== null} onClick={() => void exportPayments('pdf')}>{exporting === 'pdf' ? 'Export PDF…' : 'Exporter PDF'}</Button></div></div><div className="finance-table-wrap"><table className="finance-table"><thead><tr><th>N° reçu</th><th>Étudiant</th><th>Frais</th><th>Montant</th><th>Mode</th><th>Date</th><th>Justificatif</th></tr></thead><tbody>{payments.map((payment) => { const charge = charges.find((item) => item.id === payment.charge_id); return <tr key={payment.id}><td><strong>{payment.receipt_number}</strong></td><td>{charge ? studentName(charge.student_id) : '—'}</td><td>{charge?.label ?? 'Frais archivés'}</td><td>{money(numeric(payment.amount))}</td><td>{METHODS.find((method) => method.value === payment.payment_method)?.label ?? payment.payment_method}</td><td>{new Date(payment.paid_at).toLocaleString('fr-MA')}</td><td><Button type="button" variant="secondary" onClick={() => { const receipt = '<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Reçu ' + payment.receipt_number + '</title><style>body{font:16px Arial;margin:40px;color:#172033}header{border-bottom:2px solid #173b6c;padding-bottom:18px;margin-bottom:24px}h1{color:#173b6c}table{width:100%;border-collapse:collapse;margin-top:24px}td{padding:12px;border-bottom:1px solid #ddd}.amount{font-size:24px;font-weight:bold}footer{margin-top:60px;color:#667}</style></head><body><header><h1>REÇU DE PAIEMENT</h1><p>SchoolPlans · Centre de formation</p></header><p><strong>Numéro :</strong> ' + payment.receipt_number + '</p><p><strong>Date :</strong> ' + new Date(payment.paid_at).toLocaleString('fr-MA') + '</p><p><strong>Étudiant :</strong> ' + (charge ? studentName(charge.student_id) : '—') + '</p><p><strong>Objet :</strong> ' + (charge?.label ?? 'Frais de formation') + '</p><p><strong>Mode de paiement :</strong> ' + (METHODS.find((method) => method.value === payment.payment_method)?.label ?? payment.payment_method) + '</p><p class="amount">Montant reçu : ' + money(numeric(payment.amount)) + '</p>' + (payment.reference ? '<p>Référence : ' + payment.reference + '</p>' : '') + '<footer>Document généré depuis le tableau de bord financier.</footer><script>window.onload=()=>window.print()</script></body></html>'; const blob = new Blob([receipt], { type: 'text/html;charset=utf-8' }); const url = URL.createObjectURL(blob); const win = window.open(url, '_blank'); if (!win) { URL.revokeObjectURL(url); setError('Autorisez les fenêtres popup pour imprimer le reçu.'); } }}>Imprimer le reçu</Button></td></tr>; })}{payments.length === 0 && <tr><td colSpan={7}>Aucun reçu disponible.</td></tr>}</tbody></table></div><p className="finance-security-note">Les paiements restent dans l’historique pour préserver la traçabilité comptable.</p></section>}
 
     {view === 'payroll' && <section className="finance-content-panel"><div className="finance-content-heading"><div><h2>Paiement des formateurs</h2><p>Choisissez un mode de calcul par formateur et suivez les avances déjà versées.</p></div><div className="finance-toolbar"><label className="sp-form-field">Compte de règlement<select className="sp-field" value={payrollAccountId} onChange={(event) => setPayrollAccountId(event.target.value)}><option value="">Sélectionner un compte</option>{accounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}</select></label><Button type="button" variant="secondary" onClick={() => { setAdvanceForm({ teacherId: '', amount: '', advanceDate: today(), accountId: accounts[0]?.id ?? '', notes: '' }); setError(null); setModal('advance'); }}>+ Enregistrer une avance</Button><Button type="button" onClick={() => openPayroll()}>+ Préparer une rémunération</Button></div></div><div className="finance-table-wrap"><table className="finance-table"><thead><tr><th>Formateur</th><th>Mode</th><th>Période</th><th>Brut</th><th>Avance déduite</th><th>Net à payer</th><th>Statut</th><th>Actions</th></tr></thead><tbody>{payroll.map((item) => <tr key={item.id}><td>{teacherName(item.teacher_id)}</td><td>{item.compensation_mode === 'session' ? 'À la séance' : item.compensation_mode === 'monthly' ? 'Mensuel' : 'À l’heure'}</td><td>{item.period_start} → {item.period_end}</td><td>{money(numeric(item.gross_amount ?? item.amount_due))}</td><td>{money(numeric(item.advance_deduction))}</td><td>{money(numeric(item.amount_due))}</td><td><span className={'finance-status finance-status-' + item.status}>{item.status === 'draft' ? 'Brouillon' : item.status === 'approved' ? 'Validée' : item.status === 'paid' ? 'Payée' : 'Annulée'}</span></td><td><div className="finance-row-actions">{item.status === 'draft' && <><Button type="button" variant="secondary" disabled={saving} onClick={() => openPayroll(item)}>Modifier</Button><Button type="button" variant="secondary" disabled={saving} onClick={() => void changePayrollStatus(item, 'cancelled')}>Annuler</Button><Button type="button" disabled={saving} onClick={() => void changePayrollStatus(item, 'approved')}>Valider</Button></>}{item.status === 'approved' && <Button type="button" disabled={saving || !payrollAccountId} onClick={() => void markPayrollPaid(item)}>Marquer payée</Button>}</div></td></tr>)}{payroll.length === 0 && <tr><td colSpan={8}>Aucune rémunération préparée.</td></tr>}</tbody></table></div><div className="finance-table-wrap"><h3>Avances versées</h3><table className="finance-table"><thead><tr><th>Formateur</th><th>Date</th><th>Montant</th><th>Solde total d’avance du formateur</th><th>Notes</th></tr></thead><tbody>{advances.filter((item) => item.status === 'active').map((item) => <tr key={item.id}><td>{teacherName(item.teacher_id)}</td><td>{item.advance_date}</td><td>{money(numeric(item.amount))}</td><td>{money(advanceBalance(item.teacher_id))}</td><td>{item.notes || '—'}</td></tr>)}{advances.filter((item) => item.status === 'active').length === 0 && <tr><td colSpan={5}>Aucune avance enregistrée.</td></tr>}</tbody></table></div><p className="finance-security-note">Le net à payer est calculé après déduction. Les avances sont suivies par formateur ; enregistrez également la sortie correspondante dans la trésorerie pour refléter le décaissement réel.</p></section>}
 
