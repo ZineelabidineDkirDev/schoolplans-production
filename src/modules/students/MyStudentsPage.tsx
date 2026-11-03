@@ -26,7 +26,12 @@ export function MyStudentsPage() {
       setState({ status: 'loading' });
 
       try {
-        const students = await getMyCentreStudents(getSupabaseClient(), profile?.centreId ?? '');
+        if (!profile?.id) throw new Error('Votre profil formateur ne peut pas être vérifié.');
+        const students = await getMyCentreStudents(
+          getSupabaseClient(),
+          profile.centreId ?? '',
+          profile.id,
+        );
         if (active) setState({ status: 'loaded', students });
       } catch (error) {
         if (active) setState({ status: 'error', message: describeError(error) });
@@ -37,7 +42,7 @@ export function MyStudentsPage() {
     return () => {
       active = false;
     };
-  }, [profile?.centreId, reloadKey]);
+  }, [profile?.centreId, profile?.id, reloadKey]);
 
   return (
     <section
@@ -45,7 +50,7 @@ export function MyStudentsPage() {
       className="mx-auto w-full max-w-screen-2xl space-y-5"
     >
       <PageHeader
-        description="Étudiants enregistrés dans votre centre et cours auxquels ils sont inscrits."
+        description="Étudiants inscrits aux cours qui vous sont attribués dans votre centre."
         eyebrow="Espace formateur"
         title="Mes étudiants"
       />
@@ -72,8 +77,8 @@ export function MyStudentsPage() {
       {state.status === 'loaded' &&
         (state.students.length === 0 ? (
           <EmptyState
-            description="Les étudiants inscrits apparaîtront ici."
-            title="Aucun étudiant enregistré dans votre centre."
+            description="Les étudiants inscrits à vos cours apparaîtront ici."
+            title="Aucun étudiant inscrit à vos cours."
           />
         ) : (
           <Panel className="!p-0">

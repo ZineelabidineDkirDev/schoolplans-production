@@ -18,11 +18,16 @@ export function buildMyStudentList(
     subjects.map((subject) => [String(subject.id), subject.name || '?']),
   );
   const courseNamesByStudent = new Map<string, string[]>();
+  const courseIdsByStudent = new Map<string, Set<string>>();
 
   for (const enrollment of enrollments) {
     const studentKey = String(enrollment.studentId);
     const course = courseById.get(String(enrollment.courseId));
     if (!studentById.has(studentKey) || !course) continue;
+    const courseIds = courseIdsByStudent.get(studentKey) ?? new Set<string>();
+    if (courseIds.has(String(course.id))) continue;
+    courseIds.add(String(course.id));
+    courseIdsByStudent.set(studentKey, courseIds);
 
     const courseName =
       course.subjectId === null ? '?' : (subjectNameById.get(String(course.subjectId)) ?? '?');
@@ -31,8 +36,8 @@ export function buildMyStudentList(
     courseNamesByStudent.set(studentKey, studentCourses);
   }
 
-  return students.map((student) => ({
-    student,
-    courses: courseNamesByStudent.get(String(student.id)) ?? [],
-  }));
+  return students.flatMap((student) => {
+    const courses = courseNamesByStudent.get(String(student.id)) ?? [];
+    return courses.length ? [{ student, courses }] : [];
+  });
 }

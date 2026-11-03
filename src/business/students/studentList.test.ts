@@ -56,16 +56,19 @@ describe('buildMyStudentList', () => {
     ];
     const courses: StudentCourse[] = [{ id: 10, subjectId: null }];
 
-    expect(buildMyStudentList(students, enrollments, courses, [])).toEqual([
-      { student: students[0], courses: [] },
-      { student: students[1], courses: [] },
-    ]);
+    expect(buildMyStudentList(students, enrollments, courses, [])).toEqual([]);
   });
 
-  it('returns every student with no courses when the centre has no enrollments', () => {
-    expect(buildMyStudentList(students, [], [], [])).toEqual([
-      { student: students[0], courses: [] },
-      { student: students[1], courses: [] },
-    ]);
+  it('omits students who are not enrolled in any of the teacher courses', () => {
+    expect(buildMyStudentList(students, [], [], [])).toEqual([]);
+  });
+
+  it('does not duplicate a course when its enrollment row is repeated', () => {
+    expect(buildMyStudentList(
+      students,
+      [{ studentId: 1, courseId: 10 }, { studentId: 1, courseId: 10 }],
+      [{ id: 10, subjectId: 20 }],
+      [{ id: 20, name: 'Français' }],
+    )).toEqual([{ student: students[0], courses: ['Français'] }]);
   });
 });

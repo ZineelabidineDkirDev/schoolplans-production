@@ -28,6 +28,7 @@ export type AttendanceStudent = {
 
 export type AttendanceCourse = {
   courseId: StudentIdentifier;
+  date: string;
   students: AttendanceStudent[];
 };
 

@@ -84,27 +84,51 @@ function parseSubjects(value: unknown): StudentSubject[] {
 export async function getMyCentreStudents(
   client: SupabaseClient,
   centreId: string,
+  profileId: string,
 ): Promise<MyStudentListItem[]> {
   if (!centreId) {
     throw new Error('Votre profil formateur n’est rattaché à aucun centre.');
   }
+  if (!profileId) throw new Error('Votre profil formateur ne peut pas être vérifié.');
 
-  const [studentsResult, enrollmentsResult, coursesResult, subjectsResult] = await Promise.all([
+  const { data: teacher, error: teacherError } = await client
+    .from('formateurs')
+    .select('id')
+    .eq('profile_id', profileId)
+    .eq('centre_id', centreId)
+    .maybeSingle();
+  if (teacherError) throw teacherError;
+  if (!teacher || (typeof teacher.id !== 'string' && typeof teacher.id !== 'number')) return [];
+
+  const [studentsResult, coursesResult, subjectsResult] = await Promise.all([
     client.rpc('get_my_centre_students'),
-    client.from('inscriptions').select('etudiant_id,cours_id').eq('centre_id', centreId),
-    client.from('cours').select('id,matiere_id').eq('centre_id', centreId),
+    client
+      .from('cours')
+      .select('id,matiere_id')
+      .eq('centre_id', centreId)
+      .eq('formateur_id', teacher.id),
     client.from('matieres').select('id,nom'),
   ]);
 
   if (studentsResult.error) throw studentsResult.error;
-  if (enrollmentsResult.error) throw enrollmentsResult.error;
   if (coursesResult.error) throw coursesResult.error;
   if (subjectsResult.error) throw subjectsResult.error;
+
+  const courses = parseCourses(coursesResult.data);
+  const courseIds = courses.map(({ id }) => id);
+  const enrollmentsResult = courseIds.length
+    ? await client
+        .from('inscriptions')
+        .select('etudiant_id,cours_id')
+        .eq('centre_id', centreId)
+        .in('cours_id', courseIds)
+    : { data: [], error: null };
+  if (enrollmentsResult.error) throw enrollmentsResult.error;
 
   return buildMyStudentList(
     parseCentreStudentRows(studentsResult.data, centreId),
     parseEnrollments(enrollmentsResult.data),
-    parseCourses(coursesResult.data),
+    courses,
     parseSubjects(subjectsResult.data),
   );
 }

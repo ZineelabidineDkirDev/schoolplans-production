@@ -2061,10 +2061,25 @@ function formatAbsenceDate(value: string): string {
   return new Date(`${value}T12:00:00`).toLocaleDateString('fr-FR');
 }
 
+function getDefaultAttendanceRange(): { from: string; to: string } {
+  const today = new Date();
+  const from = new Date(today);
+  from.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+  const to = new Date(from);
+  to.setDate(from.getDate() + 5);
+  return { from: isoDate(from), to: isoDate(to) };
+}
+
+function isValidAttendanceDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T12:00:00`);
+  return Number.isFinite(date.getTime()) && isoDate(date) === value;
+}
+
 export function AttendancePage() {
   const { profile } = useAuth();
   const { state: planningState, reload } = usePlanningData();
-  const [date, setDate] = useState(() => isoDate(new Date()));
+  const [dateRange, setDateRange] = useState(getDefaultAttendanceRange);
   const [selectedGroupId, setSelectedGroupId] = useState('');
   const [sheet, setSheet] = useState<AttendanceSheet | null>(null);
   const [absenceAlerts, setAbsenceAlerts] = useState<AbsenceAlert[]>([]);
@@ -2082,30 +2097,40 @@ export function AttendancePage() {
   };
   const [revision, setRevision] = useState(0);
 
+  const validDateRange = isValidAttendanceDate(dateRange.from)
+    && isValidAttendanceDate(dateRange.to)
+    && dateRange.from <= dateRange.to;
   const occurrences = useMemo(() => {
-    if (planningState.status !== 'loaded') return [];
-    const current = new Date(`${date}T12:00:00`);
-    return getWeekOccurrences(
-      planningState.data.courses,
-      current,
-      planningState.data.closedDates,
-      planningState.data.cancelledOccurrences,
-      planningState.data.completedOccurrences,
-    )
-      .filter((occurrence) => occurrence.date === date && !occurrence.cancelled)
-      .filter((occurrence) => {
-        const group = planningState.data.filters.groups.find(
-          (item) => String(item.id) === String(occurrence.groupId),
-        );
-        return (
-          (!group?.startsOn || date >= group.startsOn) && (!group?.endsOn || date <= group.endsOn)
-        );
-      });
-  }, [date, planningState]);
+    if (planningState.status !== 'loaded' || !validDateRange) return [];
+    const result: PlanningOccurrence[] = [];
+    const lastDate = new Date(`${dateRange.to}T12:00:00`);
+    for (let current = new Date(`${dateRange.from}T12:00:00`); current <= lastDate; current.setDate(current.getDate() + 1)) {
+      const currentDate = isoDate(current);
+      const currentOccurrences = getWeekOccurrences(
+        planningState.data.courses,
+        current,
+        planningState.data.closedDates,
+        planningState.data.cancelledOccurrences,
+        planningState.data.completedOccurrences,
+      )
+        .filter((occurrence) => occurrence.date === currentDate && !occurrence.cancelled)
+        .filter((occurrence) => {
+          const group = planningState.data.filters.groups.find(
+            (item) => String(item.id) === String(occurrence.groupId),
+          );
+          return (!group?.startsOn || currentDate >= group.startsOn)
+            && (!group?.endsOn || currentDate <= group.endsOn);
+        });
+      result.push(...currentOccurrences);
+    }
+    return result;
+  }, [dateRange, planningState, validDateRange]);
   const visibleCourseSheets = useMemo(() => {
     if (!sheet) return [];
     return sheet.courses.filter((courseSheet) => {
-      const occurrence = occurrences.find((item) => String(item.id) === String(courseSheet.courseId));
+      const occurrence = occurrences.find((item) =>
+        String(item.id) === String(courseSheet.courseId) && item.date === courseSheet.date,
+      );
       return !selectedGroupId || String(occurrence?.groupId ?? '') === selectedGroupId;
     });
   }, [occurrences, selectedGroupId, sheet]);
@@ -2136,8 +2161,8 @@ export function AttendancePage() {
       { label: 'Salle', width: 1.2 },
     ];
     const rows = visibleCourseSheets.flatMap((courseSheet) => {
-      const occurrence = occurrences.find(
-        (item) => String(item.id) === String(courseSheet.courseId),
+      const occurrence = occurrences.find((item) =>
+        String(item.id) === String(courseSheet.courseId) && item.date === courseSheet.date,
       );
       if (!occurrence) return [];
       const group = planningState.status === 'loaded'
@@ -2146,7 +2171,7 @@ export function AttendancePage() {
         )
         : undefined;
       return courseSheet.students.map(({ student, status }) => [
-        date,
+        courseSheet.date,
         group?.formationName ?? 'Formation',
         group?.name ?? occurrence.groupName ?? 'Groupe non défini',
         occurrence.subjectName,
@@ -2170,15 +2195,15 @@ export function AttendancePage() {
       const safeGroupName = groupName.trim().replace(/[^a-zA-Z0-9_-]+/g, '-');
       if (format === 'excel') {
         await exportTableToExcel(
-          `presences-${date}-${safeGroupName}.xlsx`,
+          `presences-${dateRange.from}-au-${dateRange.to}-${safeGroupName}.xlsx`,
           'Présences',
           columns,
           rows,
         );
       } else {
         await exportTableToPdf(
-          `presences-${date}-${safeGroupName}.pdf`,
-          `Présences du ${formatAbsenceDate(date)}${selectedGroupId ? ` · ${groupName}` : ''}`,
+          `presences-${dateRange.from}-au-${dateRange.to}-${safeGroupName}.pdf`,
+          `Présences du ${formatAbsenceDate(dateRange.from)} au ${formatAbsenceDate(dateRange.to)}${selectedGroupId ? ` · ${groupName}` : ''}`,
           columns,
           rows,
         );
@@ -2195,10 +2220,18 @@ export function AttendancePage() {
   useEffect(() => {
     if (planningState.status !== 'loaded' || !profile?.centreId) return;
     let active = true;
+    if (!validDateRange) {
+      setSheet(null);
+      setLoading(false);
+      return () => { active = false; };
+    }
     setLoading(true);
     setError(null);
-    const courseIds = occurrences.map((occurrence) => occurrence.id);
-    void getAttendanceSheet(getSupabaseClient(), profile.centreId, date, courseIds)
+    const sessions = occurrences.map((occurrence) => ({
+      courseId: occurrence.id,
+      date: occurrence.date,
+    }));
+    void getAttendanceSheet(getSupabaseClient(), profile.centreId, dateRange.from, dateRange.to, sessions)
       .then((nextSheet) => {
         if (active) setSheet(nextSheet);
       })
@@ -2211,7 +2244,7 @@ export function AttendancePage() {
     return () => {
       active = false;
     };
-  }, [date, occurrences, planningState, profile?.centreId, revision]);
+  }, [dateRange, occurrences, planningState, profile?.centreId, revision, validDateRange]);
 
   useEffect(() => {
     if (planningState.status !== 'loaded' || !profile?.centreId) return;
@@ -2236,6 +2269,7 @@ export function AttendancePage() {
 
   async function updateStatus(
     courseId: string | number,
+    sessionDate: string,
     studentId: string | number,
     status: AttendanceStatus,
   ) {
@@ -2249,7 +2283,7 @@ export function AttendancePage() {
     }
     setError(null);
     setMessage(null);
-    const key = `${courseId}|${studentId}`;
+    const key = `${courseId}|${sessionDate}|${studentId}`;
     setSavingKey(key);
     try {
       await saveAttendance(
@@ -2257,7 +2291,7 @@ export function AttendancePage() {
         profile.centreId,
         courseId,
         studentId,
-        date,
+        sessionDate,
         status,
       );
       setMessage('Présence enregistrée.');
@@ -2269,14 +2303,18 @@ export function AttendancePage() {
     }
   }
 
-  async function markCoursePresent(courseId: string | number, students: AttendanceSheet['courses'][number]['students']) {
+  async function markCoursePresent(
+    courseId: string | number,
+    sessionDate: string,
+    students: AttendanceSheet['courses'][number]['students'],
+  ) {
     const centreId = profile?.centreId;
     if (!canRecordAttendance || !centreId) {
       setError('La modification des présences est réservée au formateur.');
       return;
     }
     if (students.length === 0) return;
-    setSavingKey(String(courseId));
+    setSavingKey(`${courseId}|${sessionDate}`);
     setError(null);
     setMessage(null);
     try {
@@ -2285,7 +2323,7 @@ export function AttendancePage() {
         centreId,
         courseId,
         student.id,
-        date,
+        sessionDate,
         'present',
       )));
       setMessage(`Présence enregistrée pour les ${students.length} étudiants du groupe.`);
@@ -2302,8 +2340,22 @@ export function AttendancePage() {
       actions={
         <div className="attendance-filters">
           <label className="sp-form-field">
-            Date de la séance
-            <input className="sp-field" onChange={(event) => setDate(event.target.value)} type="date" value={date} />
+            Du
+            <input
+              className="sp-field"
+              onChange={(event) => setDateRange((current) => ({ ...current, from: event.target.value }))}
+              type="date"
+              value={dateRange.from}
+            />
+          </label>
+          <label className="sp-form-field">
+            Au
+            <input
+              className="sp-field"
+              onChange={(event) => setDateRange((current) => ({ ...current, to: event.target.value }))}
+              type="date"
+              value={dateRange.to}
+            />
           </label>
           <label className="sp-form-field">
             Groupe
@@ -2335,7 +2387,7 @@ export function AttendancePage() {
         </div>
       }
       description={canRecordAttendance
-        ? 'Sélectionnez un groupe et une séance pour marquer chaque étudiant présent, en retard ou absent.'
+        ? 'Choisissez une période et un groupe, puis enregistrez le statut de chaque étudiant pour chacune de ses séances.'
         : 'Consultez les présences enregistrées par les formateurs. Cette vue est en lecture seule.'}
       title="Suivi des présences"
     >
@@ -2385,8 +2437,11 @@ export function AttendancePage() {
         </Panel>
       )}
       {error && <Alert tone="error">{error}</Alert>}
+      {!validDateRange && (
+        <Alert tone="error">La date « Du » doit être une date valide et antérieure ou égale à la date « Au ».</Alert>
+      )}
       {!loading && planningState.status === 'loaded' && sheet && visibleCourseSheets.length > 0 && (
-        <section aria-label="Bilan des présences du groupe" className="attendance-status-summary">
+        <section aria-label="Bilan des présences de la période" className="attendance-status-summary">
           <article className="is-present"><strong>{attendanceTotals.present}</strong><span>Présents</span></article>
           <article className="is-absent"><strong>{attendanceTotals.absent}</strong><span>Absents</span></article>
           <article className="is-late"><strong>{attendanceTotals.late}</strong><span>En retard</span></article>
@@ -2400,20 +2455,21 @@ export function AttendancePage() {
       )}
       {!loading &&
         planningState.status === 'loaded' &&
+        validDateRange &&
         (!sheet || visibleCourseSheets.length === 0 ? (
           <EmptyState
-            title={selectedGroupId ? 'Aucune séance de ce groupe à cette date.' : 'Aucun cours prévu à cette date.'}
+            title={!validDateRange ? 'Période à vérifier.' : selectedGroupId ? 'Aucune séance pour ce groupe sur cette période.' : 'Aucun cours prévu sur cette période.'}
             description={
-              planningState.data.closedDates[date]
-                ? `Centre fermé : ${planningState.data.closedDates[date]}`
-                : 'Choisissez une autre date ou un autre groupe pour consulter les séances.'
+              !validDateRange
+                ? 'Saisissez une période valide avec une date de début antérieure ou égale à la date de fin.'
+                : 'Modifiez la période ou le groupe pour consulter les séances.'
             }
           />
         ) : (
           <div className="attendance-group-list">
             {visibleCourseSheets.map((courseSheet) => {
               const occurrence = occurrences.find(
-                (item) => String(item.id) === String(courseSheet.courseId),
+                (item) => String(item.id) === String(courseSheet.courseId) && item.date === courseSheet.date,
               );
               if (!occurrence) return null;
               const present = courseSheet.students.filter(
@@ -2423,9 +2479,10 @@ export function AttendancePage() {
                 (item) => String(item.id) === String(occurrence.groupId),
               );
               return (
-                <Panel className="attendance-session-panel" key={courseSheet.courseId}>
+                <Panel className="attendance-session-panel" key={`${courseSheet.courseId}|${courseSheet.date}`}>
                   <header className="management-attendance-heading">
                     <div>
+                      <p className="attendance-session-date">{formatAbsenceDate(courseSheet.date)}</p>
                       <p className="planning-progress-eyebrow">
                         {group?.formationName ?? 'Formation'} · {group?.name ?? occurrence.groupName ?? 'Groupe non défini'}
                       </p>
@@ -2441,11 +2498,11 @@ export function AttendancePage() {
                       {canRecordAttendance && courseSheet.students.length > 0 && (
                         <Button
                           disabled={savingKey !== null}
-                          onClick={() => void markCoursePresent(occurrence.id, courseSheet.students)}
+                          onClick={() => void markCoursePresent(occurrence.id, courseSheet.date, courseSheet.students)}
                           type="button"
                           variant="secondary"
                         >
-                          {savingKey === String(occurrence.id) ? 'Enregistrement…' : 'Marquer le groupe présent'}
+                          {savingKey === `${occurrence.id}|${courseSheet.date}` ? 'Enregistrement…' : 'Marquer le groupe présent'}
                         </Button>
                       )}
                     </div>
@@ -2473,7 +2530,7 @@ export function AttendancePage() {
                                     className={`management-status-button attendance-status-button is-${value}${status === value ? ' is-selected' : ''}`}
                                     disabled={savingKey !== null}
                                     key={value}
-                                    onClick={() => void updateStatus(occurrence.id, student.id, value)}
+                                    onClick={() => void updateStatus(occurrence.id, courseSheet.date, student.id, value)}
                                     type="button"
                                   >
                                     {label}

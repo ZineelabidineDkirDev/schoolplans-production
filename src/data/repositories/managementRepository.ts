@@ -31,6 +31,12 @@ function optionalString(value: unknown, label: string): string | null {
   return value;
 }
 
+function validDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
 function parseStudents(
   studentRows: Row[],
   groups: Map<string, string>,
@@ -121,12 +127,19 @@ export async function getCentreAttendanceSummary(
 export async function getAttendanceSheet(
   client: SupabaseClient,
   centreId: string,
-  date: string,
-  courseIds: StudentIdentifier[],
+  from: string,
+  to: string,
+  occurrences: Array<{ courseId: StudentIdentifier; date: string }>,
 ): Promise<AttendanceSheet> {
   if (!centreId) throw new Error('Sélectionnez un centre avant de consulter les présences.');
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('La date de présence est invalide.');
-  if (courseIds.length === 0) return { courses: [] };
+  if (!validDate(from) || !validDate(to) || from > to) {
+    throw new Error('La période des présences est invalide.');
+  }
+  if (occurrences.some(({ date }) => date < from || date > to || !validDate(date))) {
+    throw new Error('Une date de séance ne correspond pas à la période sélectionnée.');
+  }
+  if (occurrences.length === 0) return { courses: [] };
+  const courseIds = [...new Map(occurrences.map(({ courseId }) => [String(courseId), courseId])).values()];
 
   const [studentsResult, groupsResult, enrollmentsResult, attendanceResult] = await Promise.all([
     client
@@ -142,9 +155,10 @@ export async function getAttendanceSheet(
       .in('cours_id', courseIds),
     client
       .from('presences')
-      .select('cours_id,etudiant_id,statut')
+      .select('cours_id,etudiant_id,date,statut')
       .eq('centre_id', centreId)
-      .eq('date', date)
+      .gte('date', from)
+      .lte('date', to)
       .in('cours_id', courseIds),
   ]);
   if (studentsResult.error) throw studentsResult.error;
@@ -159,8 +173,16 @@ export async function getAttendanceSheet(
     ]),
   );
   const studentRows = rows(studentsResult.data, 'étudiants');
-  const enrollmentRows = rows(enrollmentsResult.data, 'inscriptions');
-  const studentIds = new Set(enrollmentRows.map((row) => String(id(row.etudiant_id, 'étudiant'))));
+  const enrollments = [
+    ...new Map(
+      rows(enrollmentsResult.data, 'inscriptions').map((row) => {
+        const courseId = id(row.cours_id, 'cours inscrit');
+        const studentId = id(row.etudiant_id, 'étudiant inscrit');
+        return [`${String(courseId)}|${String(studentId)}`, { courseId, studentId }];
+      }),
+    ).values(),
+  ];
+  const studentIds = new Set(enrollments.map(({ studentId }) => String(studentId)));
   const students = parseStudents(
     studentRows.filter((student) => studentIds.has(String(student.id))),
     groups,
@@ -172,25 +194,28 @@ export async function getAttendanceSheet(
     if (row.statut !== 'present' && row.statut !== 'retard' && row.statut !== 'absent') {
       throw new Error('Réponse Supabase invalide : statut de présence inattendu.');
     }
+    if (typeof row.date !== 'string') {
+      throw new Error('Réponse Supabase invalide : date de présence manquante.');
+    }
     attendance.set(
-      `${String(id(row.cours_id, 'cours'))}|${String(id(row.etudiant_id, 'étudiant'))}`,
+      `${String(id(row.cours_id, 'cours'))}|${String(row.date)}|${String(id(row.etudiant_id, 'étudiant'))}`,
       row.statut,
     );
   }
 
   return {
-    courses: courseIds.map((courseId) => ({
+    courses: occurrences.map(({ courseId, date }) => ({
       courseId,
-      students: enrollmentRows
-        .filter((enrollment) => String(enrollment.cours_id) === String(courseId))
-        .flatMap((enrollment) => {
-          const studentId = id(enrollment.etudiant_id, 'étudiant inscrit');
+      date,
+      students: enrollments
+        .filter((enrollment) => String(enrollment.courseId) === String(courseId))
+        .flatMap(({ studentId }) => {
           const student = studentById.get(String(studentId));
           if (!student) return [];
           return [
             {
               student,
-              status: attendance.get(`${String(courseId)}|${String(studentId)}`) ?? null,
+              status: attendance.get(`${String(courseId)}|${date}|${String(studentId)}`) ?? null,
             },
           ];
         })

@@ -12,7 +12,7 @@ function createClient(dataByTable: Record<string, unknown[]>) {
   const filters: Array<{ table: string; column: string; value: unknown }> = [];
   const from = vi.fn((table: string) => {
     const query: Record<string, (...args: never[]) => unknown> = {};
-    for (const method of ['select', 'order', 'in', 'limit']) {
+    for (const method of ['select', 'order', 'in', 'limit', 'gte', 'lte']) {
       query[method] = (...args: never[]) => {
         calls.push({ table, method, args });
         return query;
@@ -109,18 +109,28 @@ describe('management repository', () => {
     });
   });
 
-  it('builds the attendance sheet only from enrolled centre students and matching statuses', async () => {
-    const { client, filters } = createClient({
+  it('builds a dated attendance sheet only from enrolled centre students and matching session statuses', async () => {
+    const { client, filters, calls } = createClient({
       etudiants: [studentRow, { ...studentRow, id: 22, prenom: 'Noor', groupe_id: null }],
       groupes: [{ id: 4, nom: 'Groupe A' }],
-      inscriptions: [{ etudiant_id: 21, cours_id: 8 }],
-      presences: [{ cours_id: 8, etudiant_id: 21, statut: 'retard' }],
+      inscriptions: [
+        { etudiant_id: 21, cours_id: 8 },
+        { etudiant_id: 21, cours_id: 8 },
+      ],
+      presences: [
+        { cours_id: 8, etudiant_id: 21, date: '2026-10-16', statut: 'retard' },
+        { cours_id: 8, etudiant_id: 21, date: '2026-10-17', statut: 'absent' },
+      ],
     });
 
-    await expect(getAttendanceSheet(client, 'centre-a', '2026-10-16', [8])).resolves.toEqual({
+    await expect(getAttendanceSheet(client, 'centre-a', '2026-10-16', '2026-10-17', [
+      { courseId: 8, date: '2026-10-16' },
+      { courseId: 8, date: '2026-10-17' },
+    ])).resolves.toEqual({
       courses: [
         {
           courseId: 8,
+          date: '2026-10-16',
           students: [
             {
               student: expect.objectContaining({ id: 21, groupName: 'Groupe A' }),
@@ -128,18 +138,37 @@ describe('management repository', () => {
             },
           ],
         },
+        {
+          courseId: 8,
+          date: '2026-10-17',
+          students: [
+            {
+              student: expect.objectContaining({ id: 21, groupName: 'Groupe A' }),
+              status: 'absent',
+            },
+          ],
+        },
       ],
     });
-    expect(filters).toContainEqual({
-      table: 'presences',
-      column: 'date',
-      value: '2026-10-16',
-    });
+    expect(calls).toContainEqual({ table: 'presences', method: 'gte', args: ['date', '2026-10-16'] });
+    expect(calls).toContainEqual({ table: 'presences', method: 'lte', args: ['date', '2026-10-17'] });
     expect(filters).toContainEqual({
       table: 'inscriptions',
       column: 'centre_id',
       value: 'centre-a',
     });
+
+  });
+
+  it('rejects invalid date ranges before querying attendance', async () => {
+    const { client, from } = createClient({});
+    await expect(getAttendanceSheet(client, 'centre-a', '2026-10-18', '2026-10-17', [])).rejects.toThrow(
+      'période des présences est invalide',
+    );
+    await expect(getAttendanceSheet(client, 'centre-a', '2026-02-31', '2026-03-01', [])).rejects.toThrow(
+      'période des présences est invalide',
+    );
+    expect(from).not.toHaveBeenCalled();
   });
 
   it('upserts one attendance status with the observed conflict key and active centre', async () => {
