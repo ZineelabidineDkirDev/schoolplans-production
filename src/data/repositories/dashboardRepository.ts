@@ -6,6 +6,7 @@ import type {
   DashboardPopularFormation,
   DashboardPresence,
   DashboardRegistrationRequest,
+  DashboardStudentLocation,
   DashboardSubject,
   DashboardStudentCity,
   DashboardTeacher,
@@ -127,16 +128,32 @@ function parseEnrollments(value: unknown): DashboardEnrollment[] {
   }));
 }
 
+function parseStudentLocations(value: unknown): DashboardStudentLocation[] {
+  const students = new Map<string, DashboardStudentLocation>();
+  for (const row of rows(value, 'villes des étudiants')) {
+    const studentId = identifier(row.id, 'étudiant géographique');
+    students.set(String(studentId), {
+      studentId,
+      city: optionalString(row.ville)?.trim() || null,
+    });
+  }
+  return [...students.values()];
+}
+
 function parseStudentCities(value: unknown): DashboardStudentCity[] {
   const counts = new Map<string, number>();
-  for (const row of rows(value, 'villes des étudiants')) {
-    const city = optionalString(row.ville)?.trim();
+  const displayNames = new Map<string, string>();
+  for (const { city } of parseStudentLocations(value)) {
     if (!city) continue;
-    const key = city.toLocaleLowerCase('fr');
-    const existing = [...counts.keys()].find((name) => name.toLocaleLowerCase('fr') === key);
-    counts.set(existing ?? city, (counts.get(existing ?? city) ?? 0) + 1);
+    const key = city
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLocaleLowerCase('fr');
+    const displayName = displayNames.get(key) ?? city;
+    displayNames.set(key, displayName);
+    counts.set(displayName, (counts.get(displayName) ?? 0) + 1);
   }
-  return [...counts.entries()]
+  return [...counts]
     .map(([city, studentCount]) => ({ city, studentCount }))
     .sort((left, right) => right.studentCount - left.studentCount || left.city.localeCompare(right.city, 'fr'));
 }
@@ -229,6 +246,7 @@ export async function getDashboardData(
         studentIds: [],
         enrollments: [],
         studentCities: [],
+        studentLocations: [],
         presences: [],
         requests: [],
         formationCount: null,
@@ -251,7 +269,7 @@ export async function getDashboardData(
   let teachersQuery = client.from('formateurs').select('id,nom').eq('centre_id', centreId);
   if (teacherId !== null) teachersQuery = teachersQuery.eq('id', teacherId);
 
-  const studentsQuery = client.from('etudiants').select('id').eq('centre_id', centreId);
+  const studentsQuery = client.from('etudiants').select('id,ville').eq('centre_id', centreId);
   const enrollmentsQuery = client
     .from('inscriptions')
     .select('cours_id,etudiant_id,created_at')
@@ -280,7 +298,7 @@ export async function getDashboardData(
     );
     const courses = parseCourses(rawCourses, roomNames);
     const courseIds = courses.map((course) => course.id);
-    const [enrollmentsResult, presencesResult, subjectsResult] = await Promise.all([
+    const [enrollmentsResult, presencesResult, subjectsResult, domainsResult] = await Promise.all([
       courseIds.length
         ? client
             .from('inscriptions')
@@ -296,11 +314,13 @@ export async function getDashboardData(
             .in('cours_id', courseIds)
             .limit(10000)
         : Promise.resolve({ data: [], error: null }),
-      client.from('matieres').select('id,nom'),
+      client.from('matieres').select('id,nom,domaine_id'),
+      client.from('domaines').select('id,nom'),
     ]);
     if (enrollmentsResult.error) throw enrollmentsResult.error;
     if (presencesResult.error) throw presencesResult.error;
     if (subjectsResult.error) throw subjectsResult.error;
+    if (domainsResult.error) throw domainsResult.error;
 
     const teacherEnrollments = parseEnrollments(enrollmentsResult.data);
     const uniqueStudentIds = [...new Map(teacherEnrollments.map((enrollment) => [String(enrollment.studentId), enrollment.studentId])).values()];
@@ -313,14 +333,29 @@ export async function getDashboardData(
       : { data: [], error: null };
     if (studentsResult.error) throw studentsResult.error;
 
+    const domainNames = new Map(
+      rows(domainsResult.data, 'domaines').map((domain) => [
+        String(identifier(domain.id, 'domaine')),
+        string(domain.nom, 'nom de domaine'),
+      ]),
+    );
+    const teacherSubjects = rows(subjectsResult.data, 'matières').map((subject) => ({
+      ...subject,
+      domaine_nom:
+        subject.domaine_id === null || subject.domaine_id === undefined
+          ? null
+          : (domainNames.get(String(subject.domaine_id)) ?? null),
+    }));
+
     return {
       linkedTeacher,
       courses,
-      subjects: parseSubjects(subjectsResult.data),
+      subjects: parseSubjects(teacherSubjects),
       teachers: linkedTeacher ? [linkedTeacher] : [],
       studentIds: [],
       enrollments: teacherEnrollments,
       studentCities: parseStudentCities(studentsResult.data),
+      studentLocations: parseStudentLocations(studentsResult.data),
       presences: parsePresences(presencesResult.data),
       requests: [],
       formationCount: null,
@@ -467,7 +502,8 @@ export async function getDashboardData(
     teachers: parseTeachers(teachersResult.data),
     studentIds: rows(studentsResult.data, 'étudiants').map((row) => identifier(row.id, 'étudiant')),
     enrollments: parseEnrollments(enrollmentsResult.data),
-    studentCities: [],
+    studentCities: parseStudentCities(studentsResult.data),
+    studentLocations: parseStudentLocations(studentsResult.data),
     presences: parsePresences(presencesResult.data),
     requests: parseRequests(requestsResult.data),
     formationCount: formationCountResult.count,

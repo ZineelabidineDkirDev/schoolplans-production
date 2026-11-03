@@ -102,10 +102,50 @@ function ApplicationShell() {
     };
   }, [mobileNavOpen]);
   useEffect(() => {
+    setMobileNavOpen(false);
+  }, [location.pathname]);
+  useEffect(() => {
+    const responsiveViewport = window.matchMedia('(max-width: 900px)');
+    const resetResponsiveNavigation = (event: MediaQueryListEvent) => {
+      if (event.matches) {
+        setSidebarCollapsed(false);
+        setOpenNavGroups({
+          students: false,
+          teachers: false,
+          student: false,
+          pilotage: false,
+          organisation: false,
+          pedagogie: false,
+        });
+      } else {
+        setMobileNavOpen(false);
+        const section = location.pathname.split('/')[2] ?? '';
+        setOpenNavGroups((current) => ({
+          students: current.students || ['vs', 'vp', 'vi', 'vnotes'].includes(section),
+          teachers: current.teachers || ['vf', 'vk', 'vl', 'vfg', 'vhelp', 'vc'].includes(section),
+          student: current.student || ['vcal', 'vr', 'vm', 'vq', 'vk', 'vnotes', 'vrapport'].includes(section),
+          pilotage: current.pilotage || ['vd', 'vrapport', 'vfinance', 'vsub'].includes(section),
+          organisation: current.organisation || ['vcal', 'vr', 'vh', 'vpcentre'].includes(section),
+          pedagogie: current.pedagogie || ['vf', 'vl', 'vk', 'vfg', 'vc', 'vhelp', 'vn', 'vm', 'vq'].includes(section),
+        }));
+      }
+    };
+    responsiveViewport.addEventListener('change', resetResponsiveNavigation);
+    return () => responsiveViewport.removeEventListener('change', resetResponsiveNavigation);
+  }, [location.pathname]);
+  useEffect(() => {
     const section = location.pathname.split('/')[2] ?? '';
-    // Sur mobile/tablette, garder les groupes repliés à l'ouverture du menu.
-    // Sur desktop, ouvrir le groupe qui contient la rubrique active.
-    if (window.matchMedia('(max-width: 900px)').matches) return;
+    if (window.matchMedia('(max-width: 900px)').matches) {
+      setOpenNavGroups({
+        students: false,
+        teachers: false,
+        student: false,
+        pilotage: false,
+        organisation: false,
+        pedagogie: false,
+      });
+      return;
+    }
     setOpenNavGroups((current) => ({
       students: current.students || ['vs', 'vp', 'vi', 'vnotes'].includes(section),
       teachers: current.teachers || ['vf', 'vk', 'vl', 'vfg', 'vhelp', 'vc'].includes(section),
@@ -262,6 +302,19 @@ function ApplicationShell() {
         <Link aria-label="Accueil Madrassa-Ti" className="sp-app-brand" to="/app">
           Madrassa-Ti
         </Link>
+        <button
+          aria-controls="sp-dashboard-navigation"
+          aria-expanded={mobileNavOpen}
+          aria-label={mobileNavOpen ? 'Fermer le menu du tableau de bord' : 'Ouvrir le menu du tableau de bord'}
+          className="sp-dashboard-menu-toggle"
+          onClick={() => setMobileNavOpen((isOpen) => !isOpen)}
+          type="button"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            {mobileNavOpen ? <path d="m6 6 12 12M18 6 6 18" /> : <path d="M3 6h18M3 12h18M3 18h18" />}
+          </svg>
+          <span>{mobileNavOpen ? 'Fermer le menu' : 'Ouvrir le menu'}</span>
+        </button>
         <div aria-label="Utilisateur connecté" className="sp-user">
           <strong>{profile.fullName || session?.user.email}</strong>
           <small>{getRoleLabel(profile.role)}</small>
@@ -346,22 +399,6 @@ function ApplicationShell() {
         )}
       </div>
       <div className="sp-app-wrap">
-        <button
-          aria-controls="sp-dashboard-navigation"
-          aria-expanded={mobileNavOpen}
-          aria-label={mobileNavOpen ? 'Fermer le menu du tableau de bord' : 'Ouvrir le menu du tableau de bord'}
-          className="sp-dashboard-menu-toggle"
-          onClick={() => {
-            const nextOpen = !mobileNavOpen;
-            setMobileNavOpen(nextOpen);
-          }}
-          type="button"
-        >
-          <svg aria-hidden="true" viewBox="0 0 24 24">
-            {mobileNavOpen ? <path d="m6 6 12 12M18 6 6 18" /> : <path d="M3 6h18M3 12h18M3 18h18" />}
-          </svg>
-          <span>{mobileNavOpen ? 'Fermer le menu' : 'Rubriques du centre'}</span>
-        </button>
         {createPortal(<>
           {mobileNavOpen && (
             <button

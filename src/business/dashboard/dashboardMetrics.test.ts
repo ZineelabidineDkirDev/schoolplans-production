@@ -4,6 +4,7 @@ import { getDashboardDateRange, getNextCourseDates, summarizeDashboard } from '.
 
 const data: DashboardData = {
   studentCities: [],
+  studentLocations: [],
   linkedTeacher: null,
   courses: [
     {

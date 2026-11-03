@@ -40,6 +40,11 @@ export type DashboardStudentCity = {
   studentCount: number;
 };
 
+export type DashboardStudentLocation = {
+  studentId: StudentIdentifier;
+  city: string | null;
+};
+
 export type DashboardPresence = {
   courseId: StudentIdentifier;
   studentId: StudentIdentifier;
@@ -60,6 +65,7 @@ export type DashboardData = {
   studentIds: StudentIdentifier[];
   enrollments: DashboardEnrollment[];
   studentCities: DashboardStudentCity[];
+  studentLocations: DashboardStudentLocation[];
   presences: DashboardPresence[];
   requests: DashboardRegistrationRequest[];
   formationCount: number | null;

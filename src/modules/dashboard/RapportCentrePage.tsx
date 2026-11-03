@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { countStudentsByMoroccanRegion } from '../../business/dashboard/moroccanRegions';
 import { Alert, Button, LoadingState, PageHeader, Panel } from '../../components/ui';
 import { getDashboardData } from '../../data/repositories/dashboardRepository';
 import { getPlanningData } from '../../data/repositories/planningRepository';
@@ -30,7 +31,7 @@ function ReportLineChart({ values, labels }: { values: number[]; labels: string[
 
 function DomainDonut({ data }: { data: { name: string; count: number }[] }) {
   const total = data.reduce((sum, item) => sum + item.count, 0);
-  const colors = ['#4f5ee8', '#21b8a6', '#71c8ec', '#8b9cfb', '#f0b45b'];
+  const colors = ['var(--brand)', 'var(--lang)', '#71c8ec', '#8b9cfb', '#f0b45b'];
   let offset = 0;
   const circumference = 2 * Math.PI * 52;
   const segments = data.map((item, index) => {
@@ -40,37 +41,77 @@ function DomainDonut({ data }: { data: { name: string; count: number }[] }) {
     return segment;
   });
   return <div className="rc-donut-layout">
-    <svg viewBox="0 0 150 150" role="img" aria-label={`Répartition de ${total} séances par domaine`}>
+    <svg viewBox="0 0 150 150" role="img" aria-label={`Répartition de ${total} cours par matière ou domaine`}>
       <circle cx="75" cy="75" r="52" fill="none" stroke="var(--rc-track)" strokeWidth="19" />
       <g transform="rotate(-90 75 75)" fill="none" strokeWidth="19">
         {segments.map(s => <circle key={s.name} cx="75" cy="75" r="52" stroke={s.color} strokeDasharray={`${s.length} ${circumference - s.length}`} strokeDashoffset={-s.offset} />)}
       </g>
       <text x="75" y="72" textAnchor="middle" className="rc-donut-number">{total}</text>
-      <text x="75" y="91" textAnchor="middle" className="rc-donut-caption">Séances</text>
+      <text x="75" y="91" textAnchor="middle" className="rc-donut-caption">Cours</text>
     </svg>
     <ul className="rc-legend">{segments.map(s => <li key={s.name}><span><i style={{ background: s.color }} />{s.name}</span><b>{s.count}</b></li>)}</ul>
   </div>;
 }
 
-function MoroccoMap({ students, isTeacher }: { students: number; isTeacher: boolean }) {
+function MoroccoMap({
+  distribution,
+  isTeacher,
+}: {
+  distribution: ReturnType<typeof countStudentsByMoroccanRegion>;
+  isTeacher: boolean;
+}) {
+  const mappedRegions = distribution.regions.filter((region) => region.studentCount > 0).length;
   return <div className="rc-map-layout">
-    <svg viewBox="0 0 330 260" role="img" aria-label="Carte stylisée du Maroc" className="rc-morocco-map">
-      <defs><linearGradient id="rc-map-fill" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stopColor="#dce5ed"/><stop offset="1" stopColor="#b8c9d8"/></linearGradient></defs>
-      <path d="M88 18 L132 24 L155 40 L190 45 L211 66 L203 88 L220 106 L207 128 L214 148 L192 164 L185 187 L164 204 L151 238 L132 229 L119 207 L102 193 L95 170 L80 156 L75 134 L59 119 L67 98 L56 79 L69 58 L66 38 Z" fill="url(#rc-map-fill)" stroke="#fff" strokeWidth="2.5" strokeLinejoin="round"/>
-      <path d="M69 58 L111 67 L155 40 M59 119 L105 111 L203 88 M75 134 L129 143 L207 128 M95 170 L146 174 L192 164 M102 193 L164 204 M88 18 L93 50 L67 58" fill="none" stroke="#fff" strokeWidth="1.6"/>
-      <path d="M67 58 L111 67 L105 111 L59 119 L67 98 L56 79 Z" fill="#4f5ee8" opacity=".92"/>
-      <circle cx="85" cy="86" r="4" fill="#fff" stroke="#4f5ee8" strokeWidth="3"/>
-      <text x="95" y="81" className="rc-map-city">Casablanca</text>
-      <circle cx="102" cy="57" r="3" fill="#21b8a6" stroke="#fff" strokeWidth="2"/>
-      <text x="111" y="54" className="rc-map-city">Rabat</text>
-      <text x="153" y="118" textAnchor="middle" className="rc-map-label">MAROC</text>
+    <svg
+      viewBox="0 0 290 330"
+      role="img"
+      aria-label={`Carte schématique du Maroc, ${mappedRegions} régions avec des étudiants inscrits`}
+      className="rc-morocco-map"
+    >
+      <path
+        className="rc-map-land"
+        d="M73 18 143 22 171 36 201 40 229 58 221 74 240 88 224 104 232 121 214 138 220 155 201 173 190 196 175 219 163 243 151 270 144 302 132 319 120 297 117 269 109 240 101 216 91 194 83 173 74 154 70 133 59 114 63 93 54 75 64 58 60 41Z"
+      />
+      <text x="167" y="205" textAnchor="middle" className="rc-map-label">MAROC</text>
+      {distribution.regions.map((region) => (
+        <g className="rc-map-region-marker" key={region.id}>
+          <title>{`${region.name} : ${region.studentCount} étudiant${region.studentCount > 1 ? 's' : ''}`}</title>
+          <circle
+            cx={region.x}
+            cy={region.y}
+            r={region.studentCount ? Math.min(12, 4 + Math.sqrt(region.studentCount)) : 3.2}
+            className={region.studentCount ? 'has-students' : ''}
+          />
+        </g>
+      ))}
     </svg>
-    <div className="rc-map-stat"><span className="rc-map-dot" /> <div><strong>{students}</strong><small>{isTeacher ? 'Étudiants inscrits à vos cours' : 'Étudiants dans le centre'}</small></div></div>
+    <div className="rc-map-stat">
+      <span className="rc-map-dot" />
+      <div>
+        <strong>{distribution.total}</strong>
+        <small>{isTeacher ? 'Étudiants inscrits à vos cours' : 'Étudiants dans le centre'}</small>
+      </div>
+    </div>
+    <ul className="rc-region-list" aria-label="Étudiants par région">
+      {distribution.regions.map((region) => (
+        <li key={region.id}>
+          <span>{region.name}</span>
+          <strong>{region.studentCount}</strong>
+        </li>
+      ))}
+    </ul>
+    {distribution.unassigned > 0 && (
+      <p className="rc-map-unassigned">
+        {distribution.unassigned} étudiant{distribution.unassigned > 1 ? 's' : ''} sans région attribuée :
+        ville absente ou non reconnue.
+      </p>
+    )}
   </div>;
 }
 
 export function RapportCentrePage() {
   const { profile } = useAuth();
+  const isTeacher = profile?.role === 'formateur';
   const [data, setData] = useState<DashboardData | null>(null);
   const [planningData, setPlanningData] = useState<PlanningData | null>(null);
   const [error, setError] = useState('');
@@ -121,10 +162,13 @@ export function RapportCentrePage() {
     !courseFilter || String(course.id) === courseFilter,
   ), [availableCourses, courseFilter]);
   const reportCourseIds = useMemo(() => new Set(reportCourses.map(course => String(course.id))), [reportCourses]);
-  const reportEnrollments = useMemo(() => data?.enrollments.filter(enrollment => {
+  const reportCourseEnrollments = useMemo(() => data?.enrollments.filter(enrollment =>
+    reportCourseIds.has(String(enrollment.courseId)),
+  ) ?? [], [data, reportCourseIds]);
+  const reportEnrollments = useMemo(() => reportCourseEnrollments.filter(enrollment => {
     const date = enrollment.createdAt?.slice(0, 10) ?? '';
-    return reportCourseIds.has(String(enrollment.courseId)) && date >= dateRange.from && date <= dateRange.to;
-  }) ?? [], [data, dateRange, reportCourseIds]);
+    return date >= dateRange.from && date <= dateRange.to;
+  }), [dateRange, reportCourseEnrollments]);
   const reportPresences = useMemo(() => data?.presences.filter(presence =>
     reportCourseIds.has(String(presence.courseId))
     && presence.date.slice(0, 10) >= dateRange.from
@@ -133,12 +177,23 @@ export function RapportCentrePage() {
   const domains = useMemo(() => {
     if (!data) return [];
     const counts = new Map<string, number>();
-    data.subjects.filter(subject => reportCourses.some(course => String(course.subjectId) === String(subject.id))).forEach(subject => {
-      const name = subject.domain || 'Autres';
+    for (const course of reportCourses) {
+      const subject = data.subjects.find(item => String(item.id) === String(course.subjectId));
+      const name = isTeacher
+        ? subject?.name ?? 'Matière non renseignée'
+        : subject?.domain || 'Autres';
       counts.set(name, (counts.get(name) ?? 0) + 1);
-    });
+    }
     return [...counts].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count).slice(0, 5);
-  }, [data, reportCourses]);
+  }, [data, isTeacher, reportCourses]);
+  const regionalDistribution = useMemo(() => {
+    if (!data) return countStudentsByMoroccanRegion([]);
+    if (!isTeacher) return countStudentsByMoroccanRegion(data.studentLocations);
+    const enrolledStudentIds = new Set(reportCourseEnrollments.map((item) => String(item.studentId)));
+    return countStudentsByMoroccanRegion(
+      data.studentLocations.filter((student) => enrolledStudentIds.has(String(student.studentId))),
+    );
+  }, [data, isTeacher, reportCourseEnrollments]);
   const enrollmentSeries = useMemo(() => {
     const from = new Date(`${dateRange.from}T12:00:00`);
     const to = new Date(`${dateRange.to}T12:00:00`);
@@ -170,9 +225,8 @@ export function RapportCentrePage() {
   if (loading) return <section className="rc-page"><Panel><LoadingState label="Préparation du rapport du centre…" /></Panel></section>;
   if (error || !data) return <section className="rc-page"><PageHeader eyebrow="Analyse" title="Rapport" /><Alert tone="error">{error || 'Aucune donnée disponible.'}<div className="mt-3"><Button onClick={() => setRefresh(n => n + 1)} type="button" variant="secondary">Réessayer</Button></div></Alert></section>;
 
-  const isTeacher = profile?.role === 'formateur';
   const validDateRange = Boolean(dateRange.from && dateRange.to && dateRange.from <= dateRange.to);
-  const totalStudents = isTeacher ? new Set(reportEnrollments.map(enrollment => String(enrollment.studentId))).size : data.studentIds.length;
+  const totalStudents = isTeacher ? new Set(reportCourseEnrollments.map(enrollment => String(enrollment.studentId))).size : data.studentIds.length;
   const present = reportPresences.filter(p => p.status === 'present' || p.status === 'retard').length;
   const attendanceRate = reportPresences.length ? Math.round(present / reportPresences.length * 100) : 0;
   const weekly = ['Lun.','Mar.','Mer.','Jeu.','Ven.','Sam.','Dim.'].map((label, index) => {
@@ -235,10 +289,20 @@ export function RapportCentrePage() {
       <Panel className="rc-panel"><div className="rc-panel-heading"><div><h2>{isTeacher ? 'Mon activité hebdomadaire' : 'Activité hebdomadaire'}</h2><p>{isTeacher ? 'Vos cours programmés par jour' : 'Cours programmés par jour'}</p></div></div><div className="rc-bars">{weekly.map(day => <div className="rc-bar-col" key={day.label}><span>{day.count || ''}</span><div className="rc-bar-track"><i style={{ height: `${Math.max(day.count ? 8 : 2, day.count / weeklyMax * 100)}%` }} /></div><small>{day.label}</small></div>)}</div></Panel>
     </div>
     <div className="rc-grid rc-grid-bottom">
-      <Panel className="rc-panel"><div className="rc-panel-heading"><div><h2>{isTeacher ? 'Répartition de mes matières' : 'Répartition par domaine'}</h2><p>{isTeacher ? 'Matières de vos cours' : 'Basée sur les matières du centre'}</p></div></div>{domains.length ? <DomainDonut data={domains} /> : <p className="sp-muted">Aucune matière renseignée pour le moment.</p>}</Panel>
-      <Panel className="rc-panel"><div className="rc-panel-heading"><div><h2>{isTeacher ? 'Mes étudiants' : 'Présence du centre'}</h2><p>{isTeacher ? 'Effectif inscrit à vos cours' : 'Vue géographique illustrative'}</p></div><span className="rc-map-chip">Maroc</span></div><MoroccoMap students={totalStudents} isTeacher={isTeacher} /><p className="rc-map-note">Carte de présentation du Maroc — la répartition par ville sera affichée si les données géographiques sont disponibles.</p></Panel>
+      <Panel className="rc-panel"><div className="rc-panel-heading"><div><h2>{isTeacher ? 'Cours par matière' : 'Cours par domaine'}</h2><p>{isTeacher ? 'Nombre de cours attribués par matière' : 'Nombre de cours du centre par domaine'}</p></div></div>{domains.length ? <DomainDonut data={domains} /> : <p className="sp-muted">Aucune matière renseignée pour le moment.</p>}</Panel>
+      <Panel className="rc-panel rc-map-panel">
+        <div className="rc-panel-heading">
+          <div>
+            <h2>{isTeacher ? 'Mes étudiants par région' : 'Étudiants par région'}</h2>
+            <p>{isTeacher ? 'Étudiants inscrits aux cours sélectionnés' : 'Répartition des étudiants du centre'}</p>
+          </div>
+          <span className="rc-map-chip">12 régions</span>
+        </div>
+        <MoroccoMap distribution={regionalDistribution} isTeacher={isTeacher} />
+        <p className="rc-map-note">Carte schématique Madrassa-Ti. Les effectifs sont attribués à partir de la ville renseignée; les repères indiquent les chefs-lieux.</p>
+      </Panel>
       <Panel className="rc-panel rc-channel-panel"><div className="rc-panel-heading"><div><h2>{isTeacher ? 'Mes cours' : 'Formations populaires'}</h2><p>{isTeacher ? 'Cours qui vous sont attribués' : 'Classement selon les effectifs disponibles'}</p></div></div>{isTeacher ? (reportCourses.length ? <div className="rc-table-wrap"><table className="rc-table"><thead><tr><th>Jour</th><th>Horaire</th><th>Salle</th></tr></thead><tbody>{reportCourses.slice(0, 8).map(course => <tr key={String(course.id)}><td>{['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'][course.weekday] ?? '—'}</td><td>{course.startsAt} – {course.endsAt}</td><td>{course.roomName ?? '—'}</td></tr>)}</tbody></table></div> : <p className="sp-muted">Aucun cours ne vous est attribué.</p>) : (data.popularFormations.length ? <div className="rc-table-wrap"><table className="rc-table"><thead><tr><th>Formation</th><th>Étudiants</th><th>Répartition</th></tr></thead><tbody>{data.popularFormations.slice(0, 5).map(item => <tr key={item.name}><td>{item.name}</td><td>{item.studentCount}</td><td><span className="rc-progress"><i style={{ width: `${Math.min(100, item.studentCount / Math.max(1, ...data.popularFormations.map(x => x.studentCount)) * 100)}%` }} /></span></td></tr>)}</tbody></table></div> : <p className="sp-muted">Pas encore de données de formation.</p>)}</Panel>
     </div>
-    <p className="rc-footnote">Les indicateurs sont calculés à partir des données accessibles pour le centre connecté. La carte ne représente pas encore des effectifs réels par région.</p>
+    <p className="rc-footnote">L’évolution des inscriptions et les présences suivent la période sélectionnée. L’effectif géographique couvre les cours filtrés; les villes absentes ou non reconnues ne sont attribuées à aucune région.</p>
   </section>;
 }
