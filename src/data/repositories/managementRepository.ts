@@ -245,9 +245,7 @@ export async function getAttendanceSheet(
           const assignedToCourseGroup = courseGroupId !== null &&
             courseGroupId !== undefined &&
             String(optionalId(student?.groupe_id, 'groupe étudiant')) === String(courseGroupId);
-          return courseGroupId !== null && courseGroupId !== undefined
-            ? assignedToCourseGroup
-            : enrolled;
+          return assignedToCourseGroup || enrolled;
         })
         .map(([studentId, student]) => ({
           student,

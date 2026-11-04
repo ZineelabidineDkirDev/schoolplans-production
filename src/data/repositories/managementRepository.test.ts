@@ -115,6 +115,7 @@ describe('management repository', () => {
         studentRow,
         { ...studentRow, id: 22, prenom: 'Noor', groupe_id: 4 },
         { ...studentRow, id: 23, prenom: 'Salma', groupe_id: null },
+        { ...studentRow, id: 24, prenom: 'Yasmine', groupe_id: 9 },
       ],
       groupes: [{ id: 4, nom: 'Groupe A' }],
       cours: [{ id: 8, groupe_id: 4 }],
@@ -146,6 +147,10 @@ describe('management repository', () => {
               student: expect.objectContaining({ id: 22, groupName: 'Groupe A' }),
               status: null,
             },
+            {
+              student: expect.objectContaining({ id: 23, groupId: null }),
+              status: null,
+            },
           ],
         },
         {
@@ -158,6 +163,10 @@ describe('management repository', () => {
             },
             {
               student: expect.objectContaining({ id: 22, groupName: 'Groupe A' }),
+              status: null,
+            },
+            {
+              student: expect.objectContaining({ id: 23, groupId: null }),
               status: null,
             },
           ],
