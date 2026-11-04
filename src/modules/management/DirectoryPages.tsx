@@ -31,6 +31,11 @@ import {
   type StudentRecordInput,
 } from '../../data/repositories/studentManagementRepository';
 import { assignStudentToGroup, getStudentCourseEnrollmentIds, setStudentCourseEnrollment } from '../../data/repositories/studentAssignmentRepository';
+import {
+  getMyFormationGroupStudents,
+  saveMyFormationGroupStudents,
+  type FormationGroupStudentOption,
+} from '../../data/repositories/formationGroupAssignmentRepository';
 import { createCentreRoom, updateCentreRoom, deleteCentreRoom, createCentreTeacher, updateCentreTeacher, deleteCentreTeacher, type RoomInput, type TeacherInput } from '../../data/repositories/directoryCrudRepository';
 import { getSupabaseClient } from '../../data/supabase/client';
 import { exportTableToExcel, exportTableToPdf } from '../../utils/tableExport';
@@ -2096,6 +2101,76 @@ export function AttendancePage() {
     if (value) notify(value, 'success');
   };
   const [revision, setRevision] = useState(0);
+  const [rosterEditor, setRosterEditor] = useState<
+    | null
+    | { status: 'loading'; groupId: string }
+    | { status: 'error'; groupId: string; message: string }
+    | {
+        status: 'loaded';
+        groupId: string;
+        students: FormationGroupStudentOption[];
+        selectedIds: Set<string>;
+        saving: boolean;
+      }
+  >(null);
+
+  const attendanceGroups = useMemo(() => {
+    if (planningState.status !== 'loaded') return [];
+    if (profile?.role !== 'formateur') return planningState.data.filters.groups;
+    const teacherIds = new Set(
+      planningState.data.filters.teachers.map((teacher) => String(teacher.id)),
+    );
+    return planningState.data.filters.groups.filter(
+      (group) => group.teacherId !== null && teacherIds.has(String(group.teacherId)),
+    );
+  }, [planningState, profile?.role]);
+  const selectedAttendanceGroup = attendanceGroups.find(
+    (group) => String(group.id) === selectedGroupId,
+  );
+
+  async function openRosterEditor() {
+    if (!selectedAttendanceGroup) return;
+    const groupId = String(selectedAttendanceGroup.id);
+    setRosterEditor({ status: 'loading', groupId });
+    try {
+      const students = await getMyFormationGroupStudents(
+        getSupabaseClient(),
+        selectedAttendanceGroup.id,
+      );
+      setRosterEditor({
+        status: 'loaded',
+        groupId,
+        students,
+        selectedIds: new Set(students.filter((student) => student.assigned).map((student) => String(student.id))),
+        saving: false,
+      });
+    } catch (cause) {
+      setRosterEditor({ status: 'error', groupId, message: errorMessage(cause) });
+    }
+  }
+
+  async function saveRosterEditor() {
+    if (!rosterEditor || rosterEditor.status !== 'loaded') return;
+    const group = attendanceGroups.find((item) => String(item.id) === rosterEditor.groupId);
+    if (!group) {
+      setError('Le groupe sélectionné n’est plus disponible.');
+      return;
+    }
+    setRosterEditor({ ...rosterEditor, saving: true });
+    try {
+      await saveMyFormationGroupStudents(
+        getSupabaseClient(),
+        group.id,
+        [...rosterEditor.selectedIds],
+      );
+      setRosterEditor(null);
+      setRevision((current) => current + 1);
+      setMessage('La liste des étudiants du groupe a été enregistrée.');
+    } catch (cause) {
+      setRosterEditor({ ...rosterEditor, saving: false });
+      setError(errorMessage(cause));
+    }
+  }
 
   const validDateRange = isValidAttendanceDate(dateRange.from)
     && isValidAttendanceDate(dateRange.to)
@@ -2361,11 +2436,21 @@ export function AttendancePage() {
             Groupe
             <select className="sp-field" onChange={(event) => setSelectedGroupId(event.target.value)} value={selectedGroupId}>
               <option value="">Tous les groupes</option>
-              {planningState.status === 'loaded' && planningState.data.filters.groups.map((group) => (
+              {attendanceGroups.map((group) => (
                 <option key={group.id} value={String(group.id)}>{group.name}{group.formationName ? ` · ${group.formationName}` : ''}</option>
               ))}
             </select>
           </label>
+          {canRecordAttendance && (
+            <Button
+              disabled={!selectedAttendanceGroup || loading || savingKey !== null}
+              onClick={() => void openRosterEditor()}
+              type="button"
+              variant="secondary"
+            >
+              Choisir les étudiants du groupe
+            </Button>
+          )}
           <div className="management-toolbar">
             <Button
               disabled={!visibleCourseSheets.length || exporting !== null}
@@ -2508,7 +2593,10 @@ export function AttendancePage() {
                     </div>
                   </header>
                   {courseSheet.students.length === 0 ? (
-                    <p className="management-muted">Aucun étudiant inscrit à ce cours.</p>
+                    <p className="management-muted">
+                      Aucun étudiant n’est associé à ce groupe. Choisissez les étudiants du groupe
+                      ci-dessus pour les ajouter à la feuille de présence.
+                    </p>
                   ) : (
                     <div className="management-attendance-list">
                       {courseSheet.students.map(({ student, status }) => (
@@ -2550,6 +2638,76 @@ export function AttendancePage() {
             })}
           </div>
         ))}
+      {rosterEditor && (
+        <Modal
+          label="Choisir les étudiants du groupe"
+          onClose={() => {
+            if (rosterEditor.status !== 'loaded' || !rosterEditor.saving) setRosterEditor(null);
+          }}
+        >
+          <Panel className="management-editor">
+            <h2 className="management-editor-title">
+              Étudiants — {selectedAttendanceGroup?.name ?? 'groupe'}
+            </h2>
+            <p className="management-muted">
+              Les étudiants choisis seront liés au groupe et apparaîtront dans les présences de ses cours.
+              Un étudiant déjà affecté à un autre groupe ne peut pas être déplacé depuis cet écran.
+            </p>
+            {rosterEditor.status === 'loading' && (
+              <LoadingState label="Chargement des étudiants disponibles…" />
+            )}
+            {rosterEditor.status === 'error' && <Alert tone="error">{rosterEditor.message}</Alert>}
+            {rosterEditor.status === 'loaded' && (
+              <>
+                {rosterEditor.students.length === 0 ? (
+                  <EmptyState title="Aucun étudiant disponible pour ce groupe." />
+                ) : (
+                  <div className="management-attendance-list">
+                    {rosterEditor.students.map((student) => (
+                      <label className="attendance-student-row" key={String(student.id)}>
+                        <span className="attendance-student-name">
+                          <input
+                            checked={rosterEditor.selectedIds.has(String(student.id))}
+                            disabled={rosterEditor.saving}
+                            onChange={(event) => {
+                              const selectedIds = new Set(rosterEditor.selectedIds);
+                              if (event.target.checked) selectedIds.add(String(student.id));
+                              else selectedIds.delete(String(student.id));
+                              setRosterEditor({ ...rosterEditor, selectedIds });
+                            }}
+                            type="checkbox"
+                          />
+                          <span>
+                            <strong>{student.firstName} {student.lastName}</strong>
+                            <small>{student.assigned ? 'Déjà dans ce groupe' : 'Non affecté'}</small>
+                          </span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+                <div className="management-toolbar">
+                  <Button
+                    disabled={rosterEditor.saving}
+                    onClick={() => void saveRosterEditor()}
+                    type="button"
+                  >
+                    {rosterEditor.saving ? 'Enregistrement…' : 'Enregistrer la sélection'}
+                  </Button>
+                  <Button
+                    disabled={rosterEditor.saving}
+                    onClick={() => setRosterEditor(null)}
+                    type="button"
+                    variant="secondary"
+                  >
+                    Annuler
+                  </Button>
+                </div>
+              </>
+            )}
+          </Panel>
+        </Modal>
+      )}
     </PageFrame>
   );
 }

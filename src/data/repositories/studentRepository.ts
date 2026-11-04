@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { buildMyStudentList } from '../../business/students/studentList';
 import type {
   CentreStudent,
+  MyStudentGroup,
   MyStudentListItem,
   StudentCourse,
   StudentEnrollment,
@@ -40,6 +41,12 @@ function nullableString(value: unknown): string | null {
   return typeof value === 'string' ? value : null;
 }
 
+function nullableIdentifier(value: unknown): StudentIdentifier | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.length > 0) return value;
+  return null;
+}
+
 export function parseCentreStudentRows(value: unknown, centreId: string): CentreStudent[] {
   return parseRows(value, 'étudiants', (row) => {
     if (
@@ -56,6 +63,9 @@ export function parseCentreStudentRows(value: unknown, centreId: string): Centre
       email: nullableString(row.email),
       telephone: nullableString(row.telephone),
       centreId: row.centre_id,
+      groupId: nullableIdentifier(row.groupe_id),
+      groupName: nullableString(row.groupe_nom),
+      formationName: nullableString(row.formation_nom),
     };
   });
 }
@@ -67,11 +77,33 @@ function parseEnrollments(value: unknown): StudentEnrollment[] {
   }));
 }
 
-function parseCourses(value: unknown): StudentCourse[] {
-  return parseRows(value, 'cours', (row) => ({
-    id: parseIdentifier(row.id, 'cours'),
-    subjectId: row.matiere_id === null ? null : parseIdentifier(row.matiere_id, 'matière du cours'),
-  }));
+function parseCourses(value: unknown, groups: MyStudentGroup[]): StudentCourse[] {
+  const groupsById = new Map(groups.map((group) => [String(group.id), group]));
+  return parseRows(value, 'cours', (row) => {
+    const groupId = nullableIdentifier(row.groupe_id);
+    return {
+      id: parseIdentifier(row.id, 'cours'),
+      subjectId: row.matiere_id === null ? null : parseIdentifier(row.matiere_id, 'matière du cours'),
+      group: groupId === null ? null : (groupsById.get(String(groupId)) ?? null),
+    };
+  });
+}
+
+function parseGroups(value: unknown, formationsValue: unknown): MyStudentGroup[] {
+  const formationNames = new Map(
+    parseRows(formationsValue, 'formations', (row) => [
+      String(parseIdentifier(row.id, 'formation')),
+      nullableString(row.nom),
+    ]),
+  );
+  return parseRows(value, 'groupes', (row) => {
+    const formationId = nullableIdentifier(row.formation_id);
+    return {
+      id: parseIdentifier(row.id, 'groupe'),
+      name: nullableString(row.nom) ?? 'Groupe sans nom',
+      formationName: formationId === null ? null : (formationNames.get(String(formationId)) ?? null),
+    };
+  });
 }
 
 function parseSubjects(value: unknown): StudentSubject[] {
@@ -100,21 +132,30 @@ export async function getMyCentreStudents(
   if (teacherError) throw teacherError;
   if (!teacher || (typeof teacher.id !== 'string' && typeof teacher.id !== 'number')) return [];
 
-  const [studentsResult, coursesResult, subjectsResult] = await Promise.all([
+  const [studentsResult, coursesResult, subjectsResult, groupsResult, formationsResult] = await Promise.all([
     client.rpc('get_my_centre_students'),
     client
       .from('cours')
-      .select('id,matiere_id')
+      .select('id,matiere_id,groupe_id')
       .eq('centre_id', centreId)
       .eq('formateur_id', teacher.id),
     client.from('matieres').select('id,nom'),
+    client
+      .from('groupes')
+      .select('id,nom,formation_id')
+      .eq('centre_id', centreId)
+      .eq('formateur_id', teacher.id),
+    client.from('formations').select('id,nom').eq('centre_id', centreId),
   ]);
 
   if (studentsResult.error) throw studentsResult.error;
   if (coursesResult.error) throw coursesResult.error;
   if (subjectsResult.error) throw subjectsResult.error;
+  if (groupsResult.error) throw groupsResult.error;
+  if (formationsResult.error) throw formationsResult.error;
 
-  const courses = parseCourses(coursesResult.data);
+  const groups = parseGroups(groupsResult.data, formationsResult.data);
+  const courses = parseCourses(coursesResult.data, groups);
   const courseIds = courses.map(({ id }) => id);
   const enrollmentsResult = courseIds.length
     ? await client

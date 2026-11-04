@@ -17,6 +17,38 @@ export type ValidatedPlanningCourse = {
   endsOn: string;
 };
 
+export function getGroupSubjectIds(
+  data: PlanningData,
+  group: PlanningGroup | undefined,
+): StudentIdentifier[] {
+  if (!group?.formationId) return [];
+  const formationSubjects = data.subjectIdsByFormation[String(group.formationId)] ?? [];
+  if (!group.teacherId) return formationSubjects;
+  const teacherSubjects = new Set(
+    (data.subjectIdsByTeacher[String(group.teacherId)] ?? []).map(String),
+  );
+  return formationSubjects.filter((subjectId) => teacherSubjects.has(String(subjectId)));
+}
+
+export function getQualifiedTeacherIds(
+  data: PlanningData,
+  group: PlanningGroup | undefined,
+  subjectId: StudentIdentifier | null | undefined,
+): StudentIdentifier[] {
+  if (!subjectId) return [];
+  const qualified = data.filters.teachers
+    .filter((teacher) =>
+      (data.subjectIdsByTeacher[String(teacher.id)] ?? []).some(
+        (id) => String(id) === String(subjectId),
+      ),
+    )
+    .map((teacher) => teacher.id);
+  if (!group?.teacherId) return qualified;
+  return qualified.some((id) => String(id) === String(group.teacherId))
+    ? [group.teacherId]
+    : [];
+}
+
 function getWeekday(date: string): number {
   const value = new Date(`${date}T12:00:00`);
   if (!Number.isFinite(value.getTime()) || value.toISOString().slice(0, 10) !== date) {
@@ -84,9 +116,11 @@ export function validatePlanningCourse(
     );
   }
 
-  const allowedSubjects = data.subjectIdsByFormation[String(group.formationId)] ?? [];
+  const allowedSubjects = getGroupSubjectIds(data, group);
   if (!allowedSubjects.some((subjectId) => String(subjectId) === String(input.subjectId))) {
-    throw new Error('Ce module ne fait pas partie de la formation du groupe sélectionné.');
+    throw new Error(
+      'Ce module ne fait pas partie de la formation ou n’est pas maîtrisé par le formateur du groupe.',
+    );
   }
 
   const currentCourse = data.courses.find((course) => String(course.id) === String(input.courseId));
@@ -106,16 +140,20 @@ export function validatePlanningCourse(
   }
 
   if (group.teacherId) {
-    const groupTeacherSubjects = data.subjectIdsByTeacher[String(group.teacherId)] ?? [];
-    if (!groupTeacherSubjects.some((subjectId) => String(subjectId) === String(input.subjectId))) {
-      throw new Error('Le formateur associé à ce groupe ne maîtrise pas ce module.');
-    }
     if (!data.filters.teachers.some((teacher) => String(teacher.id) === String(group.teacherId))) {
       throw new Error('Le formateur associé à ce groupe est introuvable.');
     }
   }
 
   let teacherId = group.teacherId ?? input.teacherId;
+  if (
+    teacherId &&
+    !getQualifiedTeacherIds(data, group, input.subjectId).some(
+      (qualifiedId) => String(qualifiedId) === String(teacherId),
+    )
+  ) {
+    throw new Error('Le formateur sélectionné n’est pas associé à ce module.');
+  }
   let roomId = input.roomId;
   const endsOn = input.recurring ? (group.endsOn ?? '2999-12-31') : input.date;
   const candidateStart = input.date;

@@ -141,13 +141,18 @@ export async function getAttendanceSheet(
   if (occurrences.length === 0) return { courses: [] };
   const courseIds = [...new Map(occurrences.map(({ courseId }) => [String(courseId), courseId])).values()];
 
-  const [studentsResult, groupsResult, enrollmentsResult, attendanceResult] = await Promise.all([
+  const [studentsResult, groupsResult, coursesResult, enrollmentsResult, attendanceResult] = await Promise.all([
     client
       .from('etudiants')
       .select('id,prenom,nom,email,telephone,nom_parent,email_parent,telephone_parent,ville_parent,ville,adresse,niveau_etudes,groupe_id,created_at')
       .eq('centre_id', centreId)
       .order('nom'),
     client.from('groupes').select('id,nom').eq('centre_id', centreId),
+    client
+      .from('cours')
+      .select('id,groupe_id')
+      .eq('centre_id', centreId)
+      .in('id', courseIds),
     client
       .from('inscriptions')
       .select('etudiant_id,cours_id')
@@ -163,6 +168,7 @@ export async function getAttendanceSheet(
   ]);
   if (studentsResult.error) throw studentsResult.error;
   if (groupsResult.error) throw groupsResult.error;
+  if (coursesResult.error) throw coursesResult.error;
   if (enrollmentsResult.error) throw enrollmentsResult.error;
   if (attendanceResult.error) throw attendanceResult.error;
 
@@ -182,9 +188,33 @@ export async function getAttendanceSheet(
       }),
     ).values(),
   ];
-  const studentIds = new Set(enrollments.map(({ studentId }) => String(studentId)));
+  const groupIdByCourseId = new Map(
+    rows(coursesResult.data, 'groupes des cours').map((course) => [
+      String(id(course.id, 'cours')),
+      optionalId(course.groupe_id, 'groupe du cours'),
+    ]),
+  );
+  const courseIdsByStudent = new Map<string, Set<string>>();
+  for (const enrollment of enrollments) {
+    const key = String(enrollment.studentId);
+    const ids = courseIdsByStudent.get(key) ?? new Set<string>();
+    ids.add(String(enrollment.courseId));
+    courseIdsByStudent.set(key, ids);
+  }
+  const studentRowsById = new Map(
+    studentRows.map((student) => [String(id(student.id, 'étudiant')), student]),
+  );
+  const courseGroupIds = new Set(
+    [...groupIdByCourseId.values()]
+      .filter((groupId): groupId is StudentIdentifier => groupId !== null)
+      .map(String),
+  );
   const students = parseStudents(
-    studentRows.filter((student) => studentIds.has(String(student.id))),
+    studentRows.filter((student) => {
+      const studentGroupId = optionalId(student.groupe_id, 'groupe étudiant');
+      return courseIdsByStudent.has(String(student.id)) ||
+        (studentGroupId !== null && courseGroupIds.has(String(studentGroupId)));
+    }),
     groups,
     new Map(),
   );
@@ -207,18 +237,22 @@ export async function getAttendanceSheet(
     courses: occurrences.map(({ courseId, date }) => ({
       courseId,
       date,
-      students: enrollments
-        .filter((enrollment) => String(enrollment.courseId) === String(courseId))
-        .flatMap(({ studentId }) => {
-          const student = studentById.get(String(studentId));
-          if (!student) return [];
-          return [
-            {
-              student,
-              status: attendance.get(`${String(courseId)}|${date}|${String(studentId)}`) ?? null,
-            },
-          ];
+      students: [...studentById.entries()]
+        .filter(([studentId]) => {
+          const enrolled = courseIdsByStudent.get(studentId)?.has(String(courseId)) ?? false;
+          const student = studentRowsById.get(studentId);
+          const courseGroupId = groupIdByCourseId.get(String(courseId));
+          const assignedToCourseGroup = courseGroupId !== null &&
+            courseGroupId !== undefined &&
+            String(optionalId(student?.groupe_id, 'groupe étudiant')) === String(courseGroupId);
+          return courseGroupId !== null && courseGroupId !== undefined
+            ? assignedToCourseGroup
+            : enrolled;
         })
+        .map(([studentId, student]) => ({
+          student,
+          status: attendance.get(`${String(courseId)}|${date}|${studentId}`) ?? null,
+        }))
         .sort((left, right) =>
           `${left.student.lastName} ${left.student.firstName}`.localeCompare(
             `${right.student.lastName} ${right.student.firstName}`,

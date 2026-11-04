@@ -109,13 +109,19 @@ describe('management repository', () => {
     });
   });
 
-  it('builds a dated attendance sheet only from enrolled centre students and matching session statuses', async () => {
+  it('includes course-enrolled students and students assigned to the course group', async () => {
     const { client, filters, calls } = createClient({
-      etudiants: [studentRow, { ...studentRow, id: 22, prenom: 'Noor', groupe_id: null }],
+      etudiants: [
+        studentRow,
+        { ...studentRow, id: 22, prenom: 'Noor', groupe_id: 4 },
+        { ...studentRow, id: 23, prenom: 'Salma', groupe_id: null },
+      ],
       groupes: [{ id: 4, nom: 'Groupe A' }],
+      cours: [{ id: 8, groupe_id: 4 }],
       inscriptions: [
         { etudiant_id: 21, cours_id: 8 },
         { etudiant_id: 21, cours_id: 8 },
+        { etudiant_id: 23, cours_id: 8 },
       ],
       presences: [
         { cours_id: 8, etudiant_id: 21, date: '2026-10-16', statut: 'retard' },
@@ -136,6 +142,10 @@ describe('management repository', () => {
               student: expect.objectContaining({ id: 21, groupName: 'Groupe A' }),
               status: 'retard',
             },
+            {
+              student: expect.objectContaining({ id: 22, groupName: 'Groupe A' }),
+              status: null,
+            },
           ],
         },
         {
@@ -145,6 +155,10 @@ describe('management repository', () => {
             {
               student: expect.objectContaining({ id: 21, groupName: 'Groupe A' }),
               status: 'absent',
+            },
+            {
+              student: expect.objectContaining({ id: 22, groupName: 'Groupe A' }),
+              status: null,
             },
           ],
         },

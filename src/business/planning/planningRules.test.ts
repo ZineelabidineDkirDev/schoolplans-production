@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { validatePlanningCourse } from './planningRules';
+import {
+  getGroupSubjectIds,
+  getQualifiedTeacherIds,
+  validatePlanningCourse,
+} from './planningRules';
 import type { PlanningCourseInput, PlanningData } from '../../types/planning';
 
 const data: PlanningData = {
@@ -72,6 +76,20 @@ const input: PlanningCourseInput = {
 };
 
 describe('planning business rules', () => {
+  it('limits group modules to the formation and assigned trainer skills', () => {
+    expect(getGroupSubjectIds(data, data.filters.groups[0])).toEqual([3]);
+    expect(getGroupSubjectIds(
+      {
+        ...data,
+        subjectIdsByFormation: { '2': [3, 8] },
+        subjectIdsByTeacher: { '11': [8] },
+      },
+      data.filters.groups[0],
+    )).toEqual([8]);
+    expect(getQualifiedTeacherIds(data, data.filters.groups[0], 3)).toEqual([11]);
+    expect(getQualifiedTeacherIds(data, data.filters.groups[0], 8)).toEqual([]);
+  });
+
   it('validates course date, group dates, training subject and period', () => {
     expect(validatePlanningCourse(input, data, actor)).toMatchObject({
       teacherId: 11,
@@ -133,5 +151,25 @@ describe('planning business rules', () => {
         centreId: 'centre-a',
       }),
     ).toThrow('groupe d’un autre formateur');
+  });
+
+  it('rejects a selected trainer who is not associated with the course module', () => {
+    const unassignedGroup = { ...data.filters.groups[0], teacherId: null };
+    const unassignedGroupData = {
+      ...data,
+      filters: {
+        ...data.filters,
+        groups: [unassignedGroup],
+        teachers: [
+          ...data.filters.teachers,
+          { id: 12, name: 'Omar', email: null, telephone: null, createdAt: null, profileId: null },
+        ],
+      },
+    };
+    expect(() => validatePlanningCourse(
+      { ...input, teacherId: 12 },
+      unassignedGroupData,
+      actor,
+    )).toThrow('n’est pas associé à ce module');
   });
 });

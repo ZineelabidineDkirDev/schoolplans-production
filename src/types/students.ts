@@ -7,11 +7,21 @@ export type CentreStudent = {
   email: string | null;
   telephone: string | null;
   centreId: string;
+  groupId: StudentIdentifier | null;
+  groupName: string | null;
+  formationName: string | null;
+};
+
+export type MyStudentGroup = {
+  id: StudentIdentifier;
+  name: string;
+  formationName: string | null;
 };
 
 export type MyStudentListItem = {
   student: CentreStudent;
   courses: string[];
+  groups: MyStudentGroup[];
 };
 
 export type StudentEnrollment = {
@@ -22,6 +32,7 @@ export type StudentEnrollment = {
 export type StudentCourse = {
   id: StudentIdentifier;
   subjectId: StudentIdentifier | null;
+  group: MyStudentGroup | null;
 };
 
 export type StudentSubject = {

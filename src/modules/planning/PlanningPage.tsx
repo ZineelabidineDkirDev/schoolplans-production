@@ -11,6 +11,10 @@ import {
 } from '../../business/planning/planningSchedule';
 import { calculateFormationProgress } from '../../business/planning/planningProgress';
 import {
+  getGroupSubjectIds,
+  getQualifiedTeacherIds,
+} from '../../business/planning/planningRules';
+import {
   deletePlanningClosure,
   deletePlanningCourse,
   getPlanningData,
@@ -238,15 +242,27 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
 
   const groupOptions =
     data?.filters.groups.filter(
-      (group) => !filters.formationId || String(group.formationId) === filters.formationId,
+      (group) =>
+        (!filters.formationId || String(group.formationId) === filters.formationId) &&
+        (!filters.teacherId || String(group.teacherId ?? '') === filters.teacherId),
     ) ?? [];
+  const filterGroup = data?.filters.groups.find(
+    (group) => String(group.id) === filters.groupId,
+  );
+  const filterSubjectIds = data
+    ? filterGroup
+      ? getGroupSubjectIds(data, filterGroup)
+      : filters.formationId
+        ? (data.subjectIdsByFormation[filters.formationId] ?? [])
+        : data.filters.subjects.map((subject) => subject.id)
+    : [];
   const subjectOptions =
-    data?.filters.subjects.filter(
-      (subject) =>
-        !filters.formationId ||
-        (data?.subjectIdsByFormation[filters.formationId] ?? []).some(
+    data?.filters.subjects.filter((subject) =>
+      filterSubjectIds.some((subjectId) => String(subjectId) === String(subject.id)) &&
+      (!filters.teacherId ||
+        (data.subjectIdsByTeacher[filters.teacherId] ?? []).some(
           (subjectId) => String(subjectId) === String(subject.id),
-        ),
+        )),
     ) ?? [];
   const selectedGroup = data?.filters.groups.find((group) => String(group.id) === filters.groupId);
   const applicableEndDate =
@@ -274,15 +290,15 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
   const canManageClosures =
     (profile?.role === 'admin' || profile?.role === 'director') && permissions.planning === true;
   const editorGroup = data?.filters.groups.find((group) => String(group.id) === editor?.groupId);
+  const editorSubjectIds = data ? getGroupSubjectIds(data, editorGroup) : [];
   const editorSubjects = data?.filters.subjects.filter((subject) =>
-    editorGroup?.formationId
-      ? (data.subjectIdsByFormation[String(editorGroup.formationId)] ?? []).some(
-          (subjectId) => String(subjectId) === String(subject.id),
-        )
-      : false,
+    editorSubjectIds.some((subjectId) => String(subjectId) === String(subject.id)),
   );
-  const editorTeachers = data?.filters.teachers.filter(
-    (teacher) => !editorGroup?.teacherId || String(teacher.id) === String(editorGroup.teacherId),
+  const editorTeacherIds = data
+    ? getQualifiedTeacherIds(data, editorGroup, editor?.subjectId)
+    : [];
+  const editorTeachers = data?.filters.teachers.filter((teacher) =>
+    editorTeacherIds.some((teacherId) => String(teacherId) === String(teacher.id)),
   );
   const assignedTeacherName = data?.filters.teachers.find(
     (teacher) => String(teacher.id) === String(editorGroup?.teacherId),
@@ -305,9 +321,7 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
         (!filters.formationId || String(group.formationId) === filters.formationId) &&
         (!filters.groupId || String(group.id) === filters.groupId),
     );
-    const subjectId = firstGroup?.formationId
-      ? (data.subjectIdsByFormation[String(firstGroup.formationId)]?.[0]?.toString() ?? '')
-      : '';
+    const subjectId = getGroupSubjectIds(data, firstGroup)[0]?.toString() ?? '';
     setActionError(null);
     setEditor({
       occurrenceDate: date,
@@ -347,9 +361,7 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
   function changeEditorGroup(groupId: string) {
     if (!data) return;
     const group = data.filters.groups.find((candidate) => String(candidate.id) === groupId);
-    const subjectId = group?.formationId
-      ? (data.subjectIdsByFormation[String(group.formationId)]?.[0]?.toString() ?? '')
-      : '';
+    const subjectId = getGroupSubjectIds(data, group)[0]?.toString() ?? '';
     setEditor((current) =>
       current
         ? {
@@ -360,6 +372,24 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
           }
         : current,
     );
+  }
+
+  function changeEditorSubject(subjectId: string) {
+    if (!data) return;
+    const qualifiedTeacherIds = getQualifiedTeacherIds(data, editorGroup, subjectId);
+    setEditor((current) => {
+      if (!current) return current;
+      const currentTeacherIsQualified = qualifiedTeacherIds.some(
+        (qualifiedId) => String(qualifiedId) === current.teacherId,
+      );
+      return {
+        ...current,
+        subjectId,
+        teacherId: currentTeacherIsQualified
+          ? current.teacherId
+          : (editorGroup?.teacherId?.toString() ?? ''),
+      };
+    });
   }
 
   async function performAction(action: () => Promise<void>, success: string, close = true) {
@@ -494,6 +524,8 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
       ...current,
       [key]: value,
       ...(key === 'formationId' ? { groupId: '', subjectId: '' } : {}),
+      ...(key === 'groupId' ? { subjectId: '' } : {}),
+      ...(key === 'teacherId' ? { groupId: '', subjectId: '' } : {}),
     }));
   }
 
@@ -971,11 +1003,8 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
                 Matière / module
                 <select
                   className="sp-field"
-                  onChange={(event) =>
-                    setEditor((current) =>
-                      current ? { ...current, subjectId: event.target.value } : current,
-                    )
-                  }
+                  disabled={!editorGroup || editorSubjects?.length === 0}
+                  onChange={(event) => changeEditorSubject(event.target.value)}
                   required
                   value={editor.subjectId}
                 >
@@ -986,6 +1015,12 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
                     </option>
                   ))}
                 </select>
+                {editorGroup && editorSubjects?.length === 0 && (
+                  <small className="planning-form-hint">
+                    Aucun module n’est commun à cette formation et aux compétences du formateur
+                    assigné. Vérifiez les modules de la formation ou les matières du formateur.
+                  </small>
+                )}
               </label>
               <label className="sp-form-field">
                 Groupe de formation
@@ -1103,7 +1138,7 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
                 Formateur
                 <select
                   className="sp-field"
-                  disabled={!!editorGroup?.teacherId || profile?.role === 'formateur'}
+                  disabled={!!editorGroup?.teacherId || profile?.role === 'formateur' || editorTeacherIds.length === 0}
                   onChange={(event) =>
                     setEditor((current) =>
                       current ? { ...current, teacherId: event.target.value } : current,
@@ -1111,7 +1146,7 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
                   }
                   value={editorGroup?.teacherId?.toString() ?? editor.teacherId}
                 >
-                  <option value="">Automatique</option>
+                  {editorGroup?.teacherId ? null : <option value="">Automatique parmi les formateurs qualifiés</option>}
                   {editorTeachers?.map((teacher) => (
                     <option key={teacher.id} value={teacher.id}>
                       {teacher.name}
@@ -1120,7 +1155,8 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
                 </select>
                 {editorGroup?.teacherId && (
                   <small className="planning-form-hint">
-                    Formateur assigné au groupe : {assignedTeacherName ?? 'Formateur assigné'}
+                    Formateur assigné au groupe : {assignedTeacherName ?? 'Formateur assigné'}.
+                    Seuls ses modules associés à la formation sont disponibles.
                   </small>
                 )}
               </label>

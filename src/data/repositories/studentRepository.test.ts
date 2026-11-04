@@ -15,6 +15,9 @@ describe('student repository contract', () => {
             telephone: '0600000000',
             ville: 'Rabat',
             centre_id: 'centre-a',
+            groupe_id: '7',
+            groupe_nom: 'Groupe A',
+            formation_nom: 'Français',
           },
         ],
         'centre-a',
@@ -27,6 +30,9 @@ describe('student repository contract', () => {
         email: null,
         telephone: '0600000000',
         centreId: 'centre-a',
+        groupId: '7',
+        groupName: 'Groupe A',
+        formationName: 'Français',
       },
     ]);
   });
@@ -61,9 +67,11 @@ describe('student repository contract', () => {
     const calls: Array<{ table: string; method: string; args: unknown[] }> = [];
     const rowsByTable: Record<string, unknown[]> = {
       formateurs: [{ id: 5 }],
-      cours: [{ id: 10, matiere_id: 20 }, { id: 11, matiere_id: 21 }],
+      cours: [{ id: 10, matiere_id: 20, groupe_id: 8 }, { id: 11, matiere_id: 21, groupe_id: null }],
       inscriptions: [{ etudiant_id: 12, cours_id: 10 }],
       matieres: [{ id: 20, nom: 'Mathématiques' }, { id: 21, nom: 'Français' }],
+      groupes: [{ id: 8, nom: 'Groupe B', formation_id: 30 }],
+      formations: [{ id: 30, nom: 'Formation B' }],
     };
     const queryFor = (table: string) => {
       const query: Record<string, (...args: never[]) => unknown> = {};
@@ -88,6 +96,9 @@ describe('student repository contract', () => {
         email: null,
         telephone: null,
         centre_id: 'centre-a',
+        groupe_id: '7',
+        groupe_nom: 'Groupe A',
+        formation_nom: 'Français',
       }],
       error: null,
     });
@@ -105,8 +116,15 @@ describe('student repository contract', () => {
           email: null,
           telephone: null,
           centreId: 'centre-a',
+          groupId: '7',
+          groupName: 'Groupe A',
+          formationName: 'Français',
         },
         courses: ['Mathématiques'],
+        groups: [
+          { id: '7', name: 'Groupe A', formationName: 'Français' },
+          { id: 8, name: 'Groupe B', formationName: 'Formation B' },
+        ],
       },
     ]);
     expect(calls).toContainEqual({ table: 'cours', method: 'eq', args: ['formateur_id', 5] });
