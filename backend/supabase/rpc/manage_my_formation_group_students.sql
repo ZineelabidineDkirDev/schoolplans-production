@@ -54,7 +54,7 @@ BEGIN
   END IF;
 
   RETURN QUERY
-  SELECT e.id, e.prenom, e.nom, e.groupe_id = v_group_id
+  SELECT e.id, e.prenom, e.nom, coalesce(e.groupe_id = v_group_id, false)
   FROM public.etudiants e
   WHERE e.centre_id = v_centre_id
     AND (

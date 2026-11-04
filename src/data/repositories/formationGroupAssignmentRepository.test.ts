@@ -23,6 +23,18 @@ describe('formation group assignment repository', () => {
     expect(rpc).toHaveBeenCalledWith('get_my_formation_group_students', { p_group_id: '4' });
   });
 
+  it('treats a NULL assignment flag as an unassigned student', async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      data: [{ id: 22, prenom: 'Noor', nom: 'Alaoui', assigned: null }],
+      error: null,
+    });
+    const client = { rpc } as unknown as SupabaseClient;
+
+    await expect(getMyFormationGroupStudents(client, 4)).resolves.toEqual([
+      { id: 22, firstName: 'Noor', lastName: 'Alaoui', assigned: false },
+    ]);
+  });
+
   it('saves a unique student selection through the scoped group RPC', async () => {
     const rpc = vi.fn().mockResolvedValue({ data: null, error: null });
     const client = { rpc } as unknown as SupabaseClient;

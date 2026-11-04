@@ -19,7 +19,7 @@ function parseOptions(value: unknown): FormationGroupStudentOption[] {
     const row = entry as Record<string, unknown>;
     if (
       (typeof row.id !== 'string' && typeof row.id !== 'number') ||
-      typeof row.assigned !== 'boolean'
+      (typeof row.assigned !== 'boolean' && row.assigned !== null)
     ) {
       throw new Error('Réponse Supabase invalide : données d’étudiant incomplètes.');
     }
@@ -27,7 +27,7 @@ function parseOptions(value: unknown): FormationGroupStudentOption[] {
       id: row.id,
       firstName: typeof row.prenom === 'string' ? row.prenom : '',
       lastName: typeof row.nom === 'string' ? row.nom : '',
-      assigned: row.assigned,
+      assigned: row.assigned === true,
     };
   });
 }
