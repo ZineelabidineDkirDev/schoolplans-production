@@ -2306,7 +2306,14 @@ export function AttendancePage() {
       courseId: occurrence.id,
       date: occurrence.date,
     }));
-    void getAttendanceSheet(getSupabaseClient(), profile.centreId, dateRange.from, dateRange.to, sessions)
+    void getAttendanceSheet(
+      getSupabaseClient(),
+      profile.centreId,
+      dateRange.from,
+      dateRange.to,
+      sessions,
+      profile.role === 'formateur' ? 'formateur' : profile.role === 'director' ? 'director' : 'admin',
+    )
       .then((nextSheet) => {
         if (active) setSheet(nextSheet);
       })

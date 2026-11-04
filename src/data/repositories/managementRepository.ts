@@ -130,6 +130,7 @@ export async function getAttendanceSheet(
   from: string,
   to: string,
   occurrences: Array<{ courseId: StudentIdentifier; date: string }>,
+  role?: 'formateur' | 'admin' | 'director',
 ): Promise<AttendanceSheet> {
   if (!centreId) throw new Error('Sélectionnez un centre avant de consulter les présences.');
   if (!validDate(from) || !validDate(to) || from > to) {
@@ -178,7 +179,7 @@ export async function getAttendanceSheet(
       typeof group.nom === 'string' ? group.nom : '',
     ]),
   );
-  const studentRows = rows(studentsResult.data, 'étudiants');
+  let studentRows = rows(studentsResult.data, 'étudiants');
   const enrollments = [
     ...new Map(
       rows(enrollmentsResult.data, 'inscriptions').map((row) => {
@@ -194,6 +195,51 @@ export async function getAttendanceSheet(
       optionalId(course.groupe_id, 'groupe du cours'),
     ]),
   );
+  if (role === 'formateur') {
+    const courseGroupIds = [
+      ...new Map(
+        [...groupIdByCourseId.values()]
+          .filter((groupId): groupId is StudentIdentifier => groupId !== null)
+          .map((groupId) => [String(groupId), groupId]),
+      ).values(),
+    ];
+    const rosterResults = await Promise.all(
+      courseGroupIds.map((groupId) =>
+        client.rpc('get_my_formation_group_students', { p_group_id: String(groupId) }),
+      ),
+    );
+    const rosterStudents: Row[] = [];
+    for (const [index, result] of rosterResults.entries()) {
+      if (result.error) throw result.error;
+      for (const rosterStudent of rows(result.data, 'étudiants du groupe')) {
+        if (rosterStudent.assigned !== true) continue;
+        const studentId = id(rosterStudent.id, 'étudiant du groupe');
+        rosterStudents.push({
+          id: studentId,
+          prenom: optionalString(rosterStudent.prenom, 'prénom'),
+          nom: optionalString(rosterStudent.nom, 'nom'),
+          groupe_id: courseGroupIds[index],
+          email: null,
+          telephone: null,
+          nom_parent: null,
+          email_parent: null,
+          telephone_parent: null,
+          ville_parent: null,
+          ville: null,
+          adresse: null,
+          niveau_etudes: null,
+          created_at: null,
+        });
+      }
+    }
+    const studentsById = new Map(
+      studentRows.map((student) => [String(id(student.id, 'étudiant')), student]),
+    );
+    for (const rosterStudent of rosterStudents) {
+      studentsById.set(String(rosterStudent.id), rosterStudent);
+    }
+    studentRows = [...studentsById.values()];
+  }
   const courseIdsByStudent = new Map<string, Set<string>>();
   for (const enrollment of enrollments) {
     const key = String(enrollment.studentId);

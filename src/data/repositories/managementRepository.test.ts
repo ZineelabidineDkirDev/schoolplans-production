@@ -7,9 +7,16 @@ import {
   saveAttendance,
 } from './managementRepository';
 
-function createClient(dataByTable: Record<string, unknown[]>) {
+function createClient(
+  dataByTable: Record<string, unknown[]>,
+  rpcData: Record<string, unknown> = {},
+) {
   const calls: Array<{ table: string; method: string; args: unknown[] }> = [];
   const filters: Array<{ table: string; column: string; value: unknown }> = [];
+  const rpc = vi.fn(async (name: string) => ({
+    data: rpcData[name] ?? [],
+    error: null,
+  }));
   const from = vi.fn((table: string) => {
     const query: Record<string, (...args: never[]) => unknown> = {};
     for (const method of ['select', 'order', 'in', 'limit', 'gte', 'lte']) {
@@ -33,7 +40,7 @@ function createClient(dataByTable: Record<string, unknown[]>) {
     ) => unknown;
     return query;
   });
-  return { client: { from } as unknown as SupabaseClient, calls, filters, from };
+  return { client: { from, rpc } as unknown as SupabaseClient, calls, filters, from, rpc };
 }
 
 const studentRow = {
@@ -181,6 +188,55 @@ describe('management repository', () => {
       value: 'centre-a',
     });
 
+  });
+
+  it('loads the selected group roster through the teacher-scoped RPC when direct student reads are restricted', async () => {
+    const { client, rpc } = createClient(
+      {
+        etudiants: [],
+        groupes: [{ id: 4, nom: 'Groupe C' }],
+        cours: [{ id: 8, groupe_id: 4 }],
+        inscriptions: [],
+        presences: [],
+      },
+      {
+        get_my_formation_group_students: [
+          { id: 31, prenom: 'Salma', nom: 'Amrani', assigned: true },
+          { id: 32, prenom: 'Youssef', nom: 'Idrissi', assigned: false },
+        ],
+      },
+    );
+
+    await expect(
+      getAttendanceSheet(
+        client,
+        'centre-a',
+        '2026-10-16',
+        '2026-10-16',
+        [{ courseId: 8, date: '2026-10-16' }],
+        'formateur',
+      ),
+    ).resolves.toMatchObject({
+      courses: [
+        {
+          courseId: 8,
+          students: [
+            {
+              student: expect.objectContaining({
+                id: 31,
+                firstName: 'Salma',
+                lastName: 'Amrani',
+                groupId: 4,
+                groupName: 'Groupe C',
+              }),
+            },
+          ],
+        },
+      ],
+    });
+    expect(rpc).toHaveBeenCalledWith('get_my_formation_group_students', {
+      p_group_id: '4',
+    });
   });
 
   it('rejects invalid date ranges before querying attendance', async () => {
