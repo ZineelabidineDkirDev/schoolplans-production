@@ -27,7 +27,10 @@ export function getGroupSubjectIds(
   const teacherSubjects = new Set(
     (data.subjectIdsByTeacher[String(group.teacherId)] ?? []).map(String),
   );
-  return formationSubjects.filter((subjectId) => teacherSubjects.has(String(subjectId)));
+  const sharedSubjects = formationSubjects.filter((subjectId) =>
+    teacherSubjects.has(String(subjectId)),
+  );
+  return sharedSubjects.length ? sharedSubjects : formationSubjects;
 }
 
 export function getQualifiedTeacherIds(
@@ -36,6 +39,12 @@ export function getQualifiedTeacherIds(
   subjectId: StudentIdentifier | null | undefined,
 ): StudentIdentifier[] {
   if (!subjectId) return [];
+  if (
+    group?.teacherId &&
+    getGroupSubjectIds(data, group).some((id) => String(id) === String(subjectId))
+  ) {
+    return [group.teacherId];
+  }
   const qualified = data.filters.teachers
     .filter((teacher) =>
       (data.subjectIdsByTeacher[String(teacher.id)] ?? []).some(
@@ -131,7 +140,7 @@ export function validatePlanningCourse(
         "Votre compte n'est pas encore relié à une fiche formateur. Contactez l'administration.",
       );
     }
-    if (group.teacherId && String(group.teacherId) !== actor.teacherId) {
+    if (String(group.teacherId ?? '') !== actor.teacherId) {
       throw new Error('Vous ne pouvez pas créer une séance pour le groupe d’un autre formateur.');
     }
     if (currentCourse && String(currentCourse.teacherId) !== actor.teacherId) {
@@ -155,7 +164,14 @@ export function validatePlanningCourse(
     throw new Error('Le formateur sélectionné n’est pas associé à ce module.');
   }
   let roomId = input.roomId;
-  const endsOn = input.recurring ? (group.endsOn ?? '2999-12-31') : input.date;
+  const endsOn = input.recurring ? (input.endsOn ?? group.endsOn ?? input.date) : input.date;
+  getWeekday(endsOn);
+  if (endsOn < input.date) {
+    throw new Error('La date de fin doit être postérieure ou égale à la date de début.');
+  }
+  if (input.recurring && group.endsOn && endsOn > group.endsOn) {
+    throw new Error(`La date de fin ne peut pas dépasser la fin du groupe (${group.endsOn}).`);
+  }
   const candidateStart = input.date;
   const candidateEnd = endsOn;
   const candidateDurationStart = startsAtMinutes;

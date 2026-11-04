@@ -101,4 +101,5 @@ describe('centralized section permissions', () => {
     expect(canAccessSection('admin', 'vr', { salles: true })).toBe(true);
     expect(canAccessSection('admin', 'vp', { presences: true })).toBe(true);
   });
+
 });

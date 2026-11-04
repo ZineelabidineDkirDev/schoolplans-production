@@ -152,6 +152,12 @@ export async function getPlanningData(
     .eq('centre_id', centreId);
   if (teacherId !== null) teachersQuery = teachersQuery.eq('id', teacherId);
 
+  let groupsQuery = client
+    .from('groupes')
+    .select('id,nom,formation_id,formateur_id,capacite,actif,date_debut,date_fin')
+    .eq('centre_id', centreId);
+  if (teacherId !== null) groupsQuery = groupsQuery.eq('formateur_id', teacherId);
+
   const [
     coursesResult,
     subjectsResult,
@@ -171,10 +177,7 @@ export async function getPlanningData(
     client.from('domaines').select('id,nom'),
     teachersQuery,
     client.from('salles').select('id,nom,type,capacite').eq('centre_id', centreId),
-    client
-      .from('groupes')
-      .select('id,nom,formation_id,formateur_id,capacite,actif,date_debut,date_fin')
-      .eq('centre_id', centreId),
+    groupsQuery,
     client
       .from('formations')
       .select('id,nom,duree,heures_par_semaine,heures_totales,description,actif')
@@ -235,7 +238,7 @@ export async function getPlanningData(
       text(room.nom, 'nom de salle'),
     ]),
   );
-  const formations = rows(formationsResult.data, 'formations').map((formation) => ({
+  const rawFormations = rows(formationsResult.data, 'formations').map((formation) => ({
     id: identifier(formation.id, 'formation'),
     name: text(formation.nom, 'nom de formation'),
     totalHours: optionalHours(formation.heures_totales),
@@ -244,21 +247,31 @@ export async function getPlanningData(
     description: optionalText(formation.description),
     active: formation.actif === true,
   }));
+  const allGroups: PlanningGroup[] = rows(groupsResult.data, 'groupes').map((group) => ({
+    id: identifier(group.id, 'groupe'),
+    name: text(group.nom, 'nom de groupe'),
+    formationId: optionalIdentifier(group.formation_id),
+    formationName: null,
+    teacherId: optionalIdentifier(group.formateur_id),
+    capacity: typeof group.capacite === 'number' && group.capacite > 0 ? group.capacite : 30,
+    active: group.actif === true,
+    startsOn: optionalText(group.date_debut),
+    endsOn: optionalText(group.date_fin),
+  }));
+  const associatedFormationIds = new Set(
+    allGroups.map((group) => String(group.formationId ?? '')),
+  );
+  const formations =
+    teacherId === null
+      ? rawFormations
+      : rawFormations.filter((formation) => associatedFormationIds.has(String(formation.id)));
   const formationById = new Map(formations.map((formation) => [String(formation.id), formation]));
-  const groups: PlanningGroup[] = rows(groupsResult.data, 'groupes').map((group) => {
-    const formationId = optionalIdentifier(group.formation_id);
-    return {
-      id: identifier(group.id, 'groupe'),
-      name: text(group.nom, 'nom de groupe'),
-      formationId,
-      formationName: formationId ? (formationById.get(String(formationId))?.name ?? null) : null,
-      teacherId: optionalIdentifier(group.formateur_id),
-      capacity: typeof group.capacite === 'number' && group.capacite > 0 ? group.capacite : 30,
-      active: group.actif === true,
-      startsOn: optionalText(group.date_debut),
-      endsOn: optionalText(group.date_fin),
-    };
-  });
+  const groups = allGroups.map((group) => ({
+    ...group,
+    formationName: group.formationId
+      ? (formationById.get(String(group.formationId))?.name ?? null)
+      : null,
+  }));
   const groupById = new Map(groups.map((group) => [String(group.id), group]));
 
   const subjectIdsByFormation: Record<string, StudentIdentifier[]> = {};
@@ -361,8 +374,19 @@ export async function getPlanningData(
 
 function assertClosureManager(actor: PlanningActor): string {
   if (!actor.centreId) throw new Error('Votre profil n’est pas rattaché à un centre.');
-  if (actor.role !== 'admin' && actor.role !== 'director') {
+  if (actor.role !== 'admin') {
     throw new Error('La gestion des jours fermés est réservée à l’administration.');
+  }
+  return actor.centreId;
+}
+
+function assertPlanningEditor(actor: PlanningActor): string {
+  if (!actor.centreId) throw new Error('Votre profil n’est pas rattaché à un centre.');
+  if (actor.role !== 'admin' && actor.role !== 'formateur') {
+    throw new Error('Le planning est en lecture seule pour votre rôle.');
+  }
+  if (actor.role === 'formateur' && !actor.teacherId) {
+    throw new Error('Votre compte formateur n’est pas relié à une fiche.');
   }
   return actor.centreId;
 }
@@ -419,7 +443,7 @@ export async function savePlanningCourse(
   actor: PlanningActor,
   input: PlanningCourseInput,
 ): Promise<void> {
-  if (!actor.centreId) throw new Error('Votre profil n’est pas rattaché à un centre.');
+  const centreId = assertPlanningEditor(actor);
   const validated = validatePlanningCourse(input, data, actor);
   const payload = {
     matiere_id: input.subjectId,
@@ -438,7 +462,7 @@ export async function savePlanningCourse(
       .from('cours')
       .update(payload)
       .eq('id', input.courseId)
-      .eq('centre_id', actor.centreId);
+      .eq('centre_id', centreId);
     if (actor.role === 'formateur') query = query.eq('formateur_id', actor.teacherId);
     const { data: updated, error } = await query.select('id').maybeSingle();
     if (error) {
@@ -451,7 +475,7 @@ export async function savePlanningCourse(
     return;
   }
 
-  const { error } = await client.from('cours').insert({ ...payload, centre_id: actor.centreId });
+  const { error } = await client.from('cours').insert({ ...payload, centre_id: centreId });
   if (error) {
     if (error.code === '23P01') {
       throw new Error('Conflit : ce créneau est déjà occupé (salle ou formateur).');
@@ -465,8 +489,8 @@ export async function deletePlanningCourse(
   actor: PlanningActor,
   courseId: StudentIdentifier,
 ): Promise<void> {
-  if (!actor.centreId) throw new Error('Votre profil n’est pas rattaché à un centre.');
-  let query = client.from('cours').delete().eq('id', courseId).eq('centre_id', actor.centreId);
+  const centreId = assertPlanningEditor(actor);
+  let query = client.from('cours').delete().eq('id', courseId).eq('centre_id', centreId);
   if (actor.role === 'formateur') {
     if (!actor.teacherId) throw new Error('Votre compte formateur n’est pas relié à une fiche.');
     query = query.eq('formateur_id', actor.teacherId);
@@ -482,12 +506,12 @@ export async function setPlanningOccurrenceCancelled(
   date: string,
   cancelled: boolean,
 ): Promise<void> {
-  if (!actor.centreId) throw new Error('Votre profil n’est pas rattaché à un centre.');
+  const centreId = assertPlanningEditor(actor);
   let courseQuery = client
     .from('cours')
     .select('id')
     .eq('id', courseId)
-    .eq('centre_id', actor.centreId);
+    .eq('centre_id', centreId);
   if (actor.role === 'formateur') {
     if (!actor.teacherId) throw new Error('Votre compte formateur n’est pas relié à une fiche.');
     courseQuery = courseQuery.eq('formateur_id', actor.teacherId);
@@ -499,7 +523,7 @@ export async function setPlanningOccurrenceCancelled(
   if (cancelled) {
     const { error } = await client
       .from('annulations')
-      .insert({ cours_id: courseId, date, centre_id: actor.centreId });
+      .insert({ cours_id: courseId, date, centre_id: centreId });
     if (error) throw error;
     return;
   }
@@ -508,7 +532,7 @@ export async function setPlanningOccurrenceCancelled(
     .delete()
     .eq('cours_id', courseId)
     .eq('date', date)
-    .eq('centre_id', actor.centreId);
+    .eq('centre_id', centreId);
   if (error) throw error;
 }
 

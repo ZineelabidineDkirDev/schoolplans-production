@@ -1,10 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  deletePlanningCourse,
   deletePlanningClosure,
   getPlanningData,
   savePlanningClosure,
   savePlanningCourse,
+  setPlanningOccurrenceCancelled,
 } from './planningRepository';
 import type { PlanningData } from '../../types/planning';
 
@@ -202,6 +204,11 @@ describe('planning repository scope', () => {
       column: 'id',
       value: 'teacher-a',
     });
+    expect(filters).toContainEqual({
+      table: 'groupes',
+      column: 'formateur_id',
+      value: 'teacher-a',
+    });
   });
 
   it('writes validated courses only with the active centre and expected legacy columns', async () => {
@@ -266,27 +273,12 @@ describe('planning repository scope', () => {
   it('deletes only a closure belonging to the active centre', async () => {
     const { client, calls } = createMutationClient();
 
-    await deletePlanningClosure(
+    await expect(deletePlanningClosure(
       client,
       { role: 'director', teacherId: null, centreId: 'centre-a' },
       '2026-11-01',
-    );
-
-    expect(calls).toContainEqual({
-      table: 'fermetures',
-      method: 'delete',
-      args: [],
-    });
-    expect(calls).toContainEqual({
-      table: 'fermetures',
-      method: 'eq',
-      args: ['date', '2026-11-01'],
-    });
-    expect(calls).toContainEqual({
-      table: 'fermetures',
-      method: 'eq',
-      args: ['centre_id', 'centre-a'],
-    });
+    )).rejects.toThrow('réservée à l’administration');
+    expect(calls.some((call) => call.method === 'delete')).toBe(false);
   });
 
   it('rejects closure writes without an authorized centre and valid input', async () => {
@@ -316,6 +308,29 @@ describe('planning repository scope', () => {
       ),
     ).rejects.toThrow('rattaché à un centre');
     expect(calls.some((call) => ['delete', 'upsert'].includes(call.method))).toBe(false);
+  });
+
+  it('rejects all director planning mutations before making Supabase writes', async () => {
+    const { client, calls } = createMutationClient();
+    const director = { role: 'director' as const, teacherId: null, centreId: 'centre-a' };
+
+    await expect(
+      savePlanningCourse(client, writablePlanningData, director, {
+        groupId: 5,
+        subjectId: 3,
+        date: '2026-10-19',
+        startsAt: '12:00',
+        endsAt: '14:00',
+        roomId: 4,
+        teacherId: 11,
+        recurring: true,
+      }),
+    ).rejects.toThrow('lecture seule');
+    await expect(deletePlanningCourse(client, director, 1)).rejects.toThrow('lecture seule');
+    await expect(
+      setPlanningOccurrenceCancelled(client, director, 1, '2026-10-19', true),
+    ).rejects.toThrow('lecture seule');
+    expect(calls.some((call) => ['insert', 'update', 'delete'].includes(call.method))).toBe(false);
   });
 
   it('rejects invalid input before making a Supabase write', async () => {

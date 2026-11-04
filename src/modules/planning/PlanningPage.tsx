@@ -11,6 +11,11 @@ import {
 } from '../../business/planning/planningSchedule';
 import { calculateFormationProgress } from '../../business/planning/planningProgress';
 import {
+  getMyFormationGroupStudents,
+  saveMyFormationGroupStudents,
+  type FormationGroupStudentOption,
+} from '../../data/repositories/formationGroupAssignmentRepository';
+import {
   getGroupSubjectIds,
   getQualifiedTeacherIds,
 } from '../../business/planning/planningRules';
@@ -43,9 +48,11 @@ type PlanningRole = 'admin' | 'director' | 'super_admin' | 'formateur' | 'etudia
 type EditorState = {
   courseId?: StudentIdentifier;
   occurrenceDate: string;
+  formationId: string;
   groupId: string;
   subjectId: string;
   date: string;
+  endsOn: string;
   startsAt: string;
   endsAt: string;
   roomId: string;
@@ -53,6 +60,14 @@ type EditorState = {
   recurring: boolean;
   cancelled: boolean;
   completed: boolean;
+};
+
+type EditorRosterState = {
+  groupId: string;
+  students: FormationGroupStudentOption[];
+  selectedIds: Set<string>;
+  status: 'loading' | 'ready' | 'error';
+  error?: string;
 };
 
 const DAY_NAMES = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
@@ -158,6 +173,7 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
   const [week, setWeek] = useState(() => getMonday(new Date()));
   const [selectedDay, setSelectedDay] = useState(() => Math.min((new Date().getDay() + 6) % 7, 5));
   const [editor, setEditor] = useState<EditorState | null>(null);
+  const [editorRoster, setEditorRoster] = useState<EditorRosterState | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [closureDialogOpen, setClosureDialogOpen] = useState(false);
@@ -285,11 +301,17 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
   const canManage =
     !!profile &&
     profile.role !== 'super_admin' &&
-    ['admin', 'director', 'formateur'].includes(profile.role) &&
+    ['admin', 'formateur'].includes(profile.role) &&
     permissions.cours === true;
   const canManageClosures =
-    (profile?.role === 'admin' || profile?.role === 'director') && permissions.planning === true;
+    profile?.role === 'admin' && permissions.planning === true;
   const editorGroup = data?.filters.groups.find((group) => String(group.id) === editor?.groupId);
+  const editorGroupOptions =
+    data?.filters.groups.filter(
+      (group) =>
+        (group.active || String(group.id) === editor?.groupId) &&
+        (!editor?.formationId || String(group.formationId) === editor.formationId),
+    ) ?? [];
   const editorSubjectIds = data ? getGroupSubjectIds(data, editorGroup) : [];
   const editorSubjects = data?.filters.subjects.filter((subject) =>
     editorSubjectIds.some((subjectId) => String(subjectId) === String(subject.id)),
@@ -325,9 +347,11 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
     setActionError(null);
     setEditor({
       occurrenceDate: date,
+      formationId: firstGroup?.formationId?.toString() ?? '',
       groupId: firstGroup?.id.toString() ?? '',
       subjectId,
       date,
+      endsOn: firstGroup?.endsOn ?? date,
       startsAt: formatTime(start),
       endsAt: formatTime(Math.min(start + 120, 19 * 60)),
       roomId: '',
@@ -336,6 +360,35 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
       cancelled: false,
       completed: false,
     });
+    setEditorRoster(null);
+    if (profile?.role === 'formateur' && firstGroup) void loadEditorRoster(firstGroup.id);
+  }
+
+  async function loadEditorRoster(groupId: StudentIdentifier) {
+    const requestedGroupId = String(groupId);
+    setEditorRoster({
+      groupId: requestedGroupId,
+      students: [],
+      selectedIds: new Set(),
+      status: 'loading',
+    });
+    try {
+      const students = await getMyFormationGroupStudents(getSupabaseClient(), groupId);
+      setEditorRoster((current) => current?.groupId === requestedGroupId ? {
+        groupId: requestedGroupId,
+        students,
+        selectedIds: new Set(students.filter((student) => student.assigned).map((student) => String(student.id))),
+        status: 'ready',
+      } : current);
+    } catch (error) {
+      setEditorRoster((current) => current?.groupId === requestedGroupId ? {
+        groupId: requestedGroupId,
+        students: [],
+        selectedIds: new Set(),
+        status: 'error',
+        error: errorMessage(error),
+      } : current);
+    }
   }
 
   function openEdit(occurrence: PlanningOccurrence) {
@@ -345,17 +398,23 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
     setEditor({
       courseId: occurrence.id,
       occurrenceDate: occurrence.date,
+      formationId: occurrence.formationId?.toString() ?? '',
       groupId: occurrence.groupId?.toString() ?? '',
       subjectId: occurrence.subjectId.toString(),
-      date: occurrence.date,
+      date: occurrence.startsOn ?? occurrence.date,
+      endsOn: occurrence.endsOn ?? occurrence.date,
       startsAt: formatTime(occurrence.startsAtMinutes),
       endsAt: formatTime(occurrence.endsAtMinutes),
       roomId: occurrence.roomId?.toString() ?? '',
       teacherId: occurrence.teacherId.toString(),
-      recurring: occurrence.startsOn !== occurrence.endsOn,
+      recurring: Boolean(occurrence.startsOn && occurrence.endsOn && occurrence.startsOn !== occurrence.endsOn),
       cancelled: occurrence.cancelled,
       completed: occurrence.completed,
     });
+    setEditorRoster(null);
+    if (profile?.role === 'formateur' && occurrence.groupId) {
+      void loadEditorRoster(occurrence.groupId);
+    }
   }
 
   function changeEditorGroup(groupId: string) {
@@ -366,12 +425,16 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
       current
         ? {
             ...current,
+            formationId: group?.formationId?.toString() ?? '',
             groupId,
             subjectId,
+            endsOn: group?.endsOn ?? current.date,
             teacherId: group?.teacherId?.toString() ?? '',
           }
         : current,
     );
+    setEditorRoster(null);
+    if (profile?.role === 'formateur' && group) void loadEditorRoster(group.id);
   }
 
   function changeEditorSubject(subjectId: string) {
@@ -392,12 +455,16 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
     });
   }
 
-  async function performAction(action: () => Promise<void>, success: string, close = true) {
+  async function performAction(
+    action: () => Promise<void | { message: string; tone: 'success' | 'error' }>,
+    success: string,
+    close = true,
+  ) {
     setSaving(true);
     setActionError(null);
     try {
-      await action();
-      notify(success, 'success');
+      const result = await action();
+      notify(result?.message ?? success, result?.tone ?? 'success');
       setReloadKey((key) => key + 1);
       if (close) setEditor(null);
     } catch (error) {
@@ -416,6 +483,7 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
       groupId: editor.groupId,
       subjectId: editor.subjectId,
       date: editor.date,
+      endsOn: editor.endsOn,
       startsAt: editor.startsAt,
       endsAt: editor.endsAt,
       roomId: editor.roomId || null,
@@ -423,7 +491,28 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
       recurring: editor.recurring,
     };
     await performAction(
-      () => savePlanningCourse(getSupabaseClient(), data, actor, input),
+      async () => {
+        if (profile?.role === 'formateur' && editorRoster?.groupId === String(editor.groupId)) {
+          if (editorRoster.status === 'ready') {
+            await saveMyFormationGroupStudents(
+              getSupabaseClient(),
+              editor.groupId,
+              [...editorRoster.selectedIds],
+            );
+          } else if (editorRoster.status === 'error') {
+            await savePlanningCourse(getSupabaseClient(), data, actor, input);
+            return {
+              message: `Séance ${editor.courseId ? 'modifiée' : 'ajoutée'}, mais les étudiants du groupe n’ont pas été mis à jour : ${editorRoster.error}`,
+              tone: 'error' as const,
+            };
+          } else {
+            throw new Error('La liste des étudiants du groupe est encore en chargement.');
+          }
+        } else if (profile?.role === 'formateur') {
+          throw new Error('La liste des étudiants du groupe n’est pas disponible.');
+        }
+        await savePlanningCourse(getSupabaseClient(), data, actor, input);
+      },
       editor.courseId ? 'Séance modifiée.' : 'Séance ajoutée.',
     );
   }
@@ -855,6 +944,8 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
           view === 'planning'
             ? isStudent
               ? 'Votre calendrier de cours et de formateurs, en consultation uniquement.'
+              : profile?.role === 'director'
+                ? 'Consultation du planning du centre en lecture seule.'
               : 'Semaine type, répétée chaque semaine, avec les séances prévues pour votre centre.'
             : 'Liste des séances prévues pendant la semaine sélectionnée.'
         }
@@ -1000,6 +1091,62 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
             </header>
             <form className="planning-editor-form" onSubmit={submitEditor}>
               <label className="sp-form-field">
+                Formation
+                <select
+                  className="sp-field"
+                  onChange={(event) =>
+                    setEditor((current) =>
+                      current
+                        ? {
+                            ...current,
+                            formationId: event.target.value,
+                            groupId: '',
+                            subjectId: '',
+                            teacherId: '',
+                            endsOn: current.date,
+                          }
+                        : current,
+                    )
+                  }
+                  required
+                  value={editor.formationId}
+                >
+                  <option value="">Choisir une formation…</option>
+                  {data.filters.formations
+                    .filter((formation) =>
+                      data.filters.groups.some(
+                        (group) =>
+                          String(group.formationId) === String(formation.id) &&
+                          (profile?.role !== 'formateur' ||
+                            String(group.teacherId) === String(teacherId)),
+                      ),
+                    )
+                    .map((formation) => (
+                      <option key={formation.id} value={formation.id}>
+                        {formation.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <label className="sp-form-field">
+                Groupe de formation
+                <select
+                  className="sp-field"
+                  disabled={!editor.formationId}
+                  onChange={(event) => changeEditorGroup(event.target.value)}
+                  required
+                  value={editor.groupId}
+                >
+                  <option value="">Sélectionner un groupe</option>
+                  {editorGroupOptions.map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name}
+                      {!group.active ? ' (inactif)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="sp-form-field">
                 Matière / module
                 <select
                   className="sp-field"
@@ -1017,42 +1164,27 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
                 </select>
                 {editorGroup && editorSubjects?.length === 0 && (
                   <small className="planning-form-hint">
-                    Aucun module n’est commun à cette formation et aux compétences du formateur
-                    assigné. Vérifiez les modules de la formation ou les matières du formateur.
+                    Aucun module n’est associé à cette formation. Ajoutez ses modules dans
+                    « Formations &amp; Groupes ».
                   </small>
                 )}
               </label>
               <label className="sp-form-field">
-                Groupe de formation
-                <select
-                  className="sp-field"
-                  onChange={(event) => changeEditorGroup(event.target.value)}
-                  required
-                  value={editor.groupId}
-                >
-                  <option value="">Sélectionner un groupe</option>
-                  {data.filters.groups
-                    .filter(
-                      (group) =>
-                        (group.active || String(group.id) === editor.groupId) &&
-                        (profile?.role !== 'formateur' ||
-                          String(group.teacherId) === String(teacherId)),
-                    )
-                    .map((group) => (
-                      <option key={group.id} value={group.id}>
-                        {group.name}
-                        {!group.active ? ' (inactif)' : ''}
-                      </option>
-                    ))}
-                </select>
-              </label>
-              <label className="sp-form-field">
-                Date
+                Date de début
                 <input
                   className="sp-field"
                   onChange={(event) =>
                     setEditor((current) =>
-                      current ? { ...current, date: event.target.value } : current,
+                      current
+                        ? {
+                            ...current,
+                            date: event.target.value,
+                            endsOn:
+                              current.endsOn < event.target.value
+                                ? event.target.value
+                                : current.endsOn,
+                          }
+                        : current,
                     )
                   }
                   required
@@ -1076,6 +1208,23 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
                   <option value="weekly">Chaque semaine</option>
                   <option value="once">Ce jour seulement</option>
                 </select>
+              </label>
+              <label className="sp-form-field">
+                Date de fin
+                <input
+                  className="sp-field"
+                  disabled={!editor.recurring}
+                  max={editorGroup?.endsOn ?? undefined}
+                  min={editor.date}
+                  onChange={(event) =>
+                    setEditor((current) =>
+                      current ? { ...current, endsOn: event.target.value } : current,
+                    )
+                  }
+                  required={editor.recurring}
+                  type="date"
+                  value={editor.recurring ? editor.endsOn : editor.date}
+                />
               </label>
               <label className="sp-form-field">
                 Début
@@ -1134,6 +1283,90 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
                   ))}
                 </select>
               </label>
+              {profile?.role === 'formateur' && editorGroup && (
+                <fieldset className="planning-roster-editor">
+                  <legend>
+                    Étudiants du groupe
+                    {editorRoster?.status === 'ready'
+                      ? ` (${editorRoster.selectedIds.size} sélectionné${editorRoster.selectedIds.size > 1 ? 's' : ''})`
+                      : ''}
+                  </legend>
+                  {editorRoster?.status === 'loading' && (
+                    <LoadingState label="Chargement des étudiants de la formation…" />
+                  )}
+                  {editorRoster?.status === 'error' && (
+                    <Alert tone="error">
+                      La liste des étudiants du groupe n’a pas pu être chargée. {editorRoster.error}
+                      <Button
+                        disabled={saving}
+                        onClick={() => void loadEditorRoster(editorGroup.id)}
+                        type="button"
+                        variant="secondary"
+                      >
+                        Réessayer
+                      </Button>
+                    </Alert>
+                  )}
+                  {editorRoster?.status === 'ready' && (
+                    <>
+                      <Button
+                        disabled={saving || editorRoster.students.length === 0}
+                        onClick={() =>
+                          setEditorRoster((current) => {
+                            if (!current) return current;
+                            const allSelected =
+                              current.selectedIds.size === current.students.length;
+                            return {
+                              ...current,
+                              selectedIds: allSelected
+                                ? new Set()
+                                : new Set(current.students.map((student) => String(student.id))),
+                            };
+                          })
+                        }
+                        type="button"
+                        variant="secondary"
+                      >
+                        {editorRoster.selectedIds.size === editorRoster.students.length
+                          ? 'Tout désélectionner'
+                          : 'Tout sélectionner'}
+                      </Button>
+                      <div className="planning-roster-list">
+                        {editorRoster.students.map((student) => {
+                          const studentId = String(student.id);
+                          return (
+                            <label key={studentId}>
+                              <input
+                                checked={editorRoster.selectedIds.has(studentId)}
+                                onChange={(event) =>
+                                  setEditorRoster((current) => {
+                                    if (!current || current.groupId !== String(editor.groupId)) {
+                                      return current;
+                                    }
+                                    const selectedIds = new Set(current.selectedIds);
+                                    if (event.target.checked) selectedIds.add(studentId);
+                                    else selectedIds.delete(studentId);
+                                    return { ...current, selectedIds };
+                                  })
+                                }
+                                type="checkbox"
+                              />
+                              <span>{[student.firstName, student.lastName].filter(Boolean).join(' ')}</span>
+                            </label>
+                          );
+                        })}
+                        {editorRoster.students.length === 0 && (
+                          <p>Aucun étudiant inscrit dans cette formation.</p>
+                        )}
+                      </div>
+                      <small className="planning-form-hint">
+                        La sélection définit les étudiants affectés au groupe et utilisés dans les
+                        feuilles de présence de ses séances.
+                      </small>
+                    </>
+                  )}
+                </fieldset>
+              )}
               <label className="sp-form-field">
                 Formateur
                 <select
@@ -1156,7 +1389,8 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
                 {editorGroup?.teacherId && (
                   <small className="planning-form-hint">
                     Formateur assigné au groupe : {assignedTeacherName ?? 'Formateur assigné'}.
-                    Seuls ses modules associés à la formation sont disponibles.
+                    Les modules proviennent de la formation et sont limités à ses compétences
+                    lorsqu’elles sont déclarées.
                   </small>
                 )}
               </label>
@@ -1168,14 +1402,6 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
               <div className="planning-editor-actions">
                 {editor.courseId !== undefined && (
                   <>
-                    <Button
-                      disabled={saving}
-                      onClick={toggleCancellation}
-                      type="button"
-                      variant="secondary"
-                    >
-                      {editor.cancelled ? 'Rétablir cette séance' : 'Annuler cette séance'}
-                    </Button>
                     {profile?.role === 'formateur' &&
                       !editor.cancelled &&
                       !editor.completed &&
@@ -1189,12 +1415,36 @@ export function PlanningPage({ view = 'planning' }: { view?: 'planning' | 'sessi
                           ✓ Séance terminée
                         </Button>
                       )}
-                    <Button disabled={saving} onClick={deleteCourse} type="button" variant="danger">
-                      Supprimer le cours
-                    </Button>
+                    {(profile?.role === 'admin' || profile?.role === 'formateur') && (
+                      <>
+                        <Button
+                          disabled={saving}
+                          onClick={toggleCancellation}
+                          type="button"
+                          variant="secondary"
+                        >
+                          {editor.cancelled ? 'Rétablir cette séance' : 'Annuler cette séance'}
+                        </Button>
+                        <Button disabled={saving} onClick={deleteCourse} type="button" variant="danger">
+                          Supprimer le cours
+                        </Button>
+                      </>
+                    )}
                   </>
                 )}
-                <Button disabled={saving} type="submit">
+                <Button
+                  disabled={
+                    saving ||
+                    !editor.formationId ||
+                    !editor.groupId ||
+                    !editor.subjectId ||
+                    editorSubjects?.length === 0 ||
+                    (profile?.role === 'formateur' &&
+                      (!editorRoster || editorRoster.groupId !== String(editor.groupId) ||
+                        editorRoster.status === 'loading'))
+                  }
+                  type="submit"
+                >
                   {saving
                     ? 'Enregistrement…'
                     : editor.courseId

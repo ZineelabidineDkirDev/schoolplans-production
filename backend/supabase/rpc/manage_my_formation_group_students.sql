@@ -1,6 +1,6 @@
 -- À exécuter manuellement dans Supabase après validation du schéma.
--- Permet à un formateur de choisir les étudiants non affectés de son centre
--- pour ses propres groupes de formation.
+-- Permet à un formateur de choisir les étudiants non affectés ou déjà affectés
+-- à un groupe de la même formation, uniquement pour ses propres groupes.
 
 BEGIN;
 
@@ -57,7 +57,20 @@ BEGIN
   SELECT e.id, e.prenom, e.nom, e.groupe_id = v_group_id
   FROM public.etudiants e
   WHERE e.centre_id = v_centre_id
-    AND (e.groupe_id IS NULL OR e.groupe_id = v_group_id)
+    AND (
+      e.groupe_id IS NULL
+      OR EXISTS (
+        SELECT 1
+        FROM public.groupes current_group
+        WHERE current_group.id = e.groupe_id
+          AND current_group.centre_id = v_centre_id
+          AND current_group.formation_id = (
+            SELECT target_group.formation_id
+            FROM public.groupes target_group
+            WHERE target_group.id = v_group_id
+          )
+      )
+    )
   ORDER BY e.nom, e.prenom;
 END;
 $$;
@@ -132,10 +145,19 @@ BEGIN
   FROM public.etudiants e
   WHERE e.centre_id = v_centre_id
     AND e.id::text = ANY(coalesce(p_student_ids, ARRAY[]::text[]))
-    AND (e.groupe_id IS NULL OR e.groupe_id = v_group.id);
+    AND (
+      e.groupe_id IS NULL
+      OR EXISTS (
+        SELECT 1
+        FROM public.groupes current_group
+        WHERE current_group.id = e.groupe_id
+          AND current_group.centre_id = v_centre_id
+          AND current_group.formation_id = v_group.formation_id
+      )
+    );
 
   IF v_available_count <> v_requested_count THEN
-    RAISE EXCEPTION 'Un étudiant sélectionné est introuvable dans le centre ou affecté à un autre groupe.';
+    RAISE EXCEPTION 'Un étudiant sélectionné est introuvable dans le centre ou inscrit à une autre formation.';
   END IF;
 
   UPDATE public.etudiants e

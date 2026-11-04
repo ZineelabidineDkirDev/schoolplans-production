@@ -95,6 +95,7 @@ export type PlanningCourseInput = {
   groupId: StudentIdentifier;
   subjectId: StudentIdentifier;
   date: string;
+  endsOn?: string;
   startsAt: string;
   endsAt: string;
   roomId: StudentIdentifier | null;

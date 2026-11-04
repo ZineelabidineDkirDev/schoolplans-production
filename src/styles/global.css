@@ -9771,8 +9771,43 @@ textarea.sp-field,
   background: #fff !important;
 }
 .planning-editor-form > .planning-editor-actions,
-.planning-editor-form > .planning-form-message {
+.planning-editor-form > .planning-form-message,
+.planning-roster-editor {
   grid-column: 1 / -1;
+}
+.planning-roster-editor {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid #d5deeb;
+  border-radius: 12px;
+}
+.planning-roster-editor legend {
+  padding: 0 6px;
+  color: #172554;
+  font-weight: 700;
+}
+.planning-roster-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 14px;
+  max-height: 220px;
+  overflow: auto;
+}
+.planning-roster-list label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.planning-roster-list label span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.planning-roster-list input {
+  flex: 0 0 auto;
 }
 .planning-editor-form .sp-form-field {
   min-width: 0;
@@ -9840,6 +9875,9 @@ textarea.sp-field,
   }
   .planning-editor-actions .sp-btn {
     flex: 1 1 125px;
+  }
+  .planning-roster-list {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

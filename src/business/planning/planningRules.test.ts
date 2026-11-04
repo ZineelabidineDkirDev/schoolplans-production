@@ -88,6 +88,24 @@ describe('planning business rules', () => {
     )).toEqual([8]);
     expect(getQualifiedTeacherIds(data, data.filters.groups[0], 3)).toEqual([11]);
     expect(getQualifiedTeacherIds(data, data.filters.groups[0], 8)).toEqual([]);
+    expect(getQualifiedTeacherIds(
+      {
+        ...data,
+        subjectIdsByFormation: { '2': [3, 8] },
+        subjectIdsByTeacher: { '11': [8] },
+      },
+      data.filters.groups[0],
+      8,
+    )).toEqual([11]);
+    expect(getGroupSubjectIds(
+      { ...data, subjectIdsByTeacher: {} },
+      data.filters.groups[0],
+    )).toEqual([3]);
+    expect(getQualifiedTeacherIds(
+      { ...data, subjectIdsByTeacher: {} },
+      data.filters.groups[0],
+      3,
+    )).toEqual([11]);
   });
 
   it('validates course date, group dates, training subject and period', () => {
@@ -104,6 +122,17 @@ describe('planning business rules', () => {
     expect(() => validatePlanningCourse({ ...input, subjectId: 99 }, data, actor)).toThrow(
       'ne fait pas partie de la formation',
     );
+  });
+
+  it('validates the custom end date against the start and group dates', () => {
+    expect(() =>
+      validatePlanningCourse({ ...input, endsOn: '2026-10-18' }, data, actor),
+    ).toThrow('postérieure ou égale');
+    expect(() =>
+      validatePlanningCourse({ ...input, endsOn: '2026-11-01' }, data, actor),
+    ).toThrow('ne peut pas dépasser la fin du groupe');
+    expect(validatePlanningCourse({ ...input, endsOn: '2026-10-30' }, data, actor).endsOn)
+      .toBe('2026-10-30');
   });
 
   it('rejects Sundays, invalid time intervals and times outside opening hours', () => {
@@ -151,6 +180,13 @@ describe('planning business rules', () => {
         centreId: 'centre-a',
       }),
     ).toThrow('groupe d’un autre formateur');
+    expect(
+      validatePlanningCourse(input, { ...data, subjectIdsByTeacher: {} }, {
+        role: 'formateur',
+        teacherId: '11',
+        centreId: 'centre-a',
+      }),
+    ).toMatchObject({ teacherId: 11 });
   });
 
   it('rejects a selected trainer who is not associated with the course module', () => {
